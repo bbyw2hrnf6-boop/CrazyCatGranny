@@ -31,7 +31,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.play("granny-skating", true);
     const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + 125 : this.runSpeed;
     this.setVelocityX(Math.max(this.body.velocity.x, boostedSpeed));
-    this.anims.timeScale = Phaser.Math.Clamp(Math.abs(this.body.velocity.x) / this.runSpeed * 0.76, 0.62, 1.06);
+    this.anims.timeScale = Phaser.Math.Clamp(Math.abs(this.body.velocity.x) / this.runSpeed * 0.8, 0.72, 1.08);
     const grounded = this.body.blocked.down || this.body.touching.down;
     if (!grounded) {
       if (this.scene.time.now - this.lastGrounded > 130) {

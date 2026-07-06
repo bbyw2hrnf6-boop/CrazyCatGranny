@@ -14,7 +14,7 @@ const config = {
   backgroundColor: "#9fe8ee",
   pixelArt: false,
   antialias: true,
-  roundPixels: true,
+  roundPixels: false,
   physics: {
     default: "arcade",
     arcade: {

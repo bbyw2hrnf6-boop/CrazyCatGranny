@@ -32,6 +32,7 @@ export class GameScene extends Phaser.Scene {
     this.lastFallCheckpoint = -999;
     this.repeatFallCount = 0;
     this.thiefFinishTime = 0;
+    this.finishX = this.level.length - 260;
   }
 
   create() {
@@ -63,8 +64,8 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.granny, this.coins, this.takeCoin, undefined, this);
     this.physics.add.overlap(this.granny, this.treats, this.takeTreat, undefined, this);
 
-    this.cameras.main.startFollow(this.granny, true, 0.085, 0.08, -260, 60);
-    this.cameras.main.setDeadzone(170, 90);
+    this.cameras.main.startFollow(this.granny, true, 0.15, 0.11, -260, 60);
+    this.cameras.main.setDeadzone(130, 80);
     this.events.on("granny-land", this.onGrannyLand, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off("granny-land", this.onGrannyLand, this));
     this.createThief();
@@ -99,7 +100,7 @@ export class GameScene extends Phaser.Scene {
     if (this.elapsed >= this.escapeLimit) this.lose("time");
     if (this.finished) return;
     if (this.granny.y > 760 || this.granny.x < this.cameras.main.scrollX - 130) this.fall();
-    if (this.granny.x >= this.level.length - 260) {
+    if (this.granny.x >= this.finishX) {
       if (this.level.boss && this.bossHealth > 0) {
         this.granny.x = this.level.length - 330;
         this.granny.setVelocityX(120);
@@ -379,18 +380,12 @@ export class GameScene extends Phaser.Scene {
       this.hooks.add(hook);
     });
 
-    for (let x = 420; x < length - 350; x += 175) {
-      const wave = Math.sin(x * 0.008) * 65;
-      addCoin(this, x, 435 + wave, this.coins);
-    }
-    [
-      [Math.round(length * 0.18), 350],
-      [Math.round(length * 0.52), 300],
-      [Math.round(length * 0.86), 285]
-    ].forEach(([x, y]) => addTreat(this, x, y, this.treats));
-
     const obstacles = [];
-    for (let x = 1380; x < length - 520; x += this.level.boss ? 850 : 1250) obstacles.push(x);
+    for (let x = 1380; x < length - 520; x += this.level.boss ? 850 : 1250) {
+      const blockingGap = gaps.find(([start, end]) => x > start - 90 && x < end + 90);
+      const safeX = blockingGap ? blockingGap[1] + 115 : x;
+      if (safeX < length - 520) obstacles.push(safeX);
+    }
     obstacles.forEach((x, index) => {
       const textures = {
         1: this.level.gimmick === "glass" ? ["glass", "crate"] : ["crate", "glass"],
@@ -405,6 +400,28 @@ export class GameScene extends Phaser.Scene {
       obstacle.setScale(scale).refreshBody();
       obstacle.setData("type", texture);
     });
+
+    let coinIndex = 0;
+    for (let x = 420; x < length - 350; x += 175) {
+      const upperRoute = raised.find(([platformX, , width]) => x > platformX + 34 && x < platformX + width - 34);
+      const overGap = gaps.some(([start, end]) => x > start - 42 && x < end + 42);
+      const nearObstacle = obstacles.some((obstacleX) => Math.abs(x - obstacleX) < 150);
+      if ((!upperRoute && overGap) || nearObstacle) continue;
+
+      const surfaceY = upperRoute ? upperRoute[1] : 590;
+      const arc = Math.sin(coinIndex * 0.82) * 18;
+      addCoin(this, x, surfaceY - 105 - arc, this.coins);
+      coinIndex += 1;
+    }
+    this.courseGaps = gaps;
+    this.obstacleXs = obstacles;
+    this.raisedPlatforms = raised;
+
+    [
+      [Math.round(length * 0.18), 350],
+      [Math.round(length * 0.52), 300],
+      [Math.round(length * 0.86), 285]
+    ].forEach(([x, y]) => addTreat(this, x, y, this.treats));
 
     if (this.level.id > 3) {
       for (let x = 1700; x < length - 700; x += 1900) {
@@ -746,7 +763,7 @@ export class GameScene extends Phaser.Scene {
     const pressureBoost = this.granny.x > this.thiefProgress - 175 ? 28 : 0;
     const speed = Math.max(235, this.thiefSpeed - bananaSlow + pressureBoost);
     this.thiefProgress += speed * Math.min(delta / 1000, 0.04);
-    const finish = this.level.length - 255;
+    const finish = this.finishX;
     const bossGate = this.level.length - 500;
     this.thiefProgress = Math.min(this.thiefProgress, this.level.boss && this.bossHealth > 0 ? bossGate : finish);
     this.thief.x = this.thiefProgress;
@@ -754,10 +771,8 @@ export class GameScene extends Phaser.Scene {
     this.cageCat.x = this.thief.x - 48;
     this.cageCat.y = this.thief.y - 48;
 
-    if (this.thiefProgress >= finish - 1 && !this.level.boss) {
-      if (!this.thiefFinishTime) this.thiefFinishTime = this.time.now;
-      const grace = this.granny.x > finish - 300 ? 1300 : 350;
-      if (this.time.now - this.thiefFinishTime >= grace) this.lose("thief");
+    if (this.thiefProgress >= finish - 1 && (!this.level.boss || this.bossHealth <= 0)) {
+      this.lose("thief");
     }
   }
 
