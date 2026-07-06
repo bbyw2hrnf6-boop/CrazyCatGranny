@@ -3,7 +3,6 @@ import { SaveGame } from "../savegame/SaveGame.js";
 import { HAT_ITEMS, HOME_ITEMS, roomPosition } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
-  buildRoomPerches,
   createCat,
   createItemPreview,
   createRoomDecor,
@@ -20,6 +19,11 @@ export class CatHouse extends Phaser.Scene {
 
   init(data) {
     this.page = Phaser.Math.Clamp(data?.page || 1, 1, 5);
+    this.roomEditing = false;
+    this.selectedFurnitureId = null;
+    this.draftDecorPositions = null;
+    this.editorLabels = null;
+    this.editorParts = null;
   }
 
   create() {
@@ -559,22 +563,33 @@ export class CatHouse extends Phaser.Scene {
       agent.sprite.setPosition(agent.x, agent.y).setScale(agent.baseScale).setAngle(0);
     });
 
+    this.draftDecorPositions = Object.fromEntries(
+      Object.keys(this.roomFurniture).map((id) => [id, roomPosition(id, this.save.decorPositions[id])])
+    );
+    this.editorLabels = {};
     const parts = [];
+    const blocker = this.add.rectangle(640, 360, 1280, 720, 0xffffff, 0.001).setDepth(69).setInteractive();
     const banner = this.add.rectangle(790, 116, 720, 64, COLORS.ink, 0.94).setDepth(74);
     banner.setStrokeStyle(4, COLORS.cream);
-    const title = this.add.text(790, 103, "DRAG FURNITURE TO MOVE IT", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
-    const hint = this.add.text(790, 130, "Wall pieces stay on walls · floor pieces stay grounded", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(75);
-    const storage = pill(this, 700, 658, 220, 52, "STORAGE", { fill: COLORS.cream, size: 17 }).setDepth(75);
-    const reset = pill(this, 920, 658, 180, 52, "RESET", { fill: COLORS.cream, size: 17 }).setDepth(75);
-    const done = pill(this, 1120, 658, 180, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
+    const title = this.add.text(790, 103, "DRAG ANYWHERE · SELECT TO TURN", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
+    this.editorHint = this.add.text(790, 130, "Select furniture · Done saves layout and rebuilds cat paths", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(75);
+    const storage = pill(this, 390, 658, 145, 52, "STORAGE", { fill: COLORS.cream, size: 15 }).setDepth(75);
+    const turnLeft = pill(this, 545, 658, 130, 52, "TURN ◀", { fill: COLORS.cream, size: 15 }).setDepth(75);
+    const turnRight = pill(this, 680, 658, 130, 52, "TURN ▶", { fill: COLORS.cream, size: 15 }).setDepth(75);
+    const flip = pill(this, 815, 658, 120, 52, "FLIP", { fill: COLORS.cream, size: 15 }).setDepth(75);
+    const reset = pill(this, 945, 658, 120, 52, "RESET", { fill: COLORS.cream, size: 15 }).setDepth(75);
+    const done = pill(this, 1120, 658, 190, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
     storage.on("pointerup", () => this.openRoomStorage());
-    reset.on("pointerup", () => {
-      SaveGame.resetDecorPositions();
+    turnLeft.on("pointerup", () => this.rotateSelectedFurniture(-15));
+    turnRight.on("pointerup", () => this.rotateSelectedFurniture(15));
+    flip.on("pointerup", () => this.flipSelectedFurniture());
+    reset.on("pointerup", () => this.resetFurnitureDraft());
+    done.on("pointerup", () => {
+      SaveGame.setDecorLayout(this.draftDecorPositions);
       sound(this, "buy");
       this.scene.restart({ page: this.page });
     });
-    done.on("pointerup", () => this.scene.restart({ page: this.page }));
-    parts.push(banner, title, hint, storage, reset, done);
+    parts.push(blocker, banner, title, this.editorHint, storage, turnLeft, turnRight, flip, reset, done);
 
     Object.entries(this.roomFurniture).forEach(([id, visual]) => {
       const labelY = Math.max(155, visual.y - visual.height * 0.5 - 12);
@@ -585,26 +600,83 @@ export class CatHouse extends Phaser.Scene {
         .setPadding(7, 3);
       visual.setDepth(72).setInteractive({ useHandCursor: true, draggable: true });
       this.input.setDraggable(visual);
+      visual.on("pointerdown", () => this.selectFurniture(id));
       visual.on("dragstart", () => {
-        visual.setScale(1.04).setDepth(76);
+        this.selectFurniture(id);
+        const transform = this.draftDecorPositions[id];
+        visual.setScale(transform.flipX ? -1.04 : 1.04, 1.04).setDepth(76);
         label.setDepth(77);
       });
       visual.on("drag", (_pointer, dragX, dragY) => {
-        const position = roomPosition(id, { x: dragX, y: dragY });
+        const position = roomPosition(id, { ...this.draftDecorPositions[id], x: dragX, y: dragY });
+        this.draftDecorPositions[id] = position;
         visual.setPosition(position.x, position.y);
         label.setPosition(position.x, Math.max(155, position.y - visual.height * 0.5 - 12));
       });
       visual.on("dragend", () => {
-        visual.setScale(1).setDepth(72);
+        const transform = this.draftDecorPositions[id];
+        visual.setScale(transform.flipX ? -1 : 1, 1).setDepth(72);
         label.setDepth(73);
-        SaveGame.setDecorPosition(id, visual.x, visual.y);
-        this.save = SaveGame.load();
-        this.catPerches = buildRoomPerches(this.save.activeDecor, this.save.decorPositions);
-        sound(this, "buy");
       });
+      this.editorLabels[id] = label;
       parts.push(label);
     });
+    this.selectFurniture(Object.keys(this.roomFurniture)[0]);
     this.editorParts = parts;
+  }
+
+  selectFurniture(id) {
+    if (!this.draftDecorPositions?.[id]) return;
+    this.selectedFurnitureId = id;
+    Object.entries(this.editorLabels || {}).forEach(([itemId, label]) => {
+      label.setBackgroundColor(itemId === id ? "#ec5966ee" : "#34283ad9");
+    });
+    const name = HOME_ITEMS.find((item) => item.id === id)?.name || id;
+    this.editorHint?.setText(`Selected: ${name} · drag, turn or flip · Done saves`);
+  }
+
+  applyFurnitureDraft(id) {
+    const visual = this.roomFurniture[id];
+    const transform = this.draftDecorPositions[id];
+    if (!visual || !transform) return;
+    visual.setPosition(transform.x, transform.y);
+    visual.setAngle(transform.angle);
+    visual.setScale(transform.flipX ? -1 : 1, 1);
+    this.editorLabels[id]?.setPosition(
+      transform.x,
+      Math.max(155, transform.y - visual.height * 0.5 - 12)
+    );
+  }
+
+  rotateSelectedFurniture(delta) {
+    const id = this.selectedFurnitureId;
+    if (!id) return;
+    this.draftDecorPositions[id] = roomPosition(id, {
+      ...this.draftDecorPositions[id],
+      angle: this.draftDecorPositions[id].angle + delta
+    });
+    this.applyFurnitureDraft(id);
+    sound(this, "jump");
+  }
+
+  flipSelectedFurniture() {
+    const id = this.selectedFurnitureId;
+    if (!id) return;
+    this.draftDecorPositions[id] = roomPosition(id, {
+      ...this.draftDecorPositions[id],
+      flipX: !this.draftDecorPositions[id].flipX
+    });
+    this.applyFurnitureDraft(id);
+    sound(this, "jump");
+  }
+
+  resetFurnitureDraft() {
+    Object.keys(this.roomFurniture).forEach((id) => {
+      this.draftDecorPositions[id] = roomPosition(id);
+      this.applyFurnitureDraft(id);
+    });
+    this.selectFurniture(this.selectedFurnitureId);
+    sound(this, "buy");
   }
 
   openRoomStorage() {

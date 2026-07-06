@@ -186,14 +186,36 @@ export const SaveGame = {
     return true;
   },
 
-  setDecorPosition(id, x, y) {
+  setDecorPosition(id, x, y, angle = 0, flipX = false) {
     const save = this.load();
     if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return false;
-    const position = roomPosition(id, { x, y });
+    const position = roomPosition(id, { x, y, angle, flipX });
     if (!position) return false;
-    save.decorPositions[id] = { x: Math.round(position.x), y: Math.round(position.y) };
+    save.decorPositions[id] = {
+      x: Math.round(position.x),
+      y: Math.round(position.y),
+      angle: Math.round(position.angle),
+      flipX: position.flipX
+    };
     this.write(save);
     return position;
+  },
+
+  setDecorLayout(layout) {
+    const save = this.load();
+    Object.entries(layout || {}).forEach(([id, transform]) => {
+      if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return;
+      const position = roomPosition(id, transform);
+      if (!position) return;
+      save.decorPositions[id] = {
+        x: Math.round(position.x),
+        y: Math.round(position.y),
+        angle: Math.round(position.angle),
+        flipX: position.flipX
+      };
+    });
+    this.write(save);
+    return save.decorPositions;
   },
 
   resetDecorPositions() {

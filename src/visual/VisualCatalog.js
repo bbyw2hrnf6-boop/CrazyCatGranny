@@ -37,7 +37,7 @@ const furniture = [
   {
     id: "scratcher", name: "Scratch Tower", icon: "♜", price: 75, color: 0xc88755,
     room: {
-      x: 390, y: 400, scale: 0.42, bounds: { minX: 360, maxX: 1160, minY: 340, maxY: 440 },
+      x: 390, y: 400, scale: 0.42,
       perches: [
         { x: 364, y: 435, path: [[340, 560], [350, 480], [364, 435]] },
         { x: 382, y: 328, path: [[340, 560], [350, 480], [364, 435], [382, 328]] },
@@ -48,29 +48,29 @@ const furniture = [
   {
     id: "catbed", name: "Cloud Bed", icon: "☁", price: 95, color: 0xa4d6db,
     room: {
-      x: 1085, y: 560, scale: 0.36, bounds: { minX: 370, maxX: 1170, minY: 510, maxY: 585 },
+      x: 1085, y: 560, scale: 0.36,
       perches: [{ x: 1085, y: 548, path: [[1060, 600], [1085, 548]] }]
     }
   },
   {
     id: "yarnbasket", name: "Yarn Basket", icon: "◉", price: 120, color: 0x9e5b9d,
-    room: { x: 520, y: 570, scale: 0.32, bounds: { minX: 350, maxX: 1200, minY: 520, maxY: 590 } }
+    room: { x: 520, y: 570, scale: 0.32 }
   },
   {
     id: "aquarium", name: "Tiny Aquarium", icon: "◈", price: 180, color: 0x51b3c1,
-    room: { x: 1110, y: 205, scale: 0.34, wall: true, bounds: { minX: 380, maxX: 1180, minY: 160, maxY: 350 } }
+    room: { x: 1110, y: 205, scale: 0.34 }
   },
   {
     id: "windowseat", name: "Window Throne", icon: "▣", price: 140, color: 0x78aec9,
     room: {
-      x: 1015, y: 430, scale: 0.36, wall: true, bounds: { minX: 420, maxX: 1160, minY: 300, maxY: 450 },
+      x: 1015, y: 430, scale: 0.36,
       perches: [{ x: 1015, y: 370, path: [[980, 585], [1015, 470], [1015, 370]] }]
     }
   },
   {
     id: "catbridge", name: "Wall Bridge", icon: "⌁", price: 165, color: 0xc88a58,
     room: {
-      x: 790, y: 270, scale: 0.48, wall: true, bounds: { minX: 430, maxX: 1120, minY: 180, maxY: 390 },
+      x: 790, y: 270, scale: 0.48,
       perches: [
         { x: 725, y: 295, path: [[680, 570], [690, 390], [725, 295]] },
         { x: 805, y: 235, path: [[680, 570], [690, 390], [725, 295], [805, 235]] }
@@ -80,7 +80,7 @@ const furniture = [
   {
     id: "velvetsofa", name: "Velvet Sofa", icon: "▰", price: 210, color: 0x835d8c,
     room: {
-      x: 700, y: 445, scale: 0.66, bounds: { minX: 430, maxX: 1090, minY: 410, maxY: 500 },
+      x: 700, y: 445, scale: 0.66,
       perches: [
         { x: 635, y: 365, path: [[600, 585], [620, 440], [635, 365]] },
         { x: 740, y: 365, path: [[760, 585], [750, 440], [740, 365]] }
@@ -144,14 +144,20 @@ export function visualItem(id) {
 export function roomPosition(itemId, savedPosition = null) {
   const item = visualItem(itemId);
   if (!item?.room || item.room.wallpaper) return null;
-  const bounds = item.room.bounds;
+  const bounds = { minX: 330, maxX: 1220, minY: 145, maxY: 605 };
   const value = Number(savedPosition?.x);
   const savedX = Number.isFinite(value) ? value : item.room.x;
   const yValue = Number(savedPosition?.y);
   const savedY = Number.isFinite(yValue) ? yValue : item.room.y;
+  const angleValue = Number(savedPosition?.angle);
+  const angle = Number.isFinite(angleValue)
+    ? ((angleValue + 180) % 360 + 360) % 360 - 180
+    : 0;
   return {
     x: Math.max(bounds.minX, Math.min(bounds.maxX, savedX)),
-    y: Math.max(bounds.minY, Math.min(bounds.maxY, savedY))
+    y: Math.max(bounds.minY, Math.min(bounds.maxY, savedY)),
+    angle,
+    flipX: Boolean(savedPosition?.flipX)
   };
 }
 

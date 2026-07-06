@@ -113,17 +113,19 @@ export function createFurniture(scene, itemId, options = {}) {
   const position = roomPosition(itemId, options);
   const room = { ...look.room, ...options, ...position };
   const image = scene.add.image(0, 0, look.texture).setScale(room.scale);
-  const shadow = room.wall
+  const shadow = room.y < 450
     ? null
     : scene.add.ellipse(0, image.displayHeight * 0.39, image.displayWidth * 0.72, Math.max(9, image.displayWidth * 0.1), VISUAL_RULES.shadowColor, 0.12);
   const children = shadow ? [shadow, image] : [image];
+  const normalDepth = room.y < 450 ? -5 : -4;
   return scene.add.container(room.x, room.y, children)
     .setSize(image.displayWidth, image.displayHeight)
-    .setDepth(room.depth ?? (room.wall ? -5 : -4))
+    .setScale(room.flipX ? -1 : 1, 1)
+    .setAngle(room.angle)
+    .setDepth(room.depth ?? normalDepth)
     .setData("visualKind", "furniture")
     .setData("itemId", itemId)
-    .setData("wallMounted", Boolean(room.wall))
-    .setData("normalDepth", room.depth ?? (room.wall ? -5 : -4));
+    .setData("normalDepth", room.depth ?? normalDepth);
 }
 
 export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
@@ -131,20 +133,31 @@ export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
   HOME_ITEMS.forEach((item) => {
     if (!activeDecor.includes(item.id) || !item.room.perches) return;
     const position = roomPosition(item.id, decorPositions[item.id]);
-    const dx = position.x - item.room.x;
-    const dy = position.y - item.room.y;
+    const radians = position.angle * (Math.PI / 180);
+    const cosine = Math.cos(radians);
+    const sine = Math.sin(radians);
+    const transformPoint = (x, y) => {
+      const localX = (x - item.room.x) * (position.flipX ? -1 : 1);
+      const localY = y - item.room.y;
+      return {
+        x: Math.max(330, Math.min(1220, position.x + localX * cosine - localY * sine)),
+        y: Math.max(145, Math.min(605, position.y + localX * sine + localY * cosine))
+      };
+    };
     item.room.perches.forEach((perch, perchIndex) => {
-      const path = perch.path.map(([x, y], index) => ({
-        x: x + dx,
-        y: index === 0
-          ? Math.max(535, Math.min(600, y + (item.room.wall ? 0 : dy * 0.25)))
-          : y + dy,
-        mode: index === 0 ? "walk" : "jump"
-      }));
+      const path = perch.path.map(([x, y], index) => {
+        const point = transformPoint(x, y);
+        return {
+          x: point.x,
+          y: index === 0 ? Math.max(535, Math.min(600, point.y)) : point.y,
+          mode: index === 0 ? "walk" : "jump"
+        };
+      });
+      const target = transformPoint(perch.x, perch.y);
       perches.push({
         id: `${item.id}-${perchIndex}`,
-        x: perch.x + dx,
-        y: perch.y + dy,
+        x: target.x,
+        y: target.y,
         path,
         furniture: item.id
       });
