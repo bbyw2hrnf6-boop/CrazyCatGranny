@@ -348,10 +348,15 @@ export class GameScene extends Phaser.Scene {
     const gaps = [];
     if (this.level.id === 1) gaps.push([1520, 1650], [3300, 3440]);
     else {
-      const stride = 1420 - this.level.world * 35;
-      for (let x = 1050; x < length - 850; x += stride) {
-        const gapWidth = 145 + ((Math.floor(x / stride) + this.level.world) % 3) * 18;
-        gaps.push([x, x + gapWidth]);
+      const chapter = (this.level.id - 1) % 9;
+      const stride = 1210 - this.level.world * 35 - Math.min(120, chapter * 15);
+      for (let x = 1050, index = 0; x < length - 850; x += stride, index += 1) {
+        const hookEvery = this.level.world >= 3 ? 2 : 3;
+        const requiresHook = index > 0 && (index + this.level.id) % hookEvery === 0;
+        const regularWidth = 158 + ((index + this.level.world) % 3) * 22;
+        const hookWidth = Math.min(500, 390 + this.level.world * 18 + chapter * 8);
+        const gapWidth = requiresHook ? hookWidth : regularWidth;
+        gaps.push([x, x + gapWidth, requiresHook]);
       }
     }
     let cursor = 0;
@@ -363,20 +368,42 @@ export class GameScene extends Phaser.Scene {
 
     const raised = [];
     for (let x = 680, index = 0; x < length - 420; x += 860, index += 1) {
-      raised.push([x, 475 - (index % 3) * 55, 250 + (index % 2) * 70]);
+      const width = 250 + (index % 2) * 70;
+      const crossesHookGap = gaps.some(([start, end, required]) => required && x < end + 45 && x + width > start - 45);
+      if (!crossesHookGap) raised.push([x, 475 - (index % 3) * 55, width]);
     }
-    raised.push([this.level.length - 850, 390, 380]);
+    const finishPlatform = [this.level.length - 850, 390, 380];
+    const blocksFinalHook = gaps.some(([start, end, required]) => required
+      && finishPlatform[0] < end + 45 && finishPlatform[0] + finishPlatform[2] > start - 45);
+    if (!blocksFinalHook) raised.push(finishPlatform);
     raised.forEach(([x, y, width], index) => {
       if (x < length - 300) this.addPlatform(x, y, width, 34, index % 2 ? 0xc97b54 : 0xf2c56e);
     });
 
-    const hookXs = this.level.id === 1 ? [3380] : [];
+    const hookPoints = this.level.id === 1 ? [{ x: 3380, y: 265, required: false }] : [];
     if (this.level.id > 1) {
-      for (let x = 1120; x < length - 650; x += 1500 - this.level.world * 55) hookXs.push(x);
+      for (let x = 1120; x < length - 650; x += 1500 - this.level.world * 55) {
+        hookPoints.push({ x, y: 245 + (hookPoints.length % 2) * 30, required: false });
+      }
     }
-    hookXs.forEach((x, index) => {
-      const hook = this.add.image(x, 230 + (index % 2) * 35, "hook").setDepth(8);
+    gaps.forEach(([start, end, required], index) => {
+      if (!required) return;
+      const x = start + (end - start) * 0.5;
+      const existing = hookPoints.find((point) => Math.abs(point.x - x) < 170);
+      if (existing) {
+        existing.x = x;
+        existing.y = 300 + (index % 2) * 22;
+        existing.required = true;
+      } else hookPoints.push({ x, y: 300 + (index % 2) * 22, required: true });
+    });
+    hookPoints.sort((a, b) => a.x - b.x).forEach((point) => {
+      const hook = this.add.image(point.x, point.y, "hook").setDepth(8);
       hook.setData("used", false);
+      hook.setData("required", point.required);
+      if (point.required) {
+        hook.setScale(1.12).setTint(0xffe17a);
+        this.tweens.add({ targets: hook, scale: 1.22, duration: 650, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      }
       this.hooks.add(hook);
     });
 
@@ -425,6 +452,8 @@ export class GameScene extends Phaser.Scene {
 
     if (this.level.id > 3) {
       for (let x = 1700; x < length - 700; x += 1900) {
+        const bridgesHookGap = gaps.some(([start, end, required]) => required && x < end + 40 && x + 250 > start - 40);
+        if (bridgesHookGap) continue;
         const awning = this.addPlatform(x, 505, 250, 24, 0xe85e68);
         awning.setData("bounce", true);
       }
@@ -543,7 +572,9 @@ export class GameScene extends Phaser.Scene {
       .setDepth(11)
       .setScale(this.level.boss ? 0.29 : 0.25)
       .play("thief-running");
+    this.thiefRope = this.add.graphics().setDepth(10);
     this.thiefBob = 0;
+    this.thiefJump = null;
     const catFrame = this.chapterCatLevel ? this.chapterCatLevel.id : this.level.id;
     this.cageCat = addDetailedCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
     if (!this.chapterCatLevel) this.cageCat.setTint(0x4b3b50).setAlpha(0.78);
@@ -690,7 +721,9 @@ export class GameScene extends Phaser.Scene {
     });
     if (nearest) {
       this.granny.latch(nearest);
-      this.respawnX = Math.max(this.respawnX, nearest.x - 230);
+      const hookGap = this.courseGaps.find(([start, end, required]) => required && nearest.x > start && nearest.x < end);
+      const safeCheckpoint = hookGap ? hookGap[0] - 145 : nearest.x - 230;
+      this.respawnX = Math.max(this.respawnX, safeCheckpoint);
       sound(this, "cane");
       this.rope = this.add.graphics().setDepth(10);
       this.cameras.main.shake(70, 0.002);
@@ -757,17 +790,101 @@ export class GameScene extends Phaser.Scene {
     this.cameras.main.flash(90, 255, 220, 95, false);
   }
 
+  safeThiefLanding(startX, proposedX) {
+    let landingX = proposedX;
+    for (let pass = 0; pass < 4; pass += 1) {
+      const nearbyGap = this.courseGaps.find(([start, end]) => end > startX && start < landingX + 75 && end + 100 > landingX);
+      if (nearbyGap) landingX = nearbyGap[1] + 100;
+      const nearbyObstacle = this.breakables.getChildren()
+        .find((object) => object.active && object.x > startX && object.x < landingX + 75 && object.x + 145 > landingX);
+      if (nearbyObstacle) landingX = nearbyObstacle.x + 145;
+    }
+    return landingX;
+  }
+
+  planThiefAvoidance() {
+    if (this.thiefJump) return;
+    const gap = this.courseGaps.find(([start]) => start > this.thiefProgress && start - this.thiefProgress < 145);
+    const obstacle = this.breakables.getChildren()
+      .filter((object) => object.active && object.x > this.thiefProgress)
+      .sort((a, b) => a.x - b.x)[0];
+    const obstacleAhead = obstacle && obstacle.x - this.thiefProgress < 115 ? obstacle : null;
+    const gapDistance = gap ? gap[0] - this.thiefProgress : Infinity;
+    const obstacleDistance = obstacleAhead ? obstacleAhead.x - this.thiefProgress : Infinity;
+
+    if (gapDistance < obstacleDistance) {
+      const [start, end, required] = gap;
+      const landingX = this.safeThiefLanding(this.thiefProgress, end + 100);
+      const grappleGap = required
+        ? gap
+        : this.courseGaps.find(([gapStart, gapEnd, needsHook]) => needsHook
+          && gapStart > this.thiefProgress && gapEnd < landingX);
+      const routeHook = grappleGap
+        ? this.hooks.getChildren().find((hook) => hook.x > grappleGap[0] && hook.x < grappleGap[1])
+        : null;
+      this.thiefJump = {
+        type: grappleGap ? "grapple-gap" : "gap",
+        startX: this.thiefProgress,
+        endX: landingX,
+        height: grappleGap ? 195 : 145,
+        hookX: routeHook?.x,
+        hookY: routeHook?.y
+      };
+    } else if (obstacleAhead) {
+      const landingX = this.safeThiefLanding(this.thiefProgress, obstacleAhead.x + 145);
+      const grappleGap = this.courseGaps.find(([gapStart, gapEnd, needsHook]) => needsHook
+        && gapStart > this.thiefProgress && gapEnd < landingX);
+      const routeHook = grappleGap
+        ? this.hooks.getChildren().find((hook) => hook.x > grappleGap[0] && hook.x < grappleGap[1])
+        : null;
+      this.thiefJump = {
+        type: grappleGap ? "grapple-gap" : "obstacle",
+        startX: this.thiefProgress,
+        endX: landingX,
+        height: grappleGap ? 195 : 125,
+        hookX: routeHook?.x,
+        hookY: routeHook?.y
+      };
+    }
+  }
+
   updateThief(delta) {
     this.thiefBob += delta * 0.012;
     const bananaSlow = this.save.equippedGear === "bananaBoost" ? 58 : 0;
     const pressureBoost = this.granny.x > this.thiefProgress - 175 ? 28 : 0;
     const speed = Math.max(235, this.thiefSpeed - bananaSlow + pressureBoost);
+    this.planThiefAvoidance();
     this.thiefProgress += speed * Math.min(delta / 1000, 0.04);
     const finish = this.finishX;
     const bossGate = this.level.length - 500;
     this.thiefProgress = Math.min(this.thiefProgress, this.level.boss && this.bossHealth > 0 ? bossGate : finish);
     this.thief.x = this.thiefProgress;
-    this.thief.y = 502 + Math.sin(this.thiefBob) * 7;
+    this.thiefRope.clear();
+    if (this.thiefJump) {
+      const jumpProgress = Phaser.Math.Clamp(
+        (this.thiefProgress - this.thiefJump.startX) / (this.thiefJump.endX - this.thiefJump.startX),
+        0,
+        1
+      );
+      const arc = Math.sin(jumpProgress * Math.PI);
+      this.thief.y = 502 - arc * this.thiefJump.height;
+      this.thief.setAngle(Math.sin(jumpProgress * Math.PI * 2) * 7);
+      this.thief.anims.timeScale = this.thiefJump.type === "grapple-gap" ? 0.68 : 0.82;
+      if (this.thiefJump.type === "grapple-gap" && this.thiefJump.hookX && jumpProgress < 0.82) {
+        this.thiefRope.lineStyle(3, 0x423039, 0.9).beginPath()
+          .moveTo(this.thiefJump.hookX, this.thiefJump.hookY + 16)
+          .lineTo(this.thief.x - 8, this.thief.y - 24)
+          .strokePath();
+      }
+      if (jumpProgress >= 1) {
+        this.thiefJump = null;
+        this.thief.setAngle(0);
+      }
+    } else {
+      this.thief.y = 502 + Math.sin(this.thiefBob) * 7;
+      this.thief.setAngle(0);
+      this.thief.anims.timeScale = Phaser.Math.Clamp(speed / 300, 0.78, 1.18);
+    }
     this.cageCat.x = this.thief.x - 48;
     this.cageCat.y = this.thief.y - 48;
 
@@ -1045,8 +1162,13 @@ export class GameScene extends Phaser.Scene {
       this.lose("falls");
       return;
     }
-    const checkpoint = Math.max(140, Math.floor(this.granny.x / 620) * 620 + 120);
-    this.respawnX = Math.max(this.respawnX, checkpoint);
+    let checkpoint = Math.max(140, Math.floor(this.granny.x / 620) * 620 + 120);
+    const nearbyGap = this.courseGaps.find(([start, end]) => this.granny.x > start - 170 && this.granny.x < end + 70);
+    if (nearbyGap) checkpoint = Math.max(140, nearbyGap[0] - 145);
+    let safeRespawn = Math.max(this.respawnX, checkpoint);
+    const respawnGap = this.courseGaps.find(([start, end]) => safeRespawn > start - 70 && safeRespawn < end + 60);
+    if (respawnGap) safeRespawn = Math.max(140, respawnGap[0] - 145);
+    this.respawnX = safeRespawn;
     if (Math.abs(this.respawnX - this.lastFallCheckpoint) < 100) this.repeatFallCount += 1;
     else this.repeatFallCount = 0;
     this.lastFallCheckpoint = this.respawnX;
