@@ -1,31 +1,16 @@
 import { LEVELS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
-import { addCatHat, addDetailedCat, syncCatHat } from "../objects/Cat.js";
-import { addHatArt } from "../ui/ItemArt.js";
+import { HAT_ITEMS, HOME_ITEMS } from "../visual/VisualCatalog.js";
+import {
+  attachCatAccessory,
+  createCat,
+  createItemPreview,
+  createRoomDecor,
+  syncCatAccessory
+} from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
 
-const CAT_ITEMS = [
-  ["none", "Natural Fur", "×", "#8f7d8d"],
-  ["partyHat", "Party Hat", "△", "#ec5966"],
-  ["crown", "Tiny Crown", "♛", "#f2b83f"],
-  ["cowboy", "Meowboy Hat", "⌒", "#8c5837"],
-  ["beanie", "Blue Beanie", "●", "#4b86c5"],
-  ["witchHat", "Moon Witch", "▲", "#6b4a86"],
-  ["vikingHat", "Tiny Viking", "♈", "#8394a0"],
-  ["bowHat", "Velvet Bow", "∞", "#d9576d"],
-  ["sunHat", "Sun Bonnet", "☀", "#f2c44f"]
-];
-
-const HOME_ITEMS = [
-  ["scratcher", "Scratch Palace", "♜"],
-  ["catbed", "Cloud Bed", "☁"],
-  ["yarnbasket", "Yarn Basket", "◉"],
-  ["aquarium", "Aquarium", "◈"],
-  ["windowseat", "Window Throne", "▣"],
-  ["catbridge", "Wall Bridge", "⌁"],
-  ["velvetsofa", "Velvet Sofa", "▰"],
-  ["wallpaper", "Paw Wallpaper", "⁙"]
-];
+const NATURAL_FUR = { id: "none", name: "Natural Fur", icon: "×", color: "#8f7d8d" };
 
 export class CatHouse extends Phaser.Scene {
   constructor() {
@@ -78,43 +63,9 @@ export class CatHouse extends Phaser.Scene {
     this.add.image(640, 360, "cat-house-bg").setDisplaySize(1280, 720).setDepth(-20);
     this.add.rectangle(150, 400, 300, 640, 0xfff4dc, 0.82).setDepth(-6)
       .setStrokeStyle(4, COLORS.ink, 0.75);
-    const g = this.add.graphics().setDepth(-10);
-    this.roomFurniture = {};
-    this.catPerches = [];
-    const place = (id, x, y, scale, perches = []) => {
-      if (!this.save.activeDecor.includes(id)) return null;
-      const prop = this.add.image(x, y, `furniture-${id}`).setScale(scale).setDepth(-4);
-      this.roomFurniture[id] = prop;
-      perches.forEach((perch) => this.catPerches.push({ ...perch, furniture: id }));
-      return prop;
-    };
-
-    if (this.save.activeDecor.includes("wallpaper")) {
-      g.fillStyle(0xf0a4a8, 0.1).fillRoundedRect(300, 90, 980, 360, 8);
-      for (let x = 340; x < 1240; x += 74) {
-        for (let y = 125; y < 420; y += 72) {
-          g.fillStyle(0xd87883, 0.16).fillCircle(x, y + 6, 7)
-            .fillCircle(x - 8, y, 4).fillCircle(x + 8, y, 4);
-        }
-      }
-    }
-    place("scratcher", 390, 400, 0.42, [
-      { x: 364, y: 435, path: [[340, 560], [350, 480], [364, 435]] },
-      { x: 382, y: 328, path: [[340, 560], [350, 480], [364, 435], [382, 328]] },
-      { x: 340, y: 235, path: [[340, 560], [350, 480], [364, 435], [382, 328], [340, 235]] }
-    ]);
-    place("catbed", 1085, 560, 0.36, [{ x: 1085, y: 548, path: [[1060, 600], [1085, 548]] }]);
-    place("yarnbasket", 520, 570, 0.32);
-    place("aquarium", 1110, 205, 0.34);
-    place("windowseat", 1015, 430, 0.36, [{ x: 1015, y: 370, path: [[980, 585], [1015, 470], [1015, 370]] }]);
-    place("catbridge", 790, 270, 0.48, [
-      { x: 725, y: 295, path: [[680, 570], [690, 390], [725, 295]] },
-      { x: 805, y: 235, path: [[680, 570], [690, 390], [725, 295], [805, 235]] }
-    ]);
-    place("velvetsofa", 700, 445, 0.66, [
-      { x: 635, y: 365, path: [[600, 585], [620, 440], [635, 365]] },
-      { x: 740, y: 365, path: [[760, 585], [750, 440], [740, 365]] }
-    ]);
+    const room = createRoomDecor(this, this.save.activeDecor);
+    this.roomFurniture = room.furniture;
+    this.catPerches = room.perches;
   }
 
   catalogue() {
@@ -128,7 +79,7 @@ export class CatHouse extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 64, 76, rescued ? COLORS.cream : 0xbaaeb5).setOrigin(0);
       card.setStrokeStyle(3, rescued ? COLORS.ink : 0x958792);
       if (rescued) {
-        addDetailedCat(this, x + 32, y + 31, level.id - 1, 0.12);
+        createCat(this, x + 32, y + 31, level.id - 1, 0.12);
         this.add.text(x + 32, y + 64, level.cat.name, textStyle(12)).setOrigin(0.5);
         card.setInteractive({ useHandCursor: true }).on("pointerup", () => this.showCatCard(level));
       } else {
@@ -145,7 +96,7 @@ export class CatHouse extends Phaser.Scene {
       const random = new Phaser.Math.RandomDataGenerator([`cat-${level.id}`]);
       const x = random.between(380, 1210);
       const y = random.between(515, 610);
-      const cat = addDetailedCat(this, x, y, level.id - 1, scale)
+      const cat = createCat(this, x, y, level.id - 1, scale)
         .setInteractive({ useHandCursor: true })
         .setDepth(10 + Math.floor(y / 12));
       if (order % 2) cat.setFlipX(true);
@@ -396,18 +347,18 @@ export class CatHouse extends Phaser.Scene {
   }
 
   addHat(cat, hat) {
-    return addCatHat(this, cat, hat);
+    return attachCatAccessory(this, cat, hat);
   }
 
   syncCatHat(agent) {
-    syncCatHat(agent.sprite, agent.hat);
+    syncCatAccessory(agent.sprite, agent.hat);
   }
 
   showCatCard(level) {
     this.card?.forEach((item) => item.destroy());
     const shade = this.add.rectangle(790, 370, 650, 460, COLORS.ink, 0.95).setDepth(70);
     shade.setStrokeStyle(6, COLORS.cream);
-    const portrait = addDetailedCat(this, 625, 350, level.id - 1, 0.35).setDepth(71);
+    const portrait = createCat(this, 625, 350, level.id - 1, 0.35).setDepth(71);
     const currentHat = SaveGame.hatForCat(level.cat.id);
     const portraitHat = this.addHat(portrait, currentHat);
     if (portraitHat) this.syncCatHat({ sprite: portrait, hat: portraitHat });
@@ -442,7 +393,7 @@ export class CatHouse extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 920, 610, COLORS.cream).setDepth(81);
     panel.setStrokeStyle(7, COLORS.ink);
     const title = this.add.text(640, 88, `CUSTOMIZE ${level.cat.name.toUpperCase()}`, textStyle(31, "#ec5966")).setOrigin(0.5).setDepth(82);
-    const portrait = addDetailedCat(this, 330, 335, level.id - 1, 0.42).setDepth(82);
+    const portrait = createCat(this, 330, 335, level.id - 1, 0.42).setDepth(82);
     parts.push(shade, panel, title, portrait);
     const current = SaveGame.hatForCat(level.cat.id);
     const portraitHat = this.addHat(portrait, current);
@@ -451,7 +402,7 @@ export class CatHouse extends Phaser.Scene {
       portraitHat.setDepth(83);
       parts.push(portraitHat);
     }
-    CAT_ITEMS.forEach(([id, name, icon, color], index) => {
+    [NATURAL_FUR, ...HAT_ITEMS].forEach(({ id, name, icon, color }, index) => {
       const owned = id === "none" || this.save.owned.includes(id);
       const col = index % 3;
       const row = Math.floor(index / 3);
@@ -460,7 +411,7 @@ export class CatHouse extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 145, 105, current === id ? COLORS.yellow : owned ? 0xffffff : 0xb9afb7).setDepth(82);
       card.setStrokeStyle(4, current === id ? COLORS.coral : COLORS.ink);
       const symbol = owned && id !== "none"
-        ? addHatArt(this, id, x, y - 20, 0.42).setDepth(83)
+        ? createItemPreview(this, id, x, y - 20, { scale: 0.62, depth: 83 })
         : this.add.text(x, y - 17, owned ? icon : "🔒", textStyle(31, color)).setOrigin(0.5).setDepth(83);
       const label = this.add.text(x, y + 27, name, textStyle(13, owned ? "#2f2335" : "#7d717c")).setOrigin(0.5).setDepth(83);
       parts.push(card, symbol, label);
@@ -490,7 +441,7 @@ export class CatHouse extends Phaser.Scene {
     const title = this.add.text(640, 90, "DESIGN THE CAT HOUSE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
     const sub = this.add.text(640, 128, "Tap owned furniture to place or store it", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(82);
     parts.push(shade, panel, title, sub);
-    HOME_ITEMS.forEach(([id, name, icon], index) => {
+    HOME_ITEMS.forEach(({ id, name }, index) => {
       const owned = this.save.owned.includes(id);
       const active = this.save.activeDecor.includes(id);
       const col = index % 4;
@@ -500,7 +451,7 @@ export class CatHouse extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 195, 155, active ? 0xd9f2dc : owned ? 0xffffff : 0xb9afb7).setDepth(82);
       card.setStrokeStyle(5, active ? COLORS.teal : COLORS.ink);
       const symbol = owned
-        ? this.add.image(x, y - 27, `furniture-${id}`).setScale(0.18).setDepth(83)
+        ? createItemPreview(this, id, x, y - 27, { scale: 0.72, depth: 83 })
         : this.add.text(x, y - 25, "🔒", textStyle(38, "#7d717c")).setOrigin(0.5).setDepth(83);
       const label = this.add.text(x, y + 22, name, textStyle(15)).setOrigin(0.5).setDepth(83);
       const status = this.add.text(x, y + 52, owned ? (active ? "PLACED" : "IN STORAGE") : "BUY IN SHOP", textStyle(11, active ? "#3f9f7c" : "#857884")).setOrigin(0.5).setDepth(83);

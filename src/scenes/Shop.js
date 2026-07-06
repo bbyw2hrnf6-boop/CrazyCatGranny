@@ -1,31 +1,8 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
-import { addCatHat, addDetailedCat } from "../objects/Cat.js";
-import { addItemArt } from "../ui/ItemArt.js";
+import { SHOP_ITEMS } from "../visual/VisualCatalog.js";
+import { attachCatAccessory, createCat, createItemPreview } from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
-
-const ITEMS = [
-  { id: "partyHat", name: "Party Hat", icon: "△", price: 25, tab: "HATS", color: 0xec5966, detail: "Cat outfit" },
-  { id: "crown", name: "Tiny Crown", icon: "♛", price: 60, tab: "HATS", color: 0xffcc4d, detail: "Cat outfit" },
-  { id: "cowboy", name: "Meowboy Hat", icon: "⌒", price: 90, tab: "HATS", color: 0x9b633d, detail: "Cat outfit" },
-  { id: "beanie", name: "Blue Beanie", icon: "●", price: 110, tab: "HATS", color: 0x4b86c5, detail: "Cat outfit" },
-  { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 135, tab: "HATS", color: 0x6b4a86, detail: "Cat outfit" },
-  { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 150, tab: "HATS", color: 0x8394a0, detail: "Cat outfit" },
-  { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 80, tab: "HATS", color: 0xd9576d, detail: "Cat outfit" },
-  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, tab: "HATS", color: 0xf2c44f, detail: "Cat outfit" },
-  { id: "scratcher", name: "Scratch Tower", icon: "♜", price: 75, tab: "HOME", color: 0xc88755, detail: "Placed in Cat House" },
-  { id: "catbed", name: "Cloud Bed", icon: "☁", price: 95, tab: "HOME", color: 0xa4d6db, detail: "Cats nap here" },
-  { id: "yarnbasket", name: "Yarn Basket", icon: "◉", price: 120, tab: "HOME", color: 0x9e5b9d, detail: "Cats play here" },
-  { id: "aquarium", name: "Tiny Aquarium", icon: "◈", price: 180, tab: "HOME", color: 0x51b3c1, detail: "Cat television" },
-  { id: "windowseat", name: "Window Throne", icon: "▣", price: 140, tab: "HOME", color: 0x78aec9, detail: "Sunny nap spot" },
-  { id: "catbridge", name: "Wall Bridge", icon: "⌁", price: 165, tab: "HOME", color: 0xc88a58, detail: "Shared climbing path" },
-  { id: "velvetsofa", name: "Velvet Sofa", icon: "▰", price: 210, tab: "HOME", color: 0x835d8c, detail: "Room centerpiece" },
-  { id: "wallpaper", name: "Paw Wallpaper", icon: "⁙", price: 190, tab: "HOME", color: 0xe79b9f, detail: "Whole-room style" },
-  { id: "helmetBoost", name: "Crash Helmet", icon: "⛑", price: 45, tab: "GEAR", color: 0xf1b63b, detail: "Faster recovery" },
-  { id: "bananaBoost", name: "Banana Belt", icon: "⌣", price: 55, tab: "GEAR", color: 0xffd34d, detail: "Slows the thief" },
-  { id: "magnetBoost", name: "Coin Magnet", icon: "∩", price: 100, tab: "GEAR", color: 0xeb6067, detail: "Pulls nearby coins" },
-  { id: "yarnBoost", name: "Turbo Yarn", icon: "●", price: 80, tab: "GEAR", color: 0x7b4d86, detail: "Faster skates" }
-];
 
 export class Shop extends Phaser.Scene {
   constructor() {
@@ -81,7 +58,7 @@ export class Shop extends Phaser.Scene {
 
   renderItems() {
     this.itemObjects = [];
-    const list = ITEMS.filter((item) => item.tab === this.activeTab);
+    const list = SHOP_ITEMS.filter((item) => item.tab === this.activeTab);
     list.forEach((item, index) => {
       const col = index % 4;
       const row = Math.floor(index / 4);
@@ -93,10 +70,7 @@ export class Shop extends Phaser.Scene {
         : item.tab === "GEAR" && this.save.equippedGear === item.id;
       const panel = this.add.rectangle(x, y, 245, 205, COLORS.cream).setStrokeStyle(5, COLORS.ink);
       const iconBg = this.add.circle(x, y - 38, 50, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
-      const iconScale = item.tab === "HOME" ? 0.18 : 0.7;
-      const icon = item.tab === "HOME"
-        ? this.add.image(x, y - 38, `furniture-${item.id}`).setScale(iconScale)
-        : addItemArt(this, item.id, x, y - 38, iconScale);
+      const icon = createItemPreview(this, item.id, x, y - 38, { scale: 0.92 });
       const name = this.add.text(x, y + 20, item.name, textStyle(20)).setOrigin(0.5);
       const detail = this.add.text(x, y + 48, item.detail, textStyle(12, "#8a7588")).setOrigin(0.5);
       const hatCat = item.tab === "HATS" && this.save.hatAssignments[item.id]
@@ -113,11 +87,11 @@ export class Shop extends Phaser.Scene {
       const hit = this.add.rectangle(x, y, 245, 205, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on("pointerover", () => {
         this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1.035, duration: 90 });
-        this.tweens.add({ targets: icon, scale: iconScale * 1.08, duration: 110, ease: "Back.out" });
+        this.tweens.add({ targets: icon, scale: 1.08, duration: 110, ease: "Back.out" });
       });
       hit.on("pointerout", () => {
         this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1, duration: 90 });
-        this.tweens.add({ targets: icon, scale: iconScale, duration: 110 });
+        this.tweens.add({ targets: icon, scale: 1, duration: 110 });
       });
       hit.on("pointerup", () => this.handleItem(item, owned));
       this.itemObjects.push(panel, iconBg, icon, name, detail, price, hit);
@@ -198,8 +172,8 @@ export class Shop extends Phaser.Scene {
       const assigned = this.save.hatAssignments[item.id] === level.cat.id;
       const card = this.add.rectangle(x, y, 154, 116, assigned ? COLORS.yellow : 0xffffff, 0.94).setDepth(62);
       card.setStrokeStyle(4, assigned ? COLORS.coral : COLORS.ink);
-      const cat = addDetailedCat(this, x, y - 12, level.id - 1, 0.14).setDepth(63);
-      const previewHat = addCatHat(this, cat, item.id, 64);
+      const cat = createCat(this, x, y - 12, level.id - 1, 0.14).setDepth(63);
+      const previewHat = attachCatAccessory(this, cat, item.id, 64);
       const name = this.add.text(x, y + 45, level.cat.name, textStyle(14)).setOrigin(0.5).setDepth(64);
       const hit = this.add.rectangle(x, y, 154, 116, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(65);
       hit.on("pointerup", () => {

@@ -1,7 +1,13 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
-import { addCatHat, addDetailedCat, animateCat, syncCatHat } from "../objects/Cat.js";
-import { addGrannyGear } from "../objects/Outfits.js";
+import {
+  animateCat,
+  attachCatAccessory,
+  createCat,
+  createGrannyGear,
+  syncCatAccessory,
+  syncGrannyGear
+} from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, iconButton, pill, textStyle } from "../ui/ui.js";
 
 export class MainMenu extends Phaser.Scene {
@@ -58,8 +64,8 @@ export class MainMenu extends Phaser.Scene {
 
     const granny = this.add.sprite(815, 525, "granny-skate", 0).setScale(0.34).play("granny-skating");
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
-    const gear = addGrannyGear(this, granny, save.equippedGear, 8);
-    if (gear) this.tweens.add({ targets: gear, y: gear.y - 5, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+    const gear = createGrannyGear(this, granny, save.equippedGear, 8);
+    if (gear) this.events.on("update", () => syncGrannyGear(gear, granny));
     const thief = this.add.sprite(1115, 300, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });
 
@@ -68,11 +74,11 @@ export class MainMenu extends Phaser.Scene {
     const positions = [[730, 548], [1065, 553], [950, 555], [1180, 560]];
     for (let i = 0; i < count; i += 1) {
       const level = rescued[i] || LEVELS[0];
-      const cat = addDetailedCat(this, positions[i][0], positions[i][1], level.id - 1, i > 1 ? 0.19 : 0.22);
+      const cat = createCat(this, positions[i][0], positions[i][1], level.id - 1, i > 1 ? 0.19 : 0.22);
       if (i % 2) cat.setFlipX(true);
       animateCat(this, cat, { duration: 750 + i * 90, bob: 6 });
-      const hat = addCatHat(this, cat, SaveGame.hatForCat(level.cat.id), 9);
-      if (hat) this.events.on("update", () => syncCatHat(cat, hat));
+      const hat = attachCatAccessory(this, cat, SaveGame.hatForCat(level.cat.id), 9);
+      if (hat) this.events.on("update", () => syncCatAccessory(cat, hat));
     }
   }
 }

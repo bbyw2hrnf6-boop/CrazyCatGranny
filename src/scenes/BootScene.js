@@ -1,4 +1,5 @@
 import { SaveGame } from "../savegame/SaveGame.js";
+import { VISUAL_ASSETS } from "../visual/VisualCatalog.js";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,23 +7,10 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
-    for (let world = 1; world <= 5; world += 1) {
-      this.load.image(`world-bg-${world}`, `assets/backgrounds/world-${world}-hd.png`);
-    }
-    this.load.image("cat-house-bg", "assets/backgrounds/cat-house-hd.png");
-    this.load.image("shop-bg", "assets/backgrounds/shop-hd.png");
-    ["scratcher", "catbed", "yarnbasket", "aquarium", "windowseat", "catbridge", "velvetsofa", "wallpaper"].forEach((item) => {
-      this.load.image(`furniture-${item}`, `assets/furniture/${item}.png`);
+    VISUAL_ASSETS.images.forEach(([key, path]) => this.load.image(key, path));
+    VISUAL_ASSETS.sheets.forEach(([key, path, frameWidth, frameHeight]) => {
+      this.load.spritesheet(key, path, { frameWidth, frameHeight });
     });
-    this.load.spritesheet("granny-skate", "assets/sprites/granny-skate.png", { frameWidth: 512, frameHeight: 512 });
-    this.load.spritesheet("thief-run", "assets/sprites/thief-run.png", { frameWidth: 512, frameHeight: 512 });
-    for (let world = 1; world <= 5; world += 1) {
-      const file = world === 1 ? "cat-atlas.png" : `cat-atlas-world${world}.png`;
-      this.load.spritesheet(`cat-real-${world}`, `assets/sprites/${file}`, {
-        frameWidth: 418,
-        frameHeight: 418
-      });
-    }
   }
 
   create() {
@@ -69,37 +57,6 @@ export class BootScene extends Phaser.Scene {
       g.lineStyle(6, 0x6a3f27).beginPath().moveTo(37, 52).arc(37, 52, 15, 0, Math.PI).strokePath();
     });
 
-    this.texture("granny", 110, 132, (g) => {
-      g.fillStyle(0x39283f).fillCircle(38, 120, 12).fillCircle(78, 120, 12);
-      g.fillStyle(0xf15062).fillRoundedRect(20, 60, 72, 56, 18);
-      g.fillStyle(0xf6d1b5).fillCircle(55, 42, 29);
-      g.fillStyle(0xf9f2df).fillCircle(38, 24, 17).fillCircle(58, 19, 20).fillCircle(75, 28, 15);
-      g.fillStyle(0x39283f).fillCircle(45, 40, 4).fillCircle(67, 40, 4);
-      g.lineStyle(3, 0x39283f).strokeCircle(43, 41, 10).strokeCircle(68, 41, 10);
-      g.beginPath().moveTo(53, 41).lineTo(58, 41).strokePath();
-      g.fillStyle(0xed7180).fillTriangle(48, 51, 61, 51, 55, 58);
-      g.fillStyle(0x713f84).fillRoundedRect(29, 75, 54, 36, 12);
-      g.lineStyle(7, 0x8a532e).beginPath().moveTo(88, 71).lineTo(95, 116).strokePath();
-      g.lineStyle(5, 0xffffff).beginPath().moveTo(38, 120).lineTo(20, 125).strokePath();
-      g.beginPath().moveTo(78, 120).lineTo(96, 125).strokePath();
-      g.fillStyle(0x4bb9c5).fillCircle(20, 125, 5).fillCircle(96, 125, 5);
-    });
-
-    this.texture("thief", 106, 128, (g) => {
-      g.fillStyle(0x34303c).fillRoundedRect(21, 53, 64, 60, 18);
-      g.fillStyle(0xe0b494).fillCircle(51, 35, 27);
-      g.fillStyle(0x34283a).fillRoundedRect(22, 23, 58, 18, 8);
-      g.fillStyle(0x34283a).fillCircle(42, 37, 4).fillCircle(63, 37, 4);
-      g.lineStyle(4, 0x34283a).beginPath().moveTo(39, 49).lineTo(65, 49).strokePath();
-      g.fillStyle(0xd65454).fillRoundedRect(63, 67, 34, 45, 8);
-      g.lineStyle(5, 0xffe1a4).strokeRoundedRect(68, 73, 24, 29, 5);
-      g.fillStyle(0x34283a).fillRoundedRect(15, 108, 30, 10, 5).fillRoundedRect(62, 108, 30, 10, 5);
-    });
-
-    this.texture("cat-orange", 92, 88, (g) => this.drawCat(g, 0xf39a36, 0xffd990));
-    this.texture("cat-dark", 92, 88, (g) => this.drawCat(g, 0x4a4353, 0x9990a6));
-    this.texture("cat-white", 92, 88, (g) => this.drawCat(g, 0xf4ecdc, 0xd8cdbb));
-
     this.texture("crate", 86, 86, (g) => {
       g.fillStyle(0x2f2530, 0.22).fillRoundedRect(5, 10, 78, 75, 5);
       g.fillStyle(0x603c2b).fillRect(2, 6, 82, 78);
@@ -119,29 +76,6 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xffffff, 0.45).fillTriangle(12, 10, 30, 10, 12, 46);
       g.lineStyle(2, 0xb8f3ff, 0.7).beginPath().moveTo(38, 56).lineTo(28, 68).lineTo(34, 86)
         .moveTo(38, 56).lineTo(52, 48).lineTo(64, 54).strokePath();
-    });
-
-    this.texture("banana", 68, 54, (g) => {
-      g.lineStyle(13, 0x6f4a26).beginPath().arc(31, 18, 27, 0.12, 2.45).strokePath();
-      g.lineStyle(9, 0xffd447).beginPath().arc(31, 16, 27, 0.12, 2.45).strokePath();
-    });
-
-    this.texture("yarn", 64, 64, (g) => {
-      g.fillStyle(0x753d78).fillCircle(31, 31, 25);
-      g.lineStyle(3, 0xc882cf).beginPath().arc(29, 23, 17, 0.2, 5.7).strokePath();
-      g.beginPath().moveTo(19, 13).lineTo(44, 48).moveTo(13, 30).lineTo(49, 24).strokePath();
-    });
-
-    this.texture("helmet", 66, 54, (g) => {
-      g.fillStyle(0xeaa82d).fillRoundedRect(10, 9, 46, 34, 18);
-      g.fillStyle(0xffd45a).fillRoundedRect(3, 36, 60, 10, 5);
-      g.lineStyle(4, 0x8a5b22).beginPath().moveTo(33, 10).lineTo(33, 37).strokePath();
-    });
-
-    this.texture("magnet", 66, 66, (g) => {
-      g.lineStyle(15, 0xe95f67).beginPath().arc(33, 33, 22, Math.PI, Math.PI * 2).strokePath();
-      g.fillStyle(0xe7edf0).fillRoundedRect(4, 29, 15, 23, 4).fillRoundedRect(47, 29, 15, 23, 4);
-      g.fillStyle(0x7d8690).fillRect(4, 44, 15, 8).fillRect(47, 44, 15, 8);
     });
 
     this.texture("sparkle", 30, 30, (g) => {
@@ -203,15 +137,4 @@ export class BootScene extends Phaser.Scene {
     graphics.destroy();
   }
 
-  drawCat(g, body, detail) {
-    g.fillStyle(body);
-    g.fillTriangle(16, 27, 24, 1, 38, 24);
-    g.fillTriangle(54, 24, 70, 1, 77, 29);
-    g.fillCircle(47, 37, 31);
-    g.fillEllipse(49, 68, 62, 34);
-    g.fillStyle(detail).fillTriangle(22, 22, 25, 9, 33, 23).fillTriangle(61, 23, 69, 9, 72, 25);
-    g.fillStyle(0x322837).fillCircle(36, 35, 4).fillCircle(58, 35, 4);
-    g.fillStyle(0xef7e82).fillTriangle(42, 45, 52, 45, 47, 51);
-    g.lineStyle(2, 0x322837).beginPath().moveTo(40, 49).lineTo(26, 46).moveTo(40, 52).lineTo(24, 55).moveTo(54, 49).lineTo(68, 45).moveTo(54, 52).lineTo(70, 56).strokePath();
-  }
 }

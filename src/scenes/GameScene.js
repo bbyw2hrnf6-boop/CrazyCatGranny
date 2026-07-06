@@ -1,7 +1,11 @@
 import { Granny } from "../objects/Granny.js";
 import { addCoin, addTreat } from "../objects/Collectibles.js";
-import { addDetailedCat, catFrameForLevel } from "../objects/Cat.js";
-import { addGrannyGear, syncGrannyGear } from "../objects/Outfits.js";
+import {
+  catFrameForLevel,
+  createCat,
+  createGrannyGear,
+  syncGrannyGear
+} from "../visual/VisualFactory.js";
 import { LEVELS, levelById, worldById } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
@@ -57,7 +61,7 @@ export class GameScene extends Phaser.Scene {
     this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
-    this.grannyGear = addGrannyGear(this, this.granny, this.save.equippedGear, 14);
+    this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14);
     this.applyLevelGimmick();
     this.physics.add.collider(this.granny, this.platforms, this.onLand, undefined, this);
     this.physics.add.collider(this.granny, this.breakables, this.smashBreakable, undefined, this);
@@ -576,7 +580,7 @@ export class GameScene extends Phaser.Scene {
     this.thiefBob = 0;
     this.thiefJump = null;
     const catFrame = this.chapterCatLevel ? this.chapterCatLevel.id : this.level.id;
-    this.cageCat = addDetailedCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
+    this.cageCat = createCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
     if (!this.chapterCatLevel) this.cageCat.setTint(0x4b3b50).setAlpha(0.78);
   }
 
@@ -653,7 +657,7 @@ export class GameScene extends Phaser.Scene {
     const card = this.add.rectangle(640, 350, 640, 330, COLORS.cream).setScrollFactor(0).setDepth(91);
     card.setStrokeStyle(7, COLORS.ink);
     const shownLevel = this.chapterCatLevel || this.level;
-    const cat = addDetailedCat(this, 640, 270, catFrameForLevel(shownLevel.id), 0.26).setScrollFactor(0).setDepth(92);
+    const cat = createCat(this, 640, 270, catFrameForLevel(shownLevel.id), 0.26).setScrollFactor(0).setDepth(92);
     if (!this.chapterCatLevel) {
       cat.setTint(0x493b51).setAlpha(0.72);
     }
@@ -1260,7 +1264,7 @@ export class GameScene extends Phaser.Scene {
     const rewardLevel = reward.catId ? LEVELS.find((entry) => entry.cat.id === reward.catId) : null;
     let cat = null;
     if (rewardLevel) {
-      cat = addDetailedCat(this, 640, 220, catFrameForLevel(rewardLevel.id), 0.27).setScrollFactor(0).setDepth(102);
+      cat = createCat(this, 640, 220, catFrameForLevel(rewardLevel.id), 0.27).setScrollFactor(0).setDepth(102);
       this.tweens.add({ targets: cat, y: 205, angle: 4, duration: 500, yoyo: true, repeat: -1 });
     } else if (reward.type === "catbox-coins") {
       this.add.image(640, 220, "coin").setScale(1.35).setScrollFactor(0).setDepth(102);

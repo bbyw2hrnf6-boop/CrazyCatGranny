@@ -1,7 +1,7 @@
 import { LEVELS } from "../levels/levels.js";
+import { HOME_ITEM_IDS } from "../visual/VisualCatalog.js";
 
 const KEY = "crazy-cat-granny-save-v1";
-const HOME_ITEMS = ["scratcher", "catbed", "yarnbasket", "aquarium", "windowseat", "catbridge", "velvetsofa", "wallpaper"];
 
 const defaults = {
   coins: 0,
@@ -35,7 +35,7 @@ function clean(data) {
     catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
-  if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEMS.includes(id));
+  if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEM_IDS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
   if (result.equippedHat !== "none" && !Object.keys(result.hatAssignments).length && result.rescuedCats.length) {
     result.hatAssignments[result.equippedHat] = result.rescuedCats[0];
@@ -171,7 +171,7 @@ export const SaveGame = {
 
   toggleDecor(id) {
     const save = this.load();
-    if (!save.owned.includes(id) || !HOME_ITEMS.includes(id)) return false;
+    if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return false;
     if (save.activeDecor.includes(id)) save.activeDecor = save.activeDecor.filter((item) => item !== id);
     else save.activeDecor.push(id);
     this.write(save);

@@ -37,7 +37,16 @@ Cat hats are assigned to one selected rescued cat. Cat House furniture is shared
 
 Animation and game-feel systems include multi-frame skating and thief run cycles, squash and stretch, physical cane momentum, post-swing speed boosts, camera weight, landing bounce, reactive flowers, debris, weather, particles, and layered parallax. The thief advances independently and can escape; time limits and world-specific fall limits make clean routes and hook boosts important.
 
-Cat outfits use per-breed head anchors and shared modular hat art across the shop, equip picker, Cat House, customization cards, and main menu.
+## Visual system
+
+Visual content is data-driven:
+
+- `src/visual/VisualCatalog.js` is the single source for asset paths, shop data, cat anchors, wearable fitting, room placement, furniture perches, scale, and layer rules.
+- `src/visual/VisualFactory.js` renders the same cat, accessory, gear, furniture, wallpaper, and preview components in every scene.
+- Cat accessories inherit the cat’s position, facing direction, rotation, squash, visibility, alpha, depth, and camera scroll factor.
+- Room furniture placement and usable cat paths live together, so adding or moving furniture does not require edits across multiple scenes.
+
+To add an item, add its asset and one catalog entry, then list it in save/progression data only if it changes game rules.
 
 ## Publish on GitHub Pages
 
