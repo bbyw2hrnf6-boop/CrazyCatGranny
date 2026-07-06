@@ -2,6 +2,8 @@
 
 A warm, hand-painted two-button Phaser auto-runner. Skate after the cat thief, jump hazards, swing from cane hooks, collect coins and treats, and bring 45 cats home across five worlds.
 
+The current release runs as a focused vertical slice: World 1 levels 1–5 plus its boss are playable. Later World 1 levels and Worlds 2–5 remain visible as locked future content. Change `src/config/ReleaseConfig.js` to release more completed content without deleting or duplicating its code.
+
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
 All 45 cats use distinct character art. A cat is rescued after each three-level chase; every world boss drops a weighted CatBox with common, uncommon, rare, legendary, and limited cats. Bosses can be replayed to grow the collection.
@@ -44,7 +46,7 @@ Visual content is data-driven:
 - `src/visual/VisualCatalog.js` is the single source for asset paths, shop data, cat anchors, wearable fitting, room placement, furniture perches, scale, and layer rules.
 - `src/visual/VisualFactory.js` renders the same cat, accessory, gear, furniture, wallpaper, and preview components in every scene.
 - Cat accessories inherit the cat’s position, facing direction, rotation, squash, visibility, alpha, depth, and camera scroll factor.
-- Room furniture can be dragged anywhere in the usable room, rotated, and flipped. Done commits the draft layout to the save game.
+- Room furniture can be dragged anywhere in the usable room, rotated, flipped, and resized from 55% to 160%. Done commits the draft layout to the save game.
 - Furniture transforms and usable cat paths live together. Saving a moved or turned item rebuilds its interaction points, and cats use explicit walk and jump waypoints instead of flying to it.
 
 To add an item, add its asset and one catalog entry, then list it in save/progression data only if it changes game rules.

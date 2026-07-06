@@ -7,6 +7,8 @@ import {
   syncGrannyGear
 } from "../visual/VisualFactory.js";
 import { LEVELS, levelById, worldById } from "../levels/levels.js";
+import { planCourse } from "../levels/CoursePlanner.js";
+import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 
@@ -349,20 +351,8 @@ export class GameScene extends Phaser.Scene {
 
   makeCourse() {
     const length = this.level.length;
-    const gaps = [];
-    if (this.level.id === 1) gaps.push([1520, 1650], [3300, 3440]);
-    else {
-      const chapter = (this.level.id - 1) % 9;
-      const stride = 1210 - this.level.world * 35 - Math.min(120, chapter * 15);
-      for (let x = 1050, index = 0; x < length - 850; x += stride, index += 1) {
-        const hookEvery = this.level.world >= 3 ? 2 : 3;
-        const requiresHook = index > 0 && (index + this.level.id) % hookEvery === 0;
-        const regularWidth = 158 + ((index + this.level.world) % 3) * 22;
-        const hookWidth = Math.min(500, 390 + this.level.world * 18 + chapter * 8);
-        const gapWidth = requiresHook ? hookWidth : regularWidth;
-        gaps.push([x, x + gapWidth, requiresHook]);
-      }
-    }
+    const course = planCourse(this.level);
+    const { gaps, raised, hooks, obstacles, coins, awnings } = course;
     let cursor = 0;
     for (const [start, end] of gaps) {
       this.addPlatform(cursor, 590, start - cursor, 160);
@@ -370,37 +360,11 @@ export class GameScene extends Phaser.Scene {
     }
     this.addPlatform(cursor, 590, length - cursor + 500, 160);
 
-    const raised = [];
-    for (let x = 680, index = 0; x < length - 420; x += 860, index += 1) {
-      const width = 250 + (index % 2) * 70;
-      const crossesHookGap = gaps.some(([start, end, required]) => required && x < end + 45 && x + width > start - 45);
-      if (!crossesHookGap) raised.push([x, 475 - (index % 3) * 55, width]);
-    }
-    const finishPlatform = [this.level.length - 850, 390, 380];
-    const blocksFinalHook = gaps.some(([start, end, required]) => required
-      && finishPlatform[0] < end + 45 && finishPlatform[0] + finishPlatform[2] > start - 45);
-    if (!blocksFinalHook) raised.push(finishPlatform);
     raised.forEach(([x, y, width], index) => {
       if (x < length - 300) this.addPlatform(x, y, width, 34, index % 2 ? 0xc97b54 : 0xf2c56e);
     });
 
-    const hookPoints = this.level.id === 1 ? [{ x: 3380, y: 265, required: false }] : [];
-    if (this.level.id > 1) {
-      for (let x = 1120; x < length - 650; x += 1500 - this.level.world * 55) {
-        hookPoints.push({ x, y: 245 + (hookPoints.length % 2) * 30, required: false });
-      }
-    }
-    gaps.forEach(([start, end, required], index) => {
-      if (!required) return;
-      const x = start + (end - start) * 0.5;
-      const existing = hookPoints.find((point) => Math.abs(point.x - x) < 170);
-      if (existing) {
-        existing.x = x;
-        existing.y = 300 + (index % 2) * 22;
-        existing.required = true;
-      } else hookPoints.push({ x, y: 300 + (index % 2) * 22, required: true });
-    });
-    hookPoints.sort((a, b) => a.x - b.x).forEach((point) => {
+    hooks.forEach((point) => {
       const hook = this.add.image(point.x, point.y, "hook").setDepth(8);
       hook.setData("used", false);
       hook.setData("required", point.required);
@@ -411,41 +375,16 @@ export class GameScene extends Phaser.Scene {
       this.hooks.add(hook);
     });
 
-    const obstacles = [];
-    for (let x = 1380; x < length - 520; x += this.level.boss ? 850 : 1250) {
-      const blockingGap = gaps.find(([start, end]) => x > start - 90 && x < end + 90);
-      const safeX = blockingGap ? blockingGap[1] + 115 : x;
-      if (safeX < length - 520) obstacles.push(safeX);
-    }
-    obstacles.forEach((x, index) => {
-      const textures = {
-        1: this.level.gimmick === "glass" ? ["glass", "crate"] : ["crate", "glass"],
-        2: ["bicycle", "tulip-cart", "crate"],
-        3: ["lantern-gate", "crate", "glass"],
-        4: ["road-barrier", "crate", "bicycle"],
-        5: ["carnival-drum", "glass", "crate"]
-      }[this.level.world];
-      const texture = textures[(index + this.level.id) % textures.length];
+    obstacles.forEach(({ x, texture }) => {
       const obstacle = this.breakables.create(x, texture === "lantern-gate" ? 520 : texture === "bicycle" ? 548 : 540, texture);
       const scale = texture === "crate" ? 0.8 : texture === "glass" ? 1 : 0.82;
       obstacle.setScale(scale).refreshBody();
       obstacle.setData("type", texture);
     });
 
-    let coinIndex = 0;
-    for (let x = 420; x < length - 350; x += 175) {
-      const upperRoute = raised.find(([platformX, , width]) => x > platformX + 34 && x < platformX + width - 34);
-      const overGap = gaps.some(([start, end]) => x > start - 42 && x < end + 42);
-      const nearObstacle = obstacles.some((obstacleX) => Math.abs(x - obstacleX) < 150);
-      if ((!upperRoute && overGap) || nearObstacle) continue;
-
-      const surfaceY = upperRoute ? upperRoute[1] : 590;
-      const arc = Math.sin(coinIndex * 0.82) * 18;
-      addCoin(this, x, surfaceY - 105 - arc, this.coins);
-      coinIndex += 1;
-    }
+    coins.forEach(({ x, y }) => addCoin(this, x, y, this.coins));
     this.courseGaps = gaps;
-    this.obstacleXs = obstacles;
+    this.obstacleXs = obstacles.map((entry) => entry.x);
     this.raisedPlatforms = raised;
 
     [
@@ -454,14 +393,10 @@ export class GameScene extends Phaser.Scene {
       [Math.round(length * 0.86), 285]
     ].forEach(([x, y]) => addTreat(this, x, y, this.treats));
 
-    if (this.level.id > 3) {
-      for (let x = 1700; x < length - 700; x += 1900) {
-        const bridgesHookGap = gaps.some(([start, end, required]) => required && x < end + 40 && x + 250 > start - 40);
-        if (bridgesHookGap) continue;
-        const awning = this.addPlatform(x, 505, 250, 24, 0xe85e68);
-        awning.setData("bounce", true);
-      }
-    }
+    awnings.forEach(({ x, y, width }) => {
+      const awning = this.addPlatform(x, y, width, 24, 0xe85e68);
+      awning.setData("bounce", true);
+    });
   }
 
   createWorldMechanics() {
@@ -1313,14 +1248,15 @@ export class GameScene extends Phaser.Scene {
     });
 
     const retry = pill(this, 410, 550, 210, 62, "↻  RETRY", { fill: COLORS.cream, size: 21 });
-    const nextLabel = this.level.id >= 45 ? "VICTORY MAP" : this.level.boss ? "NEXT WORLD →" : "NEXT  →";
+    const nextLevelId = nextReleasedLevelId(this.level, LEVELS);
+    const nextLabel = nextLevelId ? "NEXT  →" : "WORLD MAP";
     const next = pill(this, 640, 550, 220, 62, nextLabel, { fill: COLORS.yellow, size: 19 });
     const home = pill(this, 870, 550, 210, 62, "CAT HOUSE", { fill: COLORS.teal, color: "#fff7df", size: 20 });
     [retry, next, home].forEach((button) => button.setScrollFactor(0).setDepth(103));
     retry.on("pointerup", () => this.scene.restart({ levelId: this.level.id }));
-    next.on("pointerup", () => this.level.id < 45
-      ? this.scene.start("GameScene", { levelId: this.level.id + 1 })
-      : this.scene.start("LevelSelect"));
+    next.on("pointerup", () => nextLevelId
+      ? this.scene.start("GameScene", { levelId: nextLevelId })
+      : this.scene.start("LevelSelect", { worldId: this.level.world }));
     home.on("pointerup", () => this.scene.start("CatHouse", { page: this.level.world }));
     shade.setInteractive();
   }

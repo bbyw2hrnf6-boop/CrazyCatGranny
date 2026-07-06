@@ -120,7 +120,7 @@ export function createFurniture(scene, itemId, options = {}) {
   const normalDepth = room.y < 450 ? -5 : -4;
   return scene.add.container(room.x, room.y, children)
     .setSize(image.displayWidth, image.displayHeight)
-    .setScale(room.flipX ? -1 : 1, 1)
+    .setScale((room.flipX ? -1 : 1) * room.size, room.size)
     .setAngle(room.angle)
     .setDepth(room.depth ?? normalDepth)
     .setData("visualKind", "furniture")
@@ -137,8 +137,8 @@ export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
     const cosine = Math.cos(radians);
     const sine = Math.sin(radians);
     const transformPoint = (x, y) => {
-      const localX = (x - item.room.x) * (position.flipX ? -1 : 1);
-      const localY = y - item.room.y;
+      const localX = (x - item.room.x) * position.size * (position.flipX ? -1 : 1);
+      const localY = (y - item.room.y) * position.size;
       return {
         x: Math.max(330, Math.min(1220, position.x + localX * cosine - localY * sine)),
         y: Math.max(145, Math.min(605, position.y + localX * sine + localY * cosine))

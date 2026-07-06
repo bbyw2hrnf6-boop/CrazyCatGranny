@@ -571,28 +571,32 @@ export class CatHouse extends Phaser.Scene {
     const blocker = this.add.rectangle(640, 360, 1280, 720, 0xffffff, 0.001).setDepth(69).setInteractive();
     const banner = this.add.rectangle(790, 116, 720, 64, COLORS.ink, 0.94).setDepth(74);
     banner.setStrokeStyle(4, COLORS.cream);
-    const title = this.add.text(790, 103, "DRAG ANYWHERE · SELECT TO TURN", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
+    const title = this.add.text(790, 103, "DRAG · TURN · FLIP · RESIZE", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
     this.editorHint = this.add.text(790, 130, "Select furniture · Done saves layout and rebuilds cat paths", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(75);
-    const storage = pill(this, 390, 658, 145, 52, "STORAGE", { fill: COLORS.cream, size: 15 }).setDepth(75);
-    const turnLeft = pill(this, 545, 658, 130, 52, "TURN ◀", { fill: COLORS.cream, size: 15 }).setDepth(75);
-    const turnRight = pill(this, 680, 658, 130, 52, "TURN ▶", { fill: COLORS.cream, size: 15 }).setDepth(75);
-    const flip = pill(this, 815, 658, 120, 52, "FLIP", { fill: COLORS.cream, size: 15 }).setDepth(75);
-    const reset = pill(this, 945, 658, 120, 52, "RESET", { fill: COLORS.cream, size: 15 }).setDepth(75);
-    const done = pill(this, 1120, 658, 190, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
+    const storage = pill(this, 355, 658, 105, 52, "STORE", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const turnLeft = pill(this, 465, 658, 105, 52, "TURN ◀", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const turnRight = pill(this, 575, 658, 105, 52, "TURN ▶", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const flip = pill(this, 680, 658, 95, 52, "FLIP", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const sizeDown = pill(this, 780, 658, 95, 52, "SIZE −", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const sizeUp = pill(this, 880, 658, 95, 52, "SIZE +", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const reset = pill(this, 980, 658, 95, 52, "RESET", { fill: COLORS.cream, size: 13 }).setDepth(75);
+    const done = pill(this, 1130, 658, 190, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
     storage.on("pointerup", () => this.openRoomStorage());
     turnLeft.on("pointerup", () => this.rotateSelectedFurniture(-15));
     turnRight.on("pointerup", () => this.rotateSelectedFurniture(15));
     flip.on("pointerup", () => this.flipSelectedFurniture());
+    sizeDown.on("pointerup", () => this.resizeSelectedFurniture(-0.1));
+    sizeUp.on("pointerup", () => this.resizeSelectedFurniture(0.1));
     reset.on("pointerup", () => this.resetFurnitureDraft());
     done.on("pointerup", () => {
       SaveGame.setDecorLayout(this.draftDecorPositions);
       sound(this, "buy");
       this.scene.restart({ page: this.page });
     });
-    parts.push(blocker, banner, title, this.editorHint, storage, turnLeft, turnRight, flip, reset, done);
+    parts.push(blocker, banner, title, this.editorHint, storage, turnLeft, turnRight, flip, sizeDown, sizeUp, reset, done);
 
     Object.entries(this.roomFurniture).forEach(([id, visual]) => {
-      const labelY = Math.max(155, visual.y - visual.height * 0.5 - 12);
+      const labelY = Math.max(155, visual.y - visual.displayHeight * 0.5 - 12);
       const label = this.add.text(visual.x, labelY, HOME_ITEMS.find((item) => item.id === id)?.name || id, textStyle(12, "#fff7df"))
         .setOrigin(0.5)
         .setDepth(73)
@@ -604,18 +608,18 @@ export class CatHouse extends Phaser.Scene {
       visual.on("dragstart", () => {
         this.selectFurniture(id);
         const transform = this.draftDecorPositions[id];
-        visual.setScale(transform.flipX ? -1.04 : 1.04, 1.04).setDepth(76);
+        visual.setScale((transform.flipX ? -1 : 1) * transform.size * 1.04, transform.size * 1.04).setDepth(76);
         label.setDepth(77);
       });
       visual.on("drag", (_pointer, dragX, dragY) => {
         const position = roomPosition(id, { ...this.draftDecorPositions[id], x: dragX, y: dragY });
         this.draftDecorPositions[id] = position;
         visual.setPosition(position.x, position.y);
-        label.setPosition(position.x, Math.max(155, position.y - visual.height * 0.5 - 12));
+        label.setPosition(position.x, Math.max(155, position.y - visual.displayHeight * 0.5 - 12));
       });
       visual.on("dragend", () => {
         const transform = this.draftDecorPositions[id];
-        visual.setScale(transform.flipX ? -1 : 1, 1).setDepth(72);
+        visual.setScale((transform.flipX ? -1 : 1) * transform.size, transform.size).setDepth(72);
         label.setDepth(73);
       });
       this.editorLabels[id] = label;
@@ -632,7 +636,8 @@ export class CatHouse extends Phaser.Scene {
       label.setBackgroundColor(itemId === id ? "#ec5966ee" : "#34283ad9");
     });
     const name = HOME_ITEMS.find((item) => item.id === id)?.name || id;
-    this.editorHint?.setText(`Selected: ${name} · drag, turn or flip · Done saves`);
+    const transform = this.draftDecorPositions[id];
+    this.editorHint?.setText(`Selected: ${name} · ${Math.round(transform.size * 100)}% · ${Math.round(transform.angle)}° · Done saves`);
   }
 
   applyFurnitureDraft(id) {
@@ -641,10 +646,10 @@ export class CatHouse extends Phaser.Scene {
     if (!visual || !transform) return;
     visual.setPosition(transform.x, transform.y);
     visual.setAngle(transform.angle);
-    visual.setScale(transform.flipX ? -1 : 1, 1);
+    visual.setScale((transform.flipX ? -1 : 1) * transform.size, transform.size);
     this.editorLabels[id]?.setPosition(
       transform.x,
-      Math.max(155, transform.y - visual.height * 0.5 - 12)
+      Math.max(155, transform.y - visual.displayHeight * 0.5 - 12)
     );
   }
 
@@ -656,6 +661,7 @@ export class CatHouse extends Phaser.Scene {
       angle: this.draftDecorPositions[id].angle + delta
     });
     this.applyFurnitureDraft(id);
+    this.selectFurniture(id);
     sound(this, "jump");
   }
 
@@ -667,6 +673,19 @@ export class CatHouse extends Phaser.Scene {
       flipX: !this.draftDecorPositions[id].flipX
     });
     this.applyFurnitureDraft(id);
+    this.selectFurniture(id);
+    sound(this, "jump");
+  }
+
+  resizeSelectedFurniture(delta) {
+    const id = this.selectedFurnitureId;
+    if (!id) return;
+    this.draftDecorPositions[id] = roomPosition(id, {
+      ...this.draftDecorPositions[id],
+      size: this.draftDecorPositions[id].size + delta
+    });
+    this.applyFurnitureDraft(id);
+    this.selectFurniture(id);
     sound(this, "jump");
   }
 

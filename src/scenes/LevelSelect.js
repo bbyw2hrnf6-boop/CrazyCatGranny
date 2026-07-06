@@ -1,5 +1,12 @@
 import { LEVELS, WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
+import {
+  isLevelReleased,
+  isLevelUnlocked,
+  isWorldReleased,
+  latestUnlockedReleasedLevel,
+  RELEASE_CONFIG
+} from "../config/ReleaseConfig.js";
 import { addPaperTexture, COLORS, coinBadge, pill, textStyle, topBar } from "../ui/ui.js";
 
 export class LevelSelect extends Phaser.Scene {
@@ -14,8 +21,10 @@ export class LevelSelect extends Phaser.Scene {
   create() {
     const save = SaveGame.load();
     this.registry.set("save", save);
-    const latestWorld = Phaser.Math.Clamp(Math.ceil(save.unlockedLevel / 9), 1, 5);
-    this.worldId = Phaser.Math.Clamp(this.requestedWorld || latestWorld, 1, 5);
+    const latestWorld = [...RELEASE_CONFIG.playableWorlds].reverse()
+      .find((worldId) => save.unlockedLevel >= (worldId - 1) * 9 + 1) || RELEASE_CONFIG.playableWorlds[0];
+    const requestedWorld = Number(this.requestedWorld || latestWorld);
+    this.worldId = isWorldReleased(requestedWorld) ? requestedWorld : latestWorld;
     this.world = WORLDS[this.worldId - 1];
     this.cameras.main.setBackgroundColor(this.world.sky);
     this.drawMap();
@@ -57,9 +66,10 @@ export class LevelSelect extends Phaser.Scene {
   makeWorldTabs(save) {
     WORLDS.forEach((world, index) => {
       const firstLevel = index * 9 + 1;
-      const unlocked = save.unlockedLevel >= firstLevel;
+      const released = isWorldReleased(world.id);
+      const unlocked = released && save.unlockedLevel >= firstLevel;
       const current = world.id === this.worldId;
-      const button = pill(this, 465 + index * 145, 137, 128, 48, unlocked ? String(world.id).padStart(2, "0") : "🔒", {
+      const button = pill(this, 465 + index * 145, 137, 128, 48, unlocked ? String(world.id).padStart(2, "0") : released ? "🔒" : "SOON", {
         fill: current ? world.accent : unlocked ? COLORS.cream : 0xa69ca5,
         size: 17
       });
@@ -76,13 +86,18 @@ export class LevelSelect extends Phaser.Scene {
     const levels = LEVELS.filter((level) => level.world === this.worldId);
     levels.forEach((level, index) => {
       const [x, y] = positions[index];
-      const unlocked = level.id <= save.unlockedLevel;
+      const released = isLevelReleased(level);
+      const unlocked = isLevelUnlocked(level, save);
       const record = save.levels[level.id];
       const color = level.boss ? 0xec5966 : this.world.accent;
       const shadow = this.add.circle(x, y + 6, level.boss ? 47 : 42, 0x2f2335, 0.24);
-      const node = this.add.circle(x, y, level.boss ? 47 : 42, unlocked ? color : 0x8c8a87, 1);
+      const node = this.add.circle(x, y, level.boss ? 47 : 42, unlocked ? color : released ? 0x8c8a87 : 0xaaa4aa, 1);
       node.setStrokeStyle(level.boss ? 7 : 5, COLORS.cream);
-      const label = this.add.text(x, y - 2, unlocked ? (level.boss ? "★" : String(index + 1)) : "🔒", textStyle(unlocked ? 29 : 20, "#fff7df")).setOrigin(0.5);
+      const nodeCopy = unlocked ? (level.boss ? "★" : String(index + 1)) : released ? "🔒" : "·";
+      const label = this.add.text(x, y - 2, nodeCopy, textStyle(unlocked ? 29 : 20, "#fff7df")).setOrigin(0.5);
+      if (!released) {
+        this.add.text(x, y + 54, "LATER", textStyle(10, "#675b69")).setOrigin(0.5);
+      }
       if (unlocked && (level.grantsCat || level.grantsCatBox)) {
         this.add.text(x, y - 55, level.grantsCatBox ? "CATBOX" : "CAT RESCUE", textStyle(10, "#fff7df"))
           .setOrigin(0.5).setBackgroundColor(level.grantsCatBox ? "#8d5ab4" : "#3f9f7c").setPadding(7, 3);
@@ -99,10 +114,9 @@ export class LevelSelect extends Phaser.Scene {
       }
     });
 
-    const worldStart = (this.worldId - 1) * 9 + 1;
-    const playable = Phaser.Math.Clamp(save.unlockedLevel, worldStart, worldStart + 8);
-    const quick = pill(this, 1085, 655, 300, 58, `PLAY · LEVEL ${playable}`, { fill: COLORS.yellow, size: 20 });
-    quick.on("pointerup", () => this.scene.start("GameScene", { levelId: playable }));
+    const playable = latestUnlockedReleasedLevel(save, levels);
+    const quick = pill(this, 1085, 655, 300, 58, `PLAY · LEVEL ${playable.id}`, { fill: COLORS.yellow, size: 20 });
+    quick.on("pointerup", () => this.scene.start("GameScene", { levelId: playable.id }));
   }
 
   showCard(level, x, y) {

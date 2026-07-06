@@ -153,11 +153,16 @@ export function roomPosition(itemId, savedPosition = null) {
   const angle = Number.isFinite(angleValue)
     ? ((angleValue + 180) % 360 + 360) % 360 - 180
     : 0;
+  const sizeValue = Number(savedPosition?.size);
+  const size = Number.isFinite(sizeValue)
+    ? Math.max(0.55, Math.min(1.6, sizeValue))
+    : 1;
   return {
     x: Math.max(bounds.minX, Math.min(bounds.maxX, savedX)),
     y: Math.max(bounds.minY, Math.min(bounds.maxY, savedY)),
     angle,
-    flipX: Boolean(savedPosition?.flipX)
+    flipX: Boolean(savedPosition?.flipX),
+    size
   };
 }
 

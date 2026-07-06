@@ -186,16 +186,17 @@ export const SaveGame = {
     return true;
   },
 
-  setDecorPosition(id, x, y, angle = 0, flipX = false) {
+  setDecorPosition(id, x, y, angle = 0, flipX = false, size = 1) {
     const save = this.load();
     if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return false;
-    const position = roomPosition(id, { x, y, angle, flipX });
+    const position = roomPosition(id, { x, y, angle, flipX, size });
     if (!position) return false;
     save.decorPositions[id] = {
       x: Math.round(position.x),
       y: Math.round(position.y),
       angle: Math.round(position.angle),
-      flipX: position.flipX
+      flipX: position.flipX,
+      size: Number(position.size.toFixed(2))
     };
     this.write(save);
     return position;
@@ -211,7 +212,8 @@ export const SaveGame = {
         x: Math.round(position.x),
         y: Math.round(position.y),
         angle: Math.round(position.angle),
-        flipX: position.flipX
+        flipX: position.flipX,
+        size: Number(position.size.toFixed(2))
       };
     });
     this.write(save);
