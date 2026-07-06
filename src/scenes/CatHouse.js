@@ -74,67 +74,53 @@ export class CatHouse extends Phaser.Scene {
   }
 
   drawRoom() {
-    const g = this.add.graphics();
-    g.fillStyle(0xf6e4c7).fillRect(0, 0, 1280, 720);
+    this.add.image(640, 360, "cat-house-bg").setDisplaySize(1280, 720).setDepth(-20);
+    this.add.rectangle(150, 400, 300, 640, 0xfff4dc, 0.82).setDepth(-6)
+      .setStrokeStyle(4, COLORS.ink, 0.75);
+    const g = this.add.graphics().setDepth(-10);
     if (this.save.activeDecor.includes("wallpaper")) {
-      for (let x = 320; x < 1280; x += 72) {
-        g.fillStyle(0xe9a5aa, 0.24).fillCircle(x, 145, 9).fillCircle(x - 12, 134, 5).fillCircle(x + 12, 134, 5);
-        g.fillCircle(x, 250, 9).fillCircle(x - 12, 239, 5).fillCircle(x + 12, 239, 5);
-        g.fillCircle(x, 355, 9).fillCircle(x - 12, 344, 5).fillCircle(x + 12, 344, 5);
+      for (let x = 330; x < 1240; x += 74) {
+        g.fillStyle(0xe58f99, 0.2).fillCircle(x, 112, 7).fillCircle(x - 9, 104, 4).fillCircle(x + 9, 104, 4);
       }
     }
-    g.fillStyle(0xe9bd91).fillRect(0, 520, 1280, 200);
-    for (let x = 0; x < 1280; x += 100) g.fillStyle(x % 200 ? 0xd69f70 : 0xe1ad7b).fillRect(x, 520, 96, 200);
-    g.fillStyle(0xa5d2d6).fillRect(885, 145, 280, 230);
-    g.lineStyle(16, 0xffffff).strokeRect(885, 145, 280, 230);
-    g.lineStyle(8, 0xffffff).beginPath().moveTo(1025, 145).lineTo(1025, 375).moveTo(885, 260).lineTo(1165, 260).strokePath();
-    g.fillStyle(0x85b66a).fillCircle(1010, 220, 40).fillCircle(1100, 230, 55);
-    g.fillStyle(0xf0c955).fillCircle(1120, 180, 30);
-    g.fillStyle(0x76617b).fillRoundedRect(655, 440, 400, 120, 34);
     if (this.save.activeDecor.includes("velvetsofa")) {
-      g.fillStyle(0x593b69).fillRoundedRect(640, 420, 430, 145, 38);
-      g.lineStyle(6, 0xc8a5cc).strokeRoundedRect(640, 420, 430, 145, 38);
+      g.lineStyle(5, 0xf1c36a, 0.65).beginPath().arc(640, 369, 205, 0.08, 3.06).strokePath();
+      for (let x = 510; x <= 770; x += 65) g.fillStyle(0xf3d58a, 0.65).fillCircle(x, 354, 3);
     }
-    g.fillStyle(0x947b9b).fillRoundedRect(685, 408, 160, 100, 28).fillRoundedRect(870, 408, 160, 100, 28);
-    g.fillStyle(0x4d3b50).fillRect(680, 548, 22, 55).fillRect(1010, 548, 22, 55);
-    g.fillStyle(0xc77858).fillRect(1090, 450, 100, 90);
-    g.fillStyle(0x4f8654).fillCircle(1140, 425, 55);
-    g.fillStyle(0xd75e65).fillEllipse(805, 625, 440, 95);
-    g.lineStyle(8, 0xf5b6a3).strokeEllipse(805, 625, 440, 95);
-    g.fillStyle(0x563f58).fillRect(300, 92, 4, 628);
-    this.add.text(1060, 485, "plants are\nnot snacks", textStyle(12, "#fff7df", { align: "center" })).setOrigin(0.5);
-    g.fillStyle(0xd95f54).fillEllipse(1180, 590, 65, 22);
-    g.fillStyle(0x4f9fc0).fillEllipse(1115, 594, 58, 20);
-    g.fillStyle(0xffe1a0).fillEllipse(1180, 586, 43, 8);
 
     if (this.save.activeDecor.includes("scratcher")) {
-      g.fillStyle(0xb98a5a).fillRect(565, 235, 18, 290);
-      g.fillStyle(0xc9a178).fillRoundedRect(500, 225, 150, 22, 10).fillRoundedRect(530, 345, 120, 22, 10);
-      g.fillStyle(0x9e6f48).fillRect(585, 250, 10, 95).fillRect(540, 365, 10, 130);
-      this.add.text(575, 200, "SCRATCH PALACE", textStyle(12, "#7c5a46")).setOrigin(0.5);
+      g.fillStyle(0x9b6846).fillRoundedRect(304, 463, 118, 15, 7).fillRoundedRect(330, 350, 88, 14, 7);
+      g.fillStyle(0xd0a775).fillRect(366, 361, 16, 103);
+      for (let y = 366; y < 460; y += 9) g.lineStyle(2, 0x8d623f, 0.7).beginPath().moveTo(366, y).lineTo(382, y + 4).strokePath();
+      g.lineStyle(4, 0x5b4035).strokeRoundedRect(304, 463, 118, 15, 7);
     }
     if (this.save.activeDecor.includes("catbed")) {
-      g.fillStyle(0x89cbd1).fillEllipse(1100, 570, 150, 55);
-      g.fillStyle(0xeaf9f6).fillCircle(1060, 557, 34).fillCircle(1100, 548, 43).fillCircle(1140, 558, 32);
+      g.fillStyle(0x79bdc8).fillEllipse(1088, 565, 155, 50);
+      g.fillStyle(0xeef9f2).fillCircle(1048, 552, 30).fillCircle(1088, 545, 39).fillCircle(1128, 553, 29);
+      g.lineStyle(4, 0x4e8192, 0.8).strokeEllipse(1088, 565, 155, 50);
     }
     if (this.save.activeDecor.includes("yarnbasket")) {
-      g.fillStyle(0x9b6748).fillRoundedRect(470, 535, 115, 70, 14);
-      this.add.image(500, 530, "yarn").setScale(0.55);
-      this.add.image(548, 536, "yarn").setScale(0.45).setTint(0xe0646a);
+      g.fillStyle(0x8f5d41).fillRoundedRect(458, 536, 118, 66, 14);
+      g.lineStyle(4, 0xd2a36f).strokeRoundedRect(458, 536, 118, 66, 14);
+      this.add.image(490, 530, "yarn").setScale(0.55).setDepth(-8);
+      this.add.image(540, 536, "yarn").setScale(0.46).setTint(0xe0646a).setDepth(-8);
     }
     if (this.save.activeDecor.includes("aquarium")) {
-      g.fillStyle(0x4e8b95).fillRoundedRect(1015, 170, 125, 95, 8);
-      g.fillStyle(0x76d3dc, 0.85).fillRoundedRect(1022, 177, 111, 80, 6);
-      g.fillStyle(0xf2b53f).fillEllipse(1070, 215, 25, 13).fillTriangle(1055, 215, 1044, 205, 1044, 225);
-      g.fillStyle(0xffffff, 0.7).fillCircle(1110, 192, 4).fillCircle(1115, 180, 3);
+      g.fillStyle(0x416e77).fillRoundedRect(1030, 154, 128, 92, 8);
+      g.fillStyle(0x66c6d4, 0.88).fillRoundedRect(1037, 161, 114, 77, 5);
+      g.fillStyle(0xf2b53f).fillEllipse(1088, 201, 27, 14).fillTriangle(1074, 201, 1060, 190, 1060, 212);
+      g.fillStyle(0xffffff, 0.72).fillCircle(1122, 182, 4).fillCircle(1128, 171, 3);
+      g.lineStyle(4, 0xe8f7ef, 0.8).strokeRoundedRect(1037, 161, 114, 77, 5);
     }
     if (this.save.activeDecor.includes("windowseat")) {
-      g.fillStyle(0xeccf9f).fillRoundedRect(890, 368, 275, 28, 10);
-      g.fillStyle(0x6f8db1).fillRoundedRect(930, 350, 195, 28, 12);
+      g.fillStyle(0x4f899c, 0.86).fillRoundedRect(928, 332, 220, 30, 13);
+      g.lineStyle(4, 0xe8d4ae, 0.85).strokeRoundedRect(928, 332, 220, 30, 13);
     }
     if (this.save.activeDecor.includes("catbridge")) {
-      g.fillStyle(0x9b6748).fillRoundedRect(700, 280, 120, 18, 8).fillRoundedRect(780, 235, 120, 18, 8);
-      g.lineStyle(5, 0x72503d).beginPath().moveTo(700, 280).lineTo(780, 235).moveTo(820, 280).lineTo(900, 235).strokePath();
+      g.fillStyle(0x97603f).fillRoundedRect(690, 244, 116, 15, 7).fillRoundedRect(785, 207, 116, 15, 7);
+      g.lineStyle(4, 0x5d3e34).beginPath().moveTo(690, 244).lineTo(785, 207)
+        .moveTo(806, 259).lineTo(901, 222).strokePath();
+      g.fillStyle(0xe2b773, 0.6).fillRect(700, 247, 96, 3).fillRect(795, 210, 96, 3);
     }
   }
 

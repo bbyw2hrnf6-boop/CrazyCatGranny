@@ -3,7 +3,8 @@ export function addCoin(scene, x, y, group) {
   coin.setScale(0.65);
   coin.body.setAllowGravity(false);
   coin.body.setImmovable(true);
-  scene.tweens.add({ targets: coin, y: y - 8, duration: 520, yoyo: true, repeat: -1, delay: (x % 5) * 40 });
+  scene.tweens.add({ targets: coin, y: y - 8, angle: 8, duration: 520, yoyo: true, repeat: -1, delay: (x % 5) * 40, ease: "Sine.inOut" });
+  scene.tweens.add({ targets: coin, scaleX: 0.2, duration: 720, yoyo: true, repeat: -1, delay: (x % 7) * 35, ease: "Sine.inOut" });
   return coin;
 }
 

@@ -100,10 +100,13 @@ export class GameScene extends Phaser.Scene {
   }
 
   drawBackground() {
-    this.skyLayer = this.add.tileSprite(0, 0, 1280, 720, null).setOrigin(0).setScrollFactor(0).setDepth(-20);
-    const g = this.add.graphics().setDepth(-18);
     const world = this.level.world;
-    g.fillStyle(this.worldData.sky).fillRect(0, 0, this.level.length, 720);
+    this.backgroundOffset = ((this.level.id - 1) % 9) * 137;
+    this.skyLayer = this.add.tileSprite(0, 0, 1280, 720, `world-bg-${world}`)
+      .setOrigin(0).setScrollFactor(0).setDepth(-20).setAlpha(0.94);
+    this.skyLayer.tilePositionX = this.backgroundOffset;
+    const g = this.add.graphics().setDepth(-18).setAlpha(0.16);
+    g.fillStyle(this.worldData.sky, 0.2).fillRect(0, 0, this.level.length, 720);
     g.fillStyle(world === 1 ? 0xfff0b8 : 0xffd49d, 0.9).fillCircle(980, 115, 63);
 
     for (let x = 0; x < this.level.length; x += 380) {
@@ -487,8 +490,23 @@ export class GameScene extends Phaser.Scene {
     platform.body.checkCollision.down = false;
     platform.body.checkCollision.up = true;
     this.platforms.add(platform);
-    this.add.rectangle(x + width / 2, y + 8, width, 16, this.worldData.accent).setDepth(2);
-    this.add.rectangle(x + width / 2, y + 19, width - 10, 5, 0xffffff, 0.16).setDepth(3);
+    this.add.rectangle(x + width / 2, y + 10, width, 20, this.worldData.accent).setDepth(2);
+    this.add.rectangle(x + width / 2, y + 20, width - 8, 6, 0xffffff, 0.2).setDepth(3);
+    this.add.rectangle(x + width / 2, y + 30, width, 12, 0x201727, 0.12).setDepth(2);
+    const texture = this.add.graphics().setDepth(2);
+    const dark = Phaser.Display.Color.IntegerToColor(color).darken(24).color;
+    const light = Phaser.Display.Color.IntegerToColor(color).lighten(18).color;
+    for (let offset = 12, tile = 0; offset < width - 8; offset += 72, tile += 1) {
+      texture.fillStyle(tile % 2 ? dark : light, 0.22)
+        .fillRoundedRect(x + offset, y + 39 + (tile % 3) * 9, Math.min(55, width - offset), 14, 5);
+      texture.lineStyle(2, dark, 0.24).beginPath()
+        .moveTo(x + offset + 4, y + 58).lineTo(x + offset + 19, y + 64).strokePath();
+      if (this.level.world === 2 && tile % 3 === 0) {
+        texture.fillStyle(0xe7d9a6, 0.45).fillCircle(x + offset + 28, y + 34, 3);
+      } else if (this.level.world === 5 && tile % 2 === 0) {
+        texture.fillStyle(0xffd660, 0.5).fillCircle(x + offset + 29, y + 48, 3);
+      }
+    }
     return platform;
   }
 
@@ -717,6 +735,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   parallax() {
+    if (this.skyLayer) this.skyLayer.tilePositionX = this.backgroundOffset + this.cameras.main.scrollX * 0.12;
     if (this.bgGraphics) this.bgGraphics.x = -this.cameras.main.scrollX * 0.06;
   }
 

@@ -1,6 +1,7 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
 import { addDetailedCat } from "../objects/Cat.js";
+import { addItemArt } from "../ui/ItemArt.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
 
 const ITEMS = [
@@ -47,8 +48,9 @@ export class Shop extends Phaser.Scene {
   }
 
   drawShop() {
-    const g = this.add.graphics();
-    g.fillStyle(0xf4d8ac).fillRect(0, 0, 1280, 720);
+    this.add.image(640, 360, "shop-bg").setDisplaySize(1280, 720).setDepth(-20);
+    const g = this.add.graphics().setAlpha(0.22).setDepth(-10);
+    g.fillStyle(0xf4d8ac, 0.08).fillRect(0, 0, 1280, 720);
     g.fillStyle(0xe4b878).fillRect(0, 610, 1280, 110);
     g.fillStyle(0x6e4a54).fillRect(40, 150, 1200, 10).fillRect(40, 590, 1200, 10);
     for (let x = 80; x < 1250; x += 190) {
@@ -91,15 +93,7 @@ export class Shop extends Phaser.Scene {
         : item.tab === "GEAR" && this.save.equippedGear === item.id;
       const panel = this.add.rectangle(x, y, 245, 205, COLORS.cream).setStrokeStyle(5, COLORS.ink);
       const iconBg = this.add.circle(x, y - 38, 50, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
-      const gearTextures = {
-        helmetBoost: "helmet",
-        bananaBoost: "banana",
-        magnetBoost: "magnet",
-        yarnBoost: "yarn"
-      };
-      const icon = gearTextures[item.id]
-        ? this.add.image(x, y - 38, gearTextures[item.id]).setScale(0.76)
-        : this.add.text(x, y - 43, item.icon, textStyle(49, "#fff7df")).setOrigin(0.5);
+      const icon = addItemArt(this, item.id, x, y - 38, 0.7);
       const name = this.add.text(x, y + 20, item.name, textStyle(20)).setOrigin(0.5);
       const detail = this.add.text(x, y + 48, item.detail, textStyle(12, "#8a7588")).setOrigin(0.5);
       const hatCat = item.tab === "HATS" && this.save.hatAssignments[item.id]
@@ -114,8 +108,14 @@ export class Shop extends Phaser.Scene {
             : "TAP TO EQUIP";
       const price = this.add.text(x, y + 76, owned ? ownedLabel : `● ${item.price}`, textStyle(15, owned ? "#3f9f7c" : "#7a6077")).setOrigin(0.5);
       const hit = this.add.rectangle(x, y, 245, 205, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
-      hit.on("pointerover", () => this.tweens.add({ targets: [panel, iconBg, icon, name, price], scale: 1.035, duration: 90 }));
-      hit.on("pointerout", () => this.tweens.add({ targets: [panel, iconBg, icon, name, price], scale: 1, duration: 90 }));
+      hit.on("pointerover", () => {
+        this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1.035, duration: 90 });
+        this.tweens.add({ targets: icon, scale: 0.76, duration: 110, ease: "Back.out" });
+      });
+      hit.on("pointerout", () => {
+        this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1, duration: 90 });
+        this.tweens.add({ targets: icon, scale: 0.7, duration: 110 });
+      });
       hit.on("pointerup", () => this.handleItem(item, owned));
       this.itemObjects.push(panel, iconBg, icon, name, detail, price, hit);
     });

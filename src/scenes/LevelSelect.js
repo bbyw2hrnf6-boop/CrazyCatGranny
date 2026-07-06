@@ -38,33 +38,19 @@ export class LevelSelect extends Phaser.Scene {
       [0xc1e0e9, 0xd69a68],
       [0x574c7b, 0x3e365f]
     ][this.worldId - 1];
-    const g = this.add.graphics();
-    g.fillStyle(palette[0]).fillRect(0, 0, 1280, 720);
-    g.fillStyle(palette[1]).fillEllipse(140, 610, 450, 250).fillEllipse(1150, 620, 470, 270);
+    this.add.image(640, 360, `world-bg-${this.worldId}`).setDisplaySize(1280, 720).setAlpha(0.7).setDepth(-20);
+    const g = this.add.graphics().setDepth(-10);
+    g.fillStyle(palette[0], 0.24).fillRect(0, 0, 1280, 720);
+    g.fillStyle(palette[1], 0.58).fillEllipse(140, 610, 450, 250).fillEllipse(1150, 620, 470, 270);
     g.lineStyle(25, 0xfff4cf, 1).beginPath()
       .moveTo(60, 565).lineTo(150, 520).lineTo(250, 465).lineTo(326, 337).lineTo(505, 313)
       .lineTo(650, 390).lineTo(770, 520).lineTo(915, 530).lineTo(1030, 410).lineTo(1162, 255).lineTo(1240, 230)
       .strokePath();
     g.lineStyle(4, 0xbda96e, 0.48).strokePath();
 
-    for (let i = 0; i < 18; i += 1) {
-      const x = 30 + i * 78;
-      const y = 205 + (i % 3) * 17;
-      if (this.worldId === 2 && i % 4 === 0) {
-        g.fillStyle(0xf7f3df).fillRect(x - 5, y - 40, 10, 70);
-        g.fillStyle(0x557c6c).fillTriangle(x, y - 35, x - 35, y - 5, x + 35, y - 5);
-      } else if (this.worldId === 3) {
-        g.fillStyle(0xe65f64).fillCircle(x, y, 16);
-        g.fillStyle(0xffdc63).fillCircle(x, y, 7);
-      } else if (this.worldId === 4) {
-        g.fillStyle(i % 2 ? 0xc76e49 : 0x4f89a8).fillRect(x - 18, y - 25, 36, 55);
-      } else if (this.worldId === 5) {
-        g.fillStyle(i % 2 ? 0xff6e9f : 0x78d5d7).fillCircle(x, y, 22);
-        g.fillStyle(0xffe27a).fillCircle(x, y, 7);
-      } else {
-        g.fillStyle(i % 2 ? 0x6ba363 : 0x568b57).fillCircle(x, y, 26 + (i % 4) * 3);
-        g.fillStyle(0x6e4f36).fillRect(x - 5, y + 18, 10, 30);
-      }
+    for (let i = 0; i < 22; i += 1) {
+      g.fillStyle(i % 3 ? 0xffffff : this.world.accent, 0.2)
+        .fillCircle(25 + i * 61, 205 + (i % 4) * 19, 2 + (i % 2));
     }
   }
 

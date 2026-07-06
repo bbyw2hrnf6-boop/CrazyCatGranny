@@ -45,33 +45,25 @@ export class MainMenu extends Phaser.Scene {
   }
 
   drawHouse(save) {
-    const g = this.add.graphics();
-    g.fillStyle(0x6ebdc8).fillRect(0, 0, 1280, 720);
-    g.fillStyle(0xd8f2e8).fillCircle(960, 110, 68);
-    g.fillStyle(0xffffff, 0.8).fillEllipse(890, 140, 170, 50).fillEllipse(1120, 80, 150, 42);
-    g.fillStyle(0x5b9a4c).fillRect(0, 590, 1280, 130);
-    g.fillStyle(0x427f47).fillEllipse(900, 600, 750, 140);
-    g.fillStyle(0x593b4c).fillRect(665, 210, 550, 390);
-    g.fillStyle(0xffe4ad).fillRect(685, 230, 510, 360);
-    g.fillStyle(0xc95759).fillTriangle(620, 230, 935, 50, 1250, 230);
-    g.fillStyle(0x9f3f4c).fillRect(1110, 85, 52, 110);
-    g.fillStyle(0x7a4f3b).fillRoundedRect(885, 405, 130, 185, 8);
-    g.fillStyle(0x3c8094).fillRect(735, 300, 115, 105).fillRect(1050, 285, 105, 120);
-    g.lineStyle(9, 0xfff2cf).strokeRect(735, 300, 115, 105).strokeRect(1050, 285, 105, 120);
-    g.lineStyle(5, 0xfff2cf).beginPath().moveTo(792, 300).lineTo(792, 405).moveTo(735, 352).lineTo(850, 352).moveTo(1102, 285).lineTo(1102, 405).moveTo(1050, 345).lineTo(1155, 345).strokePath();
-    g.fillStyle(0x3b2a34).fillCircle(988, 500, 6);
-    g.fillStyle(0xf3bc54).fillCircle(1125, 160, 22);
-    g.fillStyle(0x315d37).fillRoundedRect(625, 515, 145, 86, 30).fillRoundedRect(1160, 495, 120, 110, 35);
+    this.add.image(640, 360, "world-bg-1").setDisplaySize(1280, 720).setDepth(-20);
+    this.add.rectangle(250, 360, 500, 720, 0x2f2335, 0.16).setDepth(-8);
+    const g = this.add.graphics().setDepth(-5);
+    g.fillStyle(0x24182b, 0.2).fillEllipse(835, 566, 290, 35);
+    g.fillStyle(0xfff0aa, 0.13).fillCircle(1030, 185, 115);
+    for (let i = 0; i < 18; i += 1) {
+      g.fillStyle(i % 2 ? 0xffffff : 0xffd65c, 0.32)
+        .fillCircle(620 + i * 35, 140 + (i % 5) * 68, 2 + (i % 3));
+    }
 
     const granny = this.add.sprite(815, 525, "granny-skate", 0).setScale(0.34).play("granny-skating");
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
     const gear = addGrannyGear(this, granny, save.equippedGear, 8);
     if (gear) this.tweens.add({ targets: gear, y: gear.y - 5, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
-    const thief = this.add.sprite(1115, 207, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
+    const thief = this.add.sprite(1115, 300, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });
 
     const count = Math.max(1, Math.min(4, save.rescuedCats.length));
-    const positions = [[730, 548], [1065, 553], [950, 335], [1180, 560]];
+    const positions = [[730, 548], [1065, 553], [950, 555], [1180, 560]];
     for (let i = 0; i < count; i += 1) {
       const cat = addDetailedCat(this, positions[i][0], positions[i][1], i, i > 1 ? 0.19 : 0.22);
       if (i % 2) cat.setFlipX(true);

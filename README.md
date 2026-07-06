@@ -34,3 +34,14 @@ Progress, rescued cats, shop purchases, and best ratings save in browser local s
 Cat hats are assigned to one selected rescued cat. Cat House furniture is shared by the whole collection. Granny can equip one functional gear item at a time.
 
 Animation and game-feel systems include multi-frame skating and thief run cycles, squash and stretch, physical cane momentum, post-swing speed boosts, camera weight, landing bounce, reactive flowers, debris, weather, particles, and layered parallax.
+
+## Publish on GitHub Pages
+
+The repository includes a ready-to-run Pages workflow. It builds the Vite app with relative asset paths, so project URLs such as `/CrazyCatGranny/` work correctly.
+
+1. Push the repository to the `main` branch.
+2. Open **Settings → Pages** in GitHub.
+3. Under **Build and deployment**, choose **GitHub Actions**.
+4. Open the **Actions** tab and watch “Deploy Crazy Cat Granny to GitHub Pages”.
+
+Every later push to `main` rebuilds and publishes the game automatically.
