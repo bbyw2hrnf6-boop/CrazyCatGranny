@@ -1,5 +1,6 @@
 import { SaveGame } from "../savegame/SaveGame.js";
-import { addDetailedCat, animateCat } from "../objects/Cat.js";
+import { LEVELS } from "../levels/levels.js";
+import { addCatHat, addDetailedCat, animateCat, syncCatHat } from "../objects/Cat.js";
 import { addGrannyGear } from "../objects/Outfits.js";
 import { addPaperTexture, COLORS, coinBadge, iconButton, pill, textStyle } from "../ui/ui.js";
 
@@ -62,12 +63,16 @@ export class MainMenu extends Phaser.Scene {
     const thief = this.add.sprite(1115, 300, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });
 
-    const count = Math.max(1, Math.min(4, save.rescuedCats.length));
+    const rescued = LEVELS.filter((level) => save.rescuedCats.includes(level.cat.id)).slice(0, 4);
+    const count = Math.max(1, rescued.length);
     const positions = [[730, 548], [1065, 553], [950, 555], [1180, 560]];
     for (let i = 0; i < count; i += 1) {
-      const cat = addDetailedCat(this, positions[i][0], positions[i][1], i, i > 1 ? 0.19 : 0.22);
+      const level = rescued[i] || LEVELS[0];
+      const cat = addDetailedCat(this, positions[i][0], positions[i][1], level.id - 1, i > 1 ? 0.19 : 0.22);
       if (i % 2) cat.setFlipX(true);
       animateCat(this, cat, { duration: 750 + i * 90, bob: 6 });
+      const hat = addCatHat(this, cat, SaveGame.hatForCat(level.cat.id), 9);
+      if (hat) this.events.on("update", () => syncCatHat(cat, hat));
     }
   }
 }

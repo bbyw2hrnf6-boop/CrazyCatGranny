@@ -1,3 +1,5 @@
+import { LEVELS } from "../levels/levels.js";
+
 const KEY = "crazy-cat-granny-save-v1";
 const HOME_ITEMS = ["scratcher", "catbed", "yarnbasket", "aquarium", "windowseat", "catbridge", "velvetsofa", "wallpaper"];
 
@@ -14,6 +16,8 @@ const defaults = {
   hatAssignments: {},
   activeDecor: [],
   worldTrophies: [],
+  catBoxesOpened: [],
+  dropHistory: [],
   selectedCharacter: "granny",
   sound: true
 };
@@ -27,7 +31,9 @@ function clean(data) {
     levels: data?.levels && typeof data.levels === "object" ? data.levels : {},
     hatAssignments: data?.hatAssignments && typeof data.hatAssignments === "object" ? data.hatAssignments : {},
     activeDecor: Array.isArray(data?.activeDecor) ? data.activeDecor : [],
-    worldTrophies: Array.isArray(data?.worldTrophies) ? data.worldTrophies : []
+    worldTrophies: Array.isArray(data?.worldTrophies) ? data.worldTrophies : [],
+    catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
+    dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
   if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEMS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
@@ -65,7 +71,21 @@ export const SaveGame = {
     save.coins += earned;
     save.totalCoins += earned;
     save.unlockedLevel = Math.max(save.unlockedLevel, Math.min(45, level.id + 1));
-    if (!save.rescuedCats.includes(level.cat.id)) save.rescuedCats.push(level.cat.id);
+    let reward = { type: "none" };
+    if (firstClear && level.grantsCat && !save.rescuedCats.includes(level.cat.id)) {
+      save.rescuedCats.push(level.cat.id);
+      reward = {
+        type: "rescue",
+        catId: level.cat.id,
+        rarity: level.cat.rarity,
+        limited: level.cat.limited
+      };
+      save.dropHistory.push({ ...reward, levelId: level.id });
+    } else if (level.grantsCatBox) {
+      reward = rollCatBox(save, level.world);
+      save.catBoxesOpened.push(level.world);
+      save.dropHistory.push({ ...reward, levelId: level.id });
+    }
     save.levels[level.id] = {
       completed: true,
       paws: Math.max(old.paws || 0, result.paws),
@@ -75,7 +95,16 @@ export const SaveGame = {
     };
     if (level.boss && !save.worldTrophies.includes(level.world)) save.worldTrophies.push(level.world);
     this.write(save);
-    return { save, firstClear };
+    return { save, firstClear, reward };
+  },
+
+  openCatBox(world, random = Math.random) {
+    const save = this.load();
+    const reward = rollCatBox(save, world, random);
+    save.catBoxesOpened.push(Number(world) || 1);
+    save.dropHistory.push({ ...reward, levelId: null });
+    this.write(save);
+    return reward;
   },
 
   buy(item) {
@@ -154,3 +183,37 @@ export const SaveGame = {
     return this.load();
   }
 };
+
+function rollCatBox(save, world = 1, random = Math.random) {
+  const available = LEVELS.filter((level) => !save.rescuedCats.includes(level.cat.id));
+  if (!available.length) {
+    save.coins += 125;
+    return { type: "catbox-coins", coins: 125 };
+  }
+  const rarityWeight = { Common: 54, Uncommon: 28, Rare: 13, Legendary: 5 };
+  const weighted = available.map((level) => {
+    let weight = rarityWeight[level.cat.rarity] || 10;
+    if (level.cat.limited) weight *= 0.24;
+    if (level.cat.rarity === "Rare") weight *= 1 + Math.max(0, world - 1) * 0.08;
+    if (level.cat.rarity === "Legendary") weight *= 1 + Math.max(0, world - 1) * 0.12;
+    return { level, weight };
+  });
+  const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
+  let cursor = Math.min(0.999999, Math.max(0, Number(random()) || 0)) * total;
+  let selected = weighted[weighted.length - 1].level;
+  for (const entry of weighted) {
+    cursor -= entry.weight;
+    if (cursor <= 0) {
+      selected = entry.level;
+      break;
+    }
+  }
+  save.rescuedCats.push(selected.cat.id);
+  return {
+    type: "catbox",
+    catId: selected.cat.id,
+    rarity: selected.cat.rarity,
+    limited: selected.cat.limited,
+    sourceWorld: Number(world) || 1
+  };
+}

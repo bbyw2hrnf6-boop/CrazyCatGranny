@@ -11,6 +11,20 @@ export function addItemArt(scene, id, x, y, scale = 1) {
   return art;
 }
 
+export function addHatArt(scene, id, x, y, scale = 1) {
+  const g = scene.add.graphics();
+  drawItem(g, id);
+  const size = {
+    crown: 0.76,
+    cowboy: 0.72,
+    beanie: 0.78,
+    vikingHat: 0.72,
+    bowHat: 0.72,
+    sunHat: 0.62
+  }[id] || 0.82;
+  return scene.add.container(x, y, [g]).setScale(scale * size).setSize(110, 110);
+}
+
 function outline(g, width = 4, color = INK) {
   return g.lineStyle(width, color, 1);
 }

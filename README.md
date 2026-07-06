@@ -4,7 +4,9 @@ A warm, hand-painted two-button Phaser auto-runner. Skate after the cat thief, j
 
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
-All 45 cats use distinct character art. Rescued cats share a living Cat House where they wander, eat, sleep, play, socialize, meow, and can be customized individually. Purchased room furniture can be placed or returned to storage with the room editor.
+All 45 cats use distinct character art. A cat is rescued after each three-level chase; every world boss drops a weighted CatBox with common, uncommon, rare, legendary, and limited cats. Bosses can be replayed to grow the collection.
+
+Rescued cats share a living Cat House where they wander, eat, drink, sleep, play, socialize, watch fish, climb real furniture paths, and meow. The room uses an empty 3D-style architectural shell with separately layered interactive furniture, so visible cat trees, bridges, beds, and seats are usable rather than baked into the background.
 
 ## Run
 
@@ -33,7 +35,9 @@ Progress, rescued cats, shop purchases, and best ratings save in browser local s
 
 Cat hats are assigned to one selected rescued cat. Cat House furniture is shared by the whole collection. Granny can equip one functional gear item at a time.
 
-Animation and game-feel systems include multi-frame skating and thief run cycles, squash and stretch, physical cane momentum, post-swing speed boosts, camera weight, landing bounce, reactive flowers, debris, weather, particles, and layered parallax.
+Animation and game-feel systems include multi-frame skating and thief run cycles, squash and stretch, physical cane momentum, post-swing speed boosts, camera weight, landing bounce, reactive flowers, debris, weather, particles, and layered parallax. The thief advances independently and can escape; time limits and world-specific fall limits make clean routes and hook boosts important.
+
+Cat outfits use per-breed head anchors and shared modular hat art across the shop, equip picker, Cat House, customization cards, and main menu.
 
 ## Publish on GitHub Pages
 

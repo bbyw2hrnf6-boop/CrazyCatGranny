@@ -1,6 +1,6 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
-import { addDetailedCat } from "../objects/Cat.js";
+import { addCatHat, addDetailedCat } from "../objects/Cat.js";
 import { addItemArt } from "../ui/ItemArt.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
 
@@ -93,7 +93,10 @@ export class Shop extends Phaser.Scene {
         : item.tab === "GEAR" && this.save.equippedGear === item.id;
       const panel = this.add.rectangle(x, y, 245, 205, COLORS.cream).setStrokeStyle(5, COLORS.ink);
       const iconBg = this.add.circle(x, y - 38, 50, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
-      const icon = addItemArt(this, item.id, x, y - 38, 0.7);
+      const iconScale = item.tab === "HOME" ? 0.18 : 0.7;
+      const icon = item.tab === "HOME"
+        ? this.add.image(x, y - 38, `furniture-${item.id}`).setScale(iconScale)
+        : addItemArt(this, item.id, x, y - 38, iconScale);
       const name = this.add.text(x, y + 20, item.name, textStyle(20)).setOrigin(0.5);
       const detail = this.add.text(x, y + 48, item.detail, textStyle(12, "#8a7588")).setOrigin(0.5);
       const hatCat = item.tab === "HATS" && this.save.hatAssignments[item.id]
@@ -110,11 +113,11 @@ export class Shop extends Phaser.Scene {
       const hit = this.add.rectangle(x, y, 245, 205, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on("pointerover", () => {
         this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1.035, duration: 90 });
-        this.tweens.add({ targets: icon, scale: 0.76, duration: 110, ease: "Back.out" });
+        this.tweens.add({ targets: icon, scale: iconScale * 1.08, duration: 110, ease: "Back.out" });
       });
       hit.on("pointerout", () => {
         this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1, duration: 90 });
-        this.tweens.add({ targets: icon, scale: 0.7, duration: 110 });
+        this.tweens.add({ targets: icon, scale: iconScale, duration: 110 });
       });
       hit.on("pointerup", () => this.handleItem(item, owned));
       this.itemObjects.push(panel, iconBg, icon, name, detail, price, hit);
@@ -196,6 +199,7 @@ export class Shop extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 154, 116, assigned ? COLORS.yellow : 0xffffff, 0.94).setDepth(62);
       card.setStrokeStyle(4, assigned ? COLORS.coral : COLORS.ink);
       const cat = addDetailedCat(this, x, y - 12, level.id - 1, 0.14).setDepth(63);
+      const previewHat = addCatHat(this, cat, item.id, 64);
       const name = this.add.text(x, y + 45, level.cat.name, textStyle(14)).setOrigin(0.5).setDepth(64);
       const hit = this.add.rectangle(x, y, 154, 116, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(65);
       hit.on("pointerup", () => {
@@ -206,7 +210,7 @@ export class Shop extends Phaser.Scene {
         this.refresh();
         this.toast(`${item.name} equipped to ${level.cat.name}!`);
       });
-      parts.push(card, cat, name, hit);
+      parts.push(card, cat, previewHat, name, hit);
     });
 
     if (pageCount > 1) {

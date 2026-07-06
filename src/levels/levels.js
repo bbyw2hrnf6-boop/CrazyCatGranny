@@ -25,7 +25,7 @@ export const WORLDS = [
 
 const worldLevels = [
   [
-    ["The First Cat", "Jump the garden fence!", "jump"],
+    ["The Chase Begins", "Jump the garden fence!", "jump"],
     ["Try the Cane", "Hold cane near gold hooks.", "cane"],
     ["Glass Act", "Crash through the greenhouse.", "glass"],
     ["Market Mayhem", "Bounce across the awnings.", "bounce"],
@@ -105,8 +105,11 @@ export const LEVELS = worldLevels.flatMap((entries, worldIndex) => entries.map((
       name: catNames[catIndex],
       color: catColors[catIndex % catColors.length],
       rarity: levelIndex === 8 ? "Legendary" : levelIndex >= 6 ? "Rare" : levelIndex >= 3 ? "Uncommon" : "Common",
+      limited: [8, 17, 26, 35, 44, 14, 32, 41].includes(catIndex),
       trait: catTraits[catIndex % catTraits.length]
-    }
+    },
+    grantsCat: levelIndex === 2 || levelIndex === 5,
+    grantsCatBox: levelIndex === 8
   };
 }));
 

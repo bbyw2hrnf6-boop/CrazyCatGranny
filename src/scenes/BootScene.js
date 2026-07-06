@@ -11,6 +11,9 @@ export class BootScene extends Phaser.Scene {
     }
     this.load.image("cat-house-bg", "assets/backgrounds/cat-house-hd.png");
     this.load.image("shop-bg", "assets/backgrounds/shop-hd.png");
+    ["scratcher", "catbed", "yarnbasket", "aquarium", "windowseat", "catbridge", "velvetsofa", "wallpaper"].forEach((item) => {
+      this.load.image(`furniture-${item}`, `assets/furniture/${item}.png`);
+    });
     this.load.spritesheet("granny-skate", "assets/sprites/granny-skate.png", { frameWidth: 512, frameHeight: 512 });
     this.load.spritesheet("thief-run", "assets/sprites/thief-run.png", { frameWidth: 512, frameHeight: 512 });
     for (let world = 1; world <= 5; world += 1) {

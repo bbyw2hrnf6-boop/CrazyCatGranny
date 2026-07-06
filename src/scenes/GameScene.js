@@ -2,7 +2,7 @@ import { Granny } from "../objects/Granny.js";
 import { addCoin, addTreat } from "../objects/Collectibles.js";
 import { addDetailedCat, catFrameForLevel } from "../objects/Cat.js";
 import { addGrannyGear, syncGrannyGear } from "../objects/Outfits.js";
-import { levelById, worldById } from "../levels/levels.js";
+import { LEVELS, levelById, worldById } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 
@@ -14,12 +14,16 @@ export class GameScene extends Phaser.Scene {
   init(data) {
     this.level = levelById(data.levelId);
     this.worldData = worldById(this.level.world);
+    this.chapterStep = ((this.level.id - 1) % 3) + 1;
+    const chapterReward = levelById(Math.min(this.level.world * 9, Math.ceil(this.level.id / 3) * 3));
+    this.chapterCatLevel = !this.level.boss && !chapterReward.boss ? chapterReward : null;
     this.coinsCollected = 0;
     this.treatsCollected = 0;
     this.falls = 0;
     this.elapsed = 0;
     this.running = false;
     this.finished = false;
+    this.lost = false;
     this.jumpHeld = false;
     this.caneHeld = false;
     this.respawnX = 170;
@@ -27,6 +31,7 @@ export class GameScene extends Phaser.Scene {
     this.lastDustAt = 0;
     this.lastFallCheckpoint = -999;
     this.repeatFallCount = 0;
+    this.thiefFinishTime = 0;
   }
 
   create() {
@@ -47,6 +52,8 @@ export class GameScene extends Phaser.Scene {
 
     this.granny = new Granny(this, 150, 500);
     this.granny.runSpeed = 305 + this.level.id * 6;
+    this.escapeLimit = this.level.targetTime * (1.43 - this.level.world * 0.035);
+    this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
     this.grannyGear = addGrannyGear(this, this.granny, this.save.equippedGear, 14);
@@ -89,6 +96,8 @@ export class GameScene extends Phaser.Scene {
     this.parallax();
     this.addSkateDust();
 
+    if (this.elapsed >= this.escapeLimit) this.lose("time");
+    if (this.finished) return;
     if (this.granny.y > 760 || this.granny.x < this.cameras.main.scrollX - 130) this.fall();
     if (this.granny.x >= this.level.length - 260) {
       if (this.level.boss && this.bossHealth > 0) {
@@ -511,12 +520,16 @@ export class GameScene extends Phaser.Scene {
   }
 
   createThief() {
-    this.thief = this.add.sprite(690, 505, "thief-run", 0)
+    this.thiefProgress = 690;
+    this.thiefSpeed = this.granny.runSpeed - 30 + this.level.id * 0.4 + (this.level.boss ? 8 : 0);
+    this.thief = this.add.sprite(this.thiefProgress, 505, "thief-run", 0)
       .setDepth(11)
       .setScale(this.level.boss ? 0.29 : 0.25)
       .play("thief-running");
     this.thiefBob = 0;
-    this.cageCat = addDetailedCat(this, 640, 455, catFrameForLevel(this.level.id), 0.06).setDepth(12);
+    const catFrame = this.chapterCatLevel ? this.chapterCatLevel.id : this.level.id;
+    this.cageCat = addDetailedCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
+    if (!this.chapterCatLevel) this.cageCat.setTint(0x4b3b50).setAlpha(0.78);
   }
 
   createFinish() {
@@ -540,6 +553,10 @@ export class GameScene extends Phaser.Scene {
     this.timeText = this.add.text(1050, 57, "0:00.0", textStyle(24, "#ffdc61")).setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
     this.progressBg = this.add.rectangle(20, 94, 1240, 8, 0x2f2335, 0.35).setOrigin(0).setScrollFactor(0).setDepth(50);
     this.progress = this.add.rectangle(20, 94, 0, 8, COLORS.coral).setOrigin(0).setScrollFactor(0).setDepth(51);
+    this.thiefMarker = this.add.triangle(20, 103, 0, 0, 12, 0, 6, 13, COLORS.yellow)
+      .setOrigin(0.5, 0).setScrollFactor(0).setDepth(52);
+    this.escapeText = this.add.text(650, 58, "THIEF  0:00", textStyle(17, "#ffdc61"))
+      .setOrigin(0.5).setScrollFactor(0).setDepth(52);
     this.boostText = this.add.text(640, 158, "⚡ HOOK BOOST", textStyle(18, "#fff7df"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#41b9ad").setPadding(14, 6).setVisible(false);
     const pause = pill(this, 1210, 140, 76, 55, "Ⅱ", { fill: COLORS.cream, size: 24 });
@@ -587,8 +604,17 @@ export class GameScene extends Phaser.Scene {
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x2f2335, 0.55).setScrollFactor(0).setDepth(90);
     const card = this.add.rectangle(640, 350, 640, 330, COLORS.cream).setScrollFactor(0).setDepth(91);
     card.setStrokeStyle(7, COLORS.ink);
-    const cat = addDetailedCat(this, 640, 270, catFrameForLevel(this.level.id), 0.26).setScrollFactor(0).setDepth(92);
-    const title = this.add.text(640, 175, `OH NO — ${this.level.cat.name.toUpperCase()}!`, textStyle(35, "#ec5966"))
+    const shownLevel = this.chapterCatLevel || this.level;
+    const cat = addDetailedCat(this, 640, 270, catFrameForLevel(shownLevel.id), 0.26).setScrollFactor(0).setDepth(92);
+    if (!this.chapterCatLevel) {
+      cat.setTint(0x493b51).setAlpha(0.72);
+    }
+    const introTitle = this.level.boss
+      ? "BOSS RUN — MYSTERY CATBOX!"
+      : this.level.grantsCat
+        ? `FINAL CHASE — SAVE ${shownLevel.cat.name.toUpperCase()}!`
+        : `CHASE ${this.chapterStep}/3 — KEEP UP!`;
+    const title = this.add.text(640, 175, introTitle, textStyle(35, "#ec5966"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(92);
     const sub = this.add.text(640, 365, this.level.subtitle, textStyle(24, "#2f2335")).setOrigin(0.5).setScrollFactor(0).setDepth(92);
     const tipCopy = this.level.boss
@@ -716,13 +742,23 @@ export class GameScene extends Phaser.Scene {
 
   updateThief(delta) {
     this.thiefBob += delta * 0.012;
-    const bananaHelp = this.save.equippedGear === "bananaBoost" ? 105 : 0;
-    const lead = Phaser.Math.Clamp(520 - this.level.id * 12 + this.falls * 75 - bananaHelp, 250, 620);
-    const targetX = Math.min(this.level.length - 325, this.granny.x + lead);
-    this.thief.x = Phaser.Math.Linear(this.thief.x, targetX, 0.025);
+    const bananaSlow = this.save.equippedGear === "bananaBoost" ? 58 : 0;
+    const pressureBoost = this.granny.x > this.thiefProgress - 175 ? 28 : 0;
+    const speed = Math.max(235, this.thiefSpeed - bananaSlow + pressureBoost);
+    this.thiefProgress += speed * Math.min(delta / 1000, 0.04);
+    const finish = this.level.length - 255;
+    const bossGate = this.level.length - 500;
+    this.thiefProgress = Math.min(this.thiefProgress, this.level.boss && this.bossHealth > 0 ? bossGate : finish);
+    this.thief.x = this.thiefProgress;
     this.thief.y = 502 + Math.sin(this.thiefBob) * 7;
     this.cageCat.x = this.thief.x - 48;
     this.cageCat.y = this.thief.y - 48;
+
+    if (this.thiefProgress >= finish - 1 && !this.level.boss) {
+      if (!this.thiefFinishTime) this.thiefFinishTime = this.time.now;
+      const grace = this.granny.x > finish - 300 ? 1300 : 350;
+      if (this.time.now - this.thiefFinishTime >= grace) this.lose("thief");
+    }
   }
 
   updateHUD() {
@@ -732,6 +768,11 @@ export class GameScene extends Phaser.Scene {
     const seconds = (this.elapsed % 60).toFixed(1).padStart(4, "0");
     this.timeText.setText(`${minutes}:${seconds}`);
     this.progress.width = 1240 * Phaser.Math.Clamp(this.granny.x / (this.level.length - 250), 0, 1);
+    const thiefRatio = Phaser.Math.Clamp(this.thiefProgress / (this.level.length - 250), 0, 1);
+    this.thiefMarker.x = 20 + 1240 * thiefRatio;
+    const remaining = Math.max(0, this.escapeLimit - this.elapsed);
+    this.escapeText.setText(`THIEF  ${Math.floor(remaining / 60)}:${Math.ceil(remaining % 60).toString().padStart(2, "0")}`);
+    this.escapeText.setColor(remaining < 8 ? "#ff7180" : "#ffdc61");
   }
 
   parallax() {
@@ -959,6 +1000,10 @@ export class GameScene extends Phaser.Scene {
     if (!projectile.active) return;
     projectile.destroy();
     this.falls += 1;
+    if (this.falls >= this.maxFalls) {
+      this.lose("falls");
+      return;
+    }
     this.granny.setVelocity(this.granny.runSpeed * 0.55, -330);
     this.cameras.main.shake(220, 0.011);
     this.cameras.main.flash(120, 236, 89, 102);
@@ -985,8 +1030,13 @@ export class GameScene extends Phaser.Scene {
 
   fall() {
     if (this.finished) return;
-    this.respawnX = Math.max(this.respawnX, this.granny.x + 75);
     this.falls += 1;
+    if (this.falls >= this.maxFalls) {
+      this.lose("falls");
+      return;
+    }
+    const checkpoint = Math.max(140, Math.floor(this.granny.x / 620) * 620 + 120);
+    this.respawnX = Math.max(this.respawnX, checkpoint);
     if (Math.abs(this.respawnX - this.lastFallCheckpoint) < 100) this.repeatFallCount += 1;
     else this.repeatFallCount = 0;
     this.lastFallCheckpoint = this.respawnX;
@@ -996,8 +1046,11 @@ export class GameScene extends Phaser.Scene {
     this.granny.body.enable = false;
     this.running = false;
     const recovery = this.save.equippedGear === "helmetBoost" ? 180 : 430;
+    const racePenalty = recovery / 1000 + 0.55 + this.level.world * 0.08;
+    this.elapsed += racePenalty;
+    this.thiefProgress += this.thiefSpeed * racePenalty;
     this.time.delayedCall(recovery, () => {
-      const mercyBoost = Math.min(this.repeatFallCount * 120, 260);
+      const mercyBoost = Math.min(this.repeatFallCount * 45, 90);
       this.granny.setPosition(Math.max(140, this.respawnX + mercyBoost), 450);
       this.granny.setAngle(0);
       this.granny.body.enable = true;
@@ -1005,6 +1058,43 @@ export class GameScene extends Phaser.Scene {
       this.granny.setVelocity(250, 0);
       this.running = true;
     });
+  }
+
+  lose(reason = "thief") {
+    if (this.finished) return;
+    this.finished = true;
+    this.lost = true;
+    this.running = false;
+    this.granny.frozen = true;
+    this.granny.setVelocity(0, 0);
+    this.physics.pause();
+    this.cameras.main.shake(260, 0.012);
+    sound(this, "crash");
+
+    const copy = {
+      thief: ["THE THIEF ESCAPED!", "Too slow — use hooks and keep your momentum."],
+      time: ["TIME RAN OUT!", "The thief reached the getaway route first."],
+      falls: ["GRANNY WIPED OUT!", `Only ${this.maxFalls - 1} falls allowed in this world.`]
+    }[reason] || ["CAT-NAPPED!", "Try the chase again."];
+    const shade = this.add.rectangle(640, 360, 1280, 720, 0x241827, 0.78).setScrollFactor(0).setDepth(120).setInteractive();
+    const panel = this.add.rectangle(640, 350, 620, 390, COLORS.cream).setScrollFactor(0).setDepth(121);
+    panel.setStrokeStyle(8, COLORS.ink);
+    const title = this.add.text(640, 235, copy[0], textStyle(40, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(122);
+    const message = this.add.text(640, 295, copy[1], textStyle(20, "#6f596d")).setOrigin(0.5).setScrollFactor(0).setDepth(122);
+    const gap = Math.max(0, Math.round(this.thiefProgress - this.granny.x));
+    const stats = this.add.text(640, 345, `THIEF LEAD  ${gap}m   ·   FALLS  ${this.falls}/${this.maxFalls}`, textStyle(17))
+      .setOrigin(0.5).setScrollFactor(0).setDepth(122);
+    const retry = pill(this, 520, 440, 210, 62, "↻  RETRY", { fill: COLORS.yellow, size: 21 }).setScrollFactor(0).setDepth(123);
+    const map = pill(this, 760, 440, 210, 62, "BACK TO MAP", { fill: COLORS.cream, size: 19 }).setScrollFactor(0).setDepth(123);
+    retry.on("pointerup", () => {
+      this.physics.resume();
+      this.scene.restart({ levelId: this.level.id });
+    });
+    map.on("pointerup", () => {
+      this.physics.resume();
+      this.scene.start("LevelSelect", { worldId: this.level.world });
+    });
+    this.lossPanel = [shade, panel, title, message, stats, retry, map];
   }
 
   complete() {
@@ -1026,28 +1116,51 @@ export class GameScene extends Phaser.Scene {
       falls: this.falls,
       paws
     };
-    const { firstClear } = SaveGame.completeLevel(this.level, result);
+    const { firstClear, reward } = SaveGame.completeLevel(this.level, result);
     this.registry.set("save", SaveGame.load());
-    this.time.delayedCall(350, () => this.resultPanel(result, firstClear));
+    this.time.delayedCall(350, () => this.resultPanel(result, firstClear, reward));
   }
 
-  resultPanel(result, firstClear) {
+  resultPanel(result, firstClear, reward = { type: "none" }) {
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x2f2335, 0.76).setScrollFactor(0).setDepth(100);
     const panel = this.add.rectangle(640, 354, 760, 590, COLORS.cream).setScrollFactor(0).setDepth(101);
     panel.setStrokeStyle(8, COLORS.ink);
-    const cat = addDetailedCat(this, 640, 220, catFrameForLevel(this.level.id), 0.27).setScrollFactor(0).setDepth(102);
-    this.tweens.add({ targets: cat, y: 205, angle: 4, duration: 500, yoyo: true, repeat: -1 });
-    const resultTitle = this.level.id === 45 ? "ALL CATS HOME!" : this.level.boss ? "WORLD SAVED!" : "CAT RESCUED!";
+    const rewardLevel = reward.catId ? LEVELS.find((entry) => entry.cat.id === reward.catId) : null;
+    let cat = null;
+    if (rewardLevel) {
+      cat = addDetailedCat(this, 640, 220, catFrameForLevel(rewardLevel.id), 0.27).setScrollFactor(0).setDepth(102);
+      this.tweens.add({ targets: cat, y: 205, angle: 4, duration: 500, yoyo: true, repeat: -1 });
+    } else if (reward.type === "catbox-coins") {
+      this.add.image(640, 220, "coin").setScale(1.35).setScrollFactor(0).setDepth(102);
+    } else {
+      this.add.text(640, 220, this.level.boss ? "🏆" : "✓", textStyle(80, "#41a989"))
+        .setOrigin(0.5).setScrollFactor(0).setDepth(102);
+    }
+    const resultTitle = this.level.id === 45
+      ? "GRAND CHASE WON!"
+      : reward.type === "catbox"
+        ? "CATBOX DROP!"
+        : reward.type === "rescue"
+          ? "CAT RESCUED!"
+          : this.level.boss
+            ? "WORLD SAVED!"
+            : "LEVEL CLEAR!";
     this.add.text(640, 105, resultTitle, textStyle(43, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    const rescueCopy = this.level.id === 45
-      ? `🏆 GRAND CHAMPION · ${this.level.cat.name} completes the Cat House!`
-      : this.level.boss
-      ? `🏆 ${this.worldData.name} trophy earned · ${this.level.cat.name} is safe!`
-      : firstClear
-        ? `${this.level.cat.name} moved into the Cat House!`
-        : `${this.level.cat.name} is safe again.`;
-    this.add.text(640, 287, rescueCopy, textStyle(23))
+    const levelsUntilCat = this.level.boss ? 0 : 3 - this.chapterStep;
+    const rescueCopy = reward.type === "catbox" && rewardLevel
+      ? `${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} · ${rewardLevel.cat.name} joined the Cat House!`
+      : reward.type === "catbox-coins"
+        ? `Cat collection full · CatBox converted to ${reward.coins} coins!`
+        : reward.type === "rescue" && rewardLevel
+          ? `${rewardLevel.cat.name} is safe after the three-level chase!`
+          : this.level.boss
+            ? `🏆 ${this.worldData.name} trophy earned · CatBox already claimed.`
+            : firstClear
+              ? `${levelsUntilCat} more level${levelsUntilCat === 1 ? "" : "s"} until the next cat rescue.`
+              : "Level replayed · improve paws, treats and time.";
+    const rewardCopy = this.add.text(640, 287, rescueCopy, textStyle(21, reward.limited ? "#a45ad0" : "#5f4b5d"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(102);
+    if (reward.type === "catbox" && cat) this.createCatBoxReveal(cat, rewardCopy, reward);
     this.add.text(640, 337, "🐾".repeat(result.paws) + "·".repeat(3 - result.paws), textStyle(41, "#f2a532"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(102);
 
@@ -1074,6 +1187,51 @@ export class GameScene extends Phaser.Scene {
       : this.scene.start("LevelSelect"));
     home.on("pointerup", () => this.scene.start("CatHouse", { page: this.level.world }));
     shade.setInteractive();
+  }
+
+  createCatBoxReveal(cat, rewardCopy, reward) {
+    cat.setVisible(false).setScale(0.05);
+    rewardCopy.setText("Mystery CatBox opening…");
+    const rarityColor = {
+      Common: 0x69b9a7,
+      Uncommon: 0x5d8fce,
+      Rare: 0x9467bd,
+      Legendary: 0xf0b83f
+    }[reward.rarity] || 0x69b9a7;
+    const g = this.add.graphics();
+    g.fillStyle(0x241a2a, 0.24).fillEllipse(0, 52, 180, 28);
+    g.fillStyle(rarityColor).fillRoundedRect(-78, -35, 156, 92, 14);
+    g.lineStyle(6, COLORS.ink).strokeRoundedRect(-78, -35, 156, 92, 14);
+    g.fillStyle(0xffe0a1).fillTriangle(-66, -34, -50, -75, -26, -34)
+      .fillTriangle(26, -34, 50, -75, 67, -34);
+    g.fillStyle(0xfff1c5).fillRoundedRect(-86, -48, 172, 28, 10);
+    g.lineStyle(5, COLORS.ink).strokeRoundedRect(-86, -48, 172, 28, 10);
+    g.fillStyle(0x3b2a40).fillCircle(0, 8, 16)
+      .fillCircle(-20, -7, 9).fillCircle(0, -12, 9).fillCircle(20, -7, 9);
+    const label = this.add.text(0, 38, "CATBOX", textStyle(16, "#fff7df")).setOrigin(0.5);
+    const box = this.add.container(640, 220, [g, label]).setScrollFactor(0).setDepth(105);
+    this.tweens.add({ targets: box, angle: { from: -3, to: 3 }, duration: 95, yoyo: true, repeat: 7 });
+    this.time.delayedCall(900, () => {
+      this.cameras.main.flash(220, 255, 226, 125);
+      box.destroy();
+      cat.setVisible(true);
+      this.tweens.add({ targets: cat, scaleX: 0.27, scaleY: 0.27, duration: 360, ease: "Back.out" });
+      rewardCopy.setText(`${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} CAT!`);
+      for (let i = 0; i < 10; i += 1) {
+        const sparkle = this.add.image(640, 220, "sparkle").setScale(0.25).setScrollFactor(0).setDepth(106);
+        const angle = i / 10 * Math.PI * 2;
+        this.tweens.add({
+          targets: sparkle,
+          x: 640 + Math.cos(angle) * 130,
+          y: 220 + Math.sin(angle) * 90,
+          alpha: 0,
+          angle: 180,
+          duration: 700,
+          onComplete: () => sparkle.destroy()
+        });
+      }
+      sound(this, "win");
+    });
   }
 
   togglePause() {
