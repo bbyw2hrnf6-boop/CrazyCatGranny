@@ -35,8 +35,8 @@ export class BootScene extends Phaser.Scene {
   makeAnimations() {
     this.anims.create({
       key: "granny-skating",
-      frames: this.anims.generateFrameNumbers("granny-skate", { frames: [0, 1, 2, 3, 2, 1] }),
-      frameRate: 8,
+      frames: this.anims.generateFrameNumbers("granny-skate", { frames: [0, 1, 3, 1] }),
+      frameRate: 6,
       repeat: -1
     });
     this.anims.create({

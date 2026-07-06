@@ -24,19 +24,34 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.hookBoostUntil = 0;
     this.baseScale = 0.29;
     this.wasGrounded = false;
+    this.skateTime = 0;
+  }
+
+  stabilizeSkateFrame() {
+    const frame = Number(this.frame.name);
+    const originY = frame === 3 ? 243 : 256;
+    if (this.displayOriginY === originY) return;
+    this.setDisplayOrigin(256, originY);
+    this.setOffset(160, 105 + originY - 256);
   }
 
   updateMovement(delta, jumpHeld) {
     if (this.frozen || this.isSwinging) return;
-    this.play("granny-skating", true);
+    this.skateTime += delta;
+    const startBlend = Phaser.Math.Easing.Sine.InOut(Phaser.Math.Clamp(this.skateTime / 1400, 0, 1));
     const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + 125 : this.runSpeed;
-    this.setVelocityX(Math.max(this.body.velocity.x, boostedSpeed));
-    this.anims.timeScale = Phaser.Math.Clamp(Math.abs(this.body.velocity.x) / this.runSpeed * 0.8, 0.72, 1.08);
+    const launchSpeed = boostedSpeed * Phaser.Math.Linear(0.72, 1, startBlend);
+    this.setVelocityX(Math.max(this.body.velocity.x, launchSpeed));
+    const cadence = Phaser.Math.Linear(0.32, 0.82, startBlend);
+    this.anims.timeScale = Phaser.Math.Clamp(launchSpeed / this.runSpeed * cadence, 0.28, 1);
+    this.play("granny-skating", true);
+    this.stabilizeSkateFrame();
     const grounded = this.body.blocked.down || this.body.touching.down;
     if (!grounded) {
       if (this.scene.time.now - this.lastGrounded > 130) {
         this.anims.pause();
         this.setFrame(3);
+        this.stabilizeSkateFrame();
       }
       this.airSpin += delta * 0.42;
       this.setAngle(this.airSpin);
@@ -90,6 +105,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.isSwinging = true;
     this.anims.pause();
     this.setFrame(3);
+    this.stabilizeSkateFrame();
     this.scene.tweens.add({ targets: this, scaleX: this.baseScale * 1.06, scaleY: this.baseScale * 0.94, duration: 130, ease: "Back.out" });
     this.body.allowGravity = false;
     this.setVelocity(0, 0);

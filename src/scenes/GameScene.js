@@ -847,18 +847,13 @@ export class GameScene extends Phaser.Scene {
 
   onGrannyLand(impact = 0) {
     this.tweens.killTweensOf(this.granny);
-    this.granny.setScale(this.granny.baseScale * 1.13, this.granny.baseScale * 0.87);
-    this.tweens.add({
-      targets: this.granny,
-      scaleX: this.granny.baseScale,
-      scaleY: this.granny.baseScale,
-      duration: 180,
-      ease: "Back.out"
-    });
-    this.cameras.main.shake(80, Phaser.Math.Clamp(impact / 160000, 0.0015, 0.004));
-    this.cameras.main.zoomTo(1.018, 70, Phaser.Math.Easing.Quadratic.Out, false, (_camera, progress) => {
-      if (progress === 1) this.cameras.main.zoomTo(1, 150, Phaser.Math.Easing.Back.Out);
-    });
+    this.granny.setScale(this.granny.baseScale);
+    if (impact > 320) {
+      this.cameras.main.shake(65, Phaser.Math.Clamp(impact / 190000, 0.001, 0.003));
+      this.cameras.main.zoomTo(1.012, 70, Phaser.Math.Easing.Quadratic.Out, false, (_camera, progress) => {
+        if (progress === 1) this.cameras.main.zoomTo(1, 130, Phaser.Math.Easing.Back.Out);
+      });
+    }
     sound(this, "land");
     for (let i = 0; i < 6; i += 1) {
       const debris = this.add.circle(this.granny.x + Phaser.Math.Between(-25, 25), this.granny.y + 46, Phaser.Math.Between(2, 5), 0xe7d5aa, 0.7).setDepth(17);
