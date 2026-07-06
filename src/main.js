@@ -5,6 +5,7 @@ import { GameScene } from "./scenes/GameScene.js";
 import { CatHouse } from "./scenes/CatHouse.js";
 import { Shop } from "./scenes/Shop.js";
 import { TrophyRoom } from "./scenes/TrophyRoom.js";
+import { PHYSICS_TUNING } from "./config/PhysicsTuning.js";
 
 const config = {
   type: Phaser.AUTO,
@@ -18,7 +19,7 @@ const config = {
   physics: {
     default: "arcade",
     arcade: {
-      gravity: { y: 1350 },
+      gravity: { y: PHYSICS_TUNING.gravity },
       debug: false
     }
   },

@@ -9,6 +9,9 @@ import {
 import { LEVELS, levelById, worldById } from "../levels/levels.js";
 import { planCourse } from "../levels/CoursePlanner.js";
 import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
+import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
+import { performanceProfile } from "../systems/PerformanceProfile.js";
+import { DevTools } from "../systems/DevTools.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 
@@ -39,6 +42,8 @@ export class GameScene extends Phaser.Scene {
     this.repeatFallCount = 0;
     this.thiefFinishTime = 0;
     this.finishX = this.level.length - 260;
+    this.performance = performanceProfile(SaveGame.load().performanceMode);
+    this.lastPhysicsCullAt = 0;
   }
 
   create() {
@@ -70,8 +75,16 @@ export class GameScene extends Phaser.Scene {
     this.physics.add.overlap(this.granny, this.coins, this.takeCoin, undefined, this);
     this.physics.add.overlap(this.granny, this.treats, this.takeTreat, undefined, this);
 
-    this.cameras.main.startFollow(this.granny, true, 0.15, 0.11, -260, 60);
-    this.cameras.main.setDeadzone(130, 80);
+    const camera = PHYSICS_TUNING.camera;
+    this.cameras.main.startFollow(
+      this.granny,
+      true,
+      camera.lerpX,
+      camera.lerpY,
+      camera.followOffsetX,
+      camera.followOffsetY
+    );
+    this.cameras.main.setDeadzone(camera.deadzoneWidth, camera.deadzoneHeight);
     this.events.on("granny-land", this.onGrannyLand, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off("granny-land", this.onGrannyLand, this));
     this.createThief();
@@ -79,9 +92,13 @@ export class GameScene extends Phaser.Scene {
     this.createHUD();
     this.createControls();
     this.createReactiveProps();
+    this.createEffectPool();
+    this.createSpeedLines();
     if (this.level.boss) this.createBossEncounter();
     this.createIntro();
     this.bindKeys();
+    this.devTools = new DevTools(this);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.devTools?.destroy());
   }
 
   update(_time, delta) {
@@ -102,6 +119,9 @@ export class GameScene extends Phaser.Scene {
     this.updateReactiveProps();
     this.parallax();
     this.addSkateDust();
+    this.updateSpeedLines();
+    this.updateOffscreenPhysics();
+    this.devTools?.update();
 
     if (this.elapsed >= this.escapeLimit) this.lose("time");
     if (this.finished) return;
@@ -422,7 +442,7 @@ export class GameScene extends Phaser.Scene {
   applyLevelGimmick() {
     const gimmick = this.level.gimmick;
     if (["rain", "monsoon", "dike"].includes(gimmick)) {
-      for (let i = 0; i < 28; i += 1) {
+      for (let i = 0; i < this.performance.rainDrops; i += 1) {
         const drop = this.add.rectangle(
           Phaser.Math.Between(0, 1280),
           Phaser.Math.Between(95, 700),
@@ -514,6 +534,13 @@ export class GameScene extends Phaser.Scene {
     this.thiefRope = this.add.graphics().setDepth(10);
     this.thiefBob = 0;
     this.thiefJump = null;
+    this.nextThiefReaction = 0;
+    this.thiefReaction = this.add.text(this.thiefProgress, 400, "!", textStyle(24, "#fff7df"))
+      .setOrigin(0.5)
+      .setDepth(22)
+      .setBackgroundColor("#ec5966")
+      .setPadding(8, 2)
+      .setVisible(false);
     const catFrame = this.chapterCatLevel ? this.chapterCatLevel.id : this.level.id;
     this.cageCat = createCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
     if (!this.chapterCatLevel) this.cageCat.setTint(0x4b3b50).setAlpha(0.78);
@@ -676,6 +703,10 @@ export class GameScene extends Phaser.Scene {
       this.rope = null;
       this.boostText?.setVisible(true).setAlpha(1);
       this.tweens.add({ targets: this.boostText, alpha: 0, delay: 1250, duration: 500, onComplete: () => this.boostText?.setVisible(false) });
+      this.cameras.main.zoomTo(1.018, 100, Phaser.Math.Easing.Quadratic.Out, false, (_camera, progress) => {
+        if (progress === 1) this.cameras.main.zoomTo(1, 260, Phaser.Math.Easing.Sine.Out);
+      });
+      this.reactThief("EEK!");
       for (let i = 0; i < 5; i += 1) {
         const spark = this.add.image(this.granny.x - i * 14, this.granny.y + 30, "sparkle").setScale(0.35).setDepth(16);
         this.tweens.add({ targets: spark, x: spark.x - 80, alpha: 0, duration: 450 + i * 70, onComplete: () => spark.destroy() });
@@ -826,6 +857,12 @@ export class GameScene extends Phaser.Scene {
     }
     this.cageCat.x = this.thief.x - 48;
     this.cageCat.y = this.thief.y - 48;
+    this.thiefReaction.setPosition(this.thief.x, this.thief.y - 105);
+    const chaseGap = this.thiefProgress - this.granny.x;
+    if (chaseGap < 190 && this.time.now > this.nextThiefReaction) {
+      this.nextThiefReaction = this.time.now + 2400;
+      this.reactThief(chaseGap < 90 ? "NO!" : "!");
+    }
 
     if (this.thiefProgress >= finish - 1 && (!this.level.boss || this.bossHealth <= 0)) {
       this.lose("thief");
@@ -881,53 +918,59 @@ export class GameScene extends Phaser.Scene {
   }
 
   addSkateDust() {
-    if (!this.granny.body.blocked.down || this.time.now - this.lastDustAt < 130) return;
+    if (!this.granny.body.blocked.down || this.time.now - this.lastDustAt < this.performance.dustInterval) return;
     this.lastDustAt = this.time.now;
-    const puff = this.add.circle(
+    this.emitEffectCircle(
       this.granny.x - 32,
       this.granny.y + 43,
       Phaser.Math.Between(5, 9),
       0xfff7df,
-      0.55
-    ).setDepth(8);
-    this.tweens.add({
-      targets: puff,
-      x: puff.x - 42,
-      y: puff.y - 18,
+      0.55,
+      8,
+      {
+      x: this.granny.x - 74,
+      y: this.granny.y + 25,
       alpha: 0,
       scale: 1.8,
-      duration: 420,
-      onComplete: () => puff.destroy()
-    });
+      duration: 420
+      }
+    );
   }
 
   onGrannyLand(impact = 0) {
-    this.tweens.killTweensOf(this.granny);
-    this.granny.setScale(this.granny.baseScale);
-    if (impact > 320) {
-      this.cameras.main.shake(65, Phaser.Math.Clamp(impact / 190000, 0.001, 0.003));
+    // Never squash the physics sprite itself: scaling its body creates false
+    // airborne/landing loops. Landing weight comes from camera and pooled debris.
+    if (impact > 420) {
+      this.cameras.main.shake(55, Phaser.Math.Clamp(impact / 240000, 0.001, 0.0024));
       this.cameras.main.zoomTo(1.012, 70, Phaser.Math.Easing.Quadratic.Out, false, (_camera, progress) => {
         if (progress === 1) this.cameras.main.zoomTo(1, 130, Phaser.Math.Easing.Back.Out);
       });
     }
     sound(this, "land");
-    for (let i = 0; i < 6; i += 1) {
-      const debris = this.add.circle(this.granny.x + Phaser.Math.Between(-25, 25), this.granny.y + 46, Phaser.Math.Between(2, 5), 0xe7d5aa, 0.7).setDepth(17);
-      this.tweens.add({
-        targets: debris,
-        x: debris.x + Phaser.Math.Between(-55, 55),
-        y: debris.y - Phaser.Math.Between(18, 55),
+    for (let i = 0; i < this.performance.landingDebris; i += 1) {
+      const startX = this.granny.x + Phaser.Math.Between(-25, 25);
+      const startY = this.granny.y + 46;
+      this.emitEffectCircle(
+        startX,
+        startY,
+        Phaser.Math.Between(2, 5),
+        0xe7d5aa,
+        0.7,
+        17,
+        {
+        x: startX + Phaser.Math.Between(-55, 55),
+        y: startY - Phaser.Math.Between(18, 55),
         alpha: 0,
         duration: Phaser.Math.Between(280, 480),
-        ease: "Quad.out",
-        onComplete: () => debris.destroy()
-      });
+        ease: "Quad.out"
+        }
+      );
     }
   }
 
   createReactiveProps() {
     this.reactiveProps = [];
-    for (let x = 520, index = 0; x < this.level.length - 300; x += 780, index += 1) {
+    for (let x = 520, index = 0; x < this.level.length - 300; x += this.performance.ambientPropsStep, index += 1) {
       const color = this.level.world === 2 ? (index % 2 ? 0xf05d6b : 0xffcc4d) : this.level.world === 3 ? 0xe85d65 : 0x6fa457;
       const stem = this.add.rectangle(0, 9, 5, 30, 0x4e8b50);
       const bloom = this.add.circle(0, -9, this.level.world === 2 ? 9 : 12, color);
@@ -1012,7 +1055,7 @@ export class GameScene extends Phaser.Scene {
       yoyo: true,
       ease: "Back.out"
     });
-    for (let i = 0; i < 14; i += 1) {
+    for (let i = 0; i < this.performance.bossSparks; i += 1) {
       const spark = this.add.image(weak.x, weak.y, "sparkle").setScale(Phaser.Math.FloatBetween(0.2, 0.55)).setDepth(25);
       this.tweens.add({
         targets: spark,
@@ -1089,9 +1132,90 @@ export class GameScene extends Phaser.Scene {
         ease: "Back.out",
         onComplete: () => prop.setData("triggered", false)
       });
-      const leaf = this.add.circle(prop.x, prop.y - 18, 5, 0x73a75d, 0.8).setDepth(18);
-      this.tweens.add({ targets: leaf, x: leaf.x + 55, y: leaf.y - 45, angle: 180, alpha: 0, duration: 600, onComplete: () => leaf.destroy() });
+      this.emitEffectCircle(prop.x, prop.y - 18, 5, 0x73a75d, 0.8, 18, {
+        x: prop.x + 55,
+        y: prop.y - 63,
+        angle: 180,
+        alpha: 0,
+        duration: 600
+      });
     });
+  }
+
+  createEffectPool() {
+    this.effectPool = Array.from({ length: this.performance.mode === "balanced" ? 18 : 32 }, () => (
+      this.add.circle(-100, -100, 4, 0xffffff, 0)
+        .setVisible(false)
+        .setActive(false)
+    ));
+  }
+
+  emitEffectCircle(x, y, radius, color, alpha, depth, tween) {
+    const effect = this.effectPool?.find((entry) => !entry.active);
+    if (!effect) return { x, y };
+    this.tweens.killTweensOf(effect);
+    effect.setPosition(x, y)
+      .setRadius(radius)
+      .setFillStyle(color, alpha)
+      .setScale(1)
+      .setAngle(0)
+      .setDepth(depth)
+      .setVisible(true)
+      .setActive(true);
+    this.tweens.add({
+      targets: effect,
+      ...tween,
+      onComplete: () => effect.setVisible(false).setActive(false)
+    });
+    return effect;
+  }
+
+  createSpeedLines() {
+    this.speedLines = Array.from({ length: this.performance.mode === "balanced" ? 5 : 9 }, (_, index) => (
+      this.add.rectangle(150 + index * 137, 190 + (index % 4) * 95, 115 + (index % 3) * 45, 4, 0xfff4d2, 0)
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(46)
+        .setAngle(-4)
+    ));
+  }
+
+  updateSpeedLines() {
+    const boosting = this.time.now < this.granny.hookBoostUntil && this.running;
+    this.speedLines?.forEach((line, index) => {
+      line.setAlpha(boosting ? 0.2 + (index % 3) * 0.12 : 0);
+      if (!boosting) return;
+      line.x -= 18 + index % 4;
+      if (line.x < -120) line.x = 1400 + index * 20;
+    });
+  }
+
+  updateOffscreenPhysics() {
+    if (this.time.now - this.lastPhysicsCullAt < this.performance.offscreenPhysicsInterval) return;
+    this.lastPhysicsCullAt = this.time.now;
+    const left = this.cameras.main.scrollX - 260;
+    const right = this.cameras.main.scrollX + 1540;
+    [this.coins, this.treats].forEach((group) => {
+      group.getChildren().forEach((item) => {
+        if (item.active && item.body) item.body.enable = item.x >= left && item.x <= right;
+      });
+    });
+  }
+
+  reactThief(copy) {
+    if (!this.thiefReaction || !this.thief?.visible) return;
+    this.thiefReaction.setText(copy).setVisible(true).setAlpha(1).setScale(0.65);
+    this.tweens.killTweensOf(this.thiefReaction);
+    this.tweens.add({
+      targets: this.thiefReaction,
+      y: this.thiefReaction.y - 24,
+      scale: 1,
+      alpha: 0,
+      duration: 620,
+      ease: "Back.out",
+      onComplete: () => this.thiefReaction.setVisible(false)
+    });
+    this.tweens.add({ targets: this.thief, scaleY: this.thief.scaleY * 1.08, duration: 80, yoyo: true });
   }
 
   fall() {

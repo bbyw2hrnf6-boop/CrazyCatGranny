@@ -1,17 +1,20 @@
+import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
+
 export class Granny extends Phaser.Physics.Arcade.Sprite {
   constructor(scene, x, y) {
     super(scene, x, y, "granny-skate", 0);
     scene.add.existing(this);
     scene.physics.add.existing(this);
     this.setDepth(12);
-    this.setScale(0.29);
+    const tuning = PHYSICS_TUNING.player;
+    this.setScale(tuning.scale);
     this.setBodySize(180, 350);
     this.setOffset(160, 105);
     this.setCollideWorldBounds(false);
-    this.setMaxVelocity(620, 900);
+    this.setMaxVelocity(tuning.maxX, tuning.maxY);
     this.setDragX(0);
     this.body.setMass(0.8);
-    this.runSpeed = 315;
+    this.runSpeed = tuning.runSpeed;
     this.airSpin = 0;
     this.isSwinging = false;
     this.hook = null;
@@ -22,24 +25,25 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.airKickAvailable = true;
     this.lastGrounded = scene.time.now;
     this.hookBoostUntil = 0;
-    this.baseScale = 0.29;
+    this.baseScale = tuning.scale;
     this.wasGrounded = false;
     this.skateTime = 0;
   }
 
   stabilizeSkateFrame() {
-    const frame = Number(this.frame.name);
-    const originY = frame === 3 ? 243 : 256;
-    if (this.displayOriginY === originY) return;
-    this.setDisplayOrigin(256, originY);
-    this.setOffset(160, 105 + originY - 256);
+    // Keep the render anchor and physics body stable across every animation frame.
+    // Moving the body offset per frame caused tiny airborne/landing loops and camera shake.
+    if (this.displayOriginX !== 256 || this.displayOriginY !== 256) {
+      this.setDisplayOrigin(256, 256);
+    }
   }
 
   updateMovement(delta, jumpHeld) {
     if (this.frozen || this.isSwinging) return;
     this.skateTime += delta;
-    const startBlend = Phaser.Math.Easing.Sine.InOut(Phaser.Math.Clamp(this.skateTime / 1400, 0, 1));
-    const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + 125 : this.runSpeed;
+    const tuning = PHYSICS_TUNING.player;
+    const startBlend = Phaser.Math.Easing.Sine.InOut(Phaser.Math.Clamp(this.skateTime / tuning.startBlendMs, 0, 1));
+    const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + tuning.hookBoost : this.runSpeed;
     const launchSpeed = boostedSpeed * Phaser.Math.Linear(0.72, 1, startBlend);
     this.setVelocityX(Math.max(this.body.velocity.x, launchSpeed));
     const cadence = Phaser.Math.Linear(0.32, 0.82, startBlend);
@@ -55,7 +59,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
       }
       this.airSpin += delta * 0.42;
       this.setAngle(this.airSpin);
-      if (jumpHeld && this.body.velocity.y < 40) this.setAccelerationY(-510);
+      if (jumpHeld && this.body.velocity.y < 40) this.setAccelerationY(tuning.jumpHoldAcceleration);
       else this.setAccelerationY(0);
     } else {
       this.anims.resume();
@@ -71,22 +75,15 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
 
   jump() {
     const grounded = this.body.blocked.down || this.body.touching.down;
-    const coyote = this.scene.time.now - this.lastGrounded < 140;
+    const tuning = PHYSICS_TUNING.player;
+    const coyote = this.scene.time.now - this.lastGrounded < tuning.coyoteMs;
     if (!this.frozen && !this.isSwinging && (grounded || coyote)) {
-      this.setVelocityY(-570);
-      this.scene.tweens.add({
-        targets: this,
-        scaleX: this.baseScale * 0.9,
-        scaleY: this.baseScale * 1.1,
-        duration: 85,
-        yoyo: true,
-        ease: "Quad.out"
-      });
+      this.setVelocityY(tuning.jumpVelocity);
       return true;
     }
     if (!this.frozen && !this.isSwinging && this.airKickAvailable) {
       this.airKickAvailable = false;
-      this.setVelocityY(-455);
+      this.setVelocityY(tuning.airKickVelocity);
       this.scene.tweens.add({ targets: this, angle: this.angle + 22, duration: 110, ease: "Back.out" });
       return true;
     }
@@ -106,7 +103,6 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.anims.pause();
     this.setFrame(3);
     this.stabilizeSkateFrame();
-    this.scene.tweens.add({ targets: this, scaleX: this.baseScale * 1.06, scaleY: this.baseScale * 0.94, duration: 130, ease: "Back.out" });
     this.body.allowGravity = false;
     this.setVelocity(0, 0);
   }
@@ -135,9 +131,8 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
       Math.cos(this.swingAngle) * tangent * direction
     );
     this.hook = null;
-    this.hookBoostUntil = this.scene.time.now + 1800;
+    this.hookBoostUntil = this.scene.time.now + PHYSICS_TUNING.player.hookBoostMs;
     this.play("granny-skating", true);
-    this.scene.tweens.add({ targets: this, scaleX: this.baseScale, scaleY: this.baseScale, duration: 120, ease: "Back.out" });
     return true;
   }
 }

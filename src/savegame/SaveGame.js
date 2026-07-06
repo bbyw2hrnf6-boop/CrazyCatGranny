@@ -1,9 +1,13 @@
 import { LEVELS } from "../levels/levels.js";
+import { isLevelReleased } from "../config/ReleaseConfig.js";
 import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
 
 const KEY = "crazy-cat-granny-save-v1";
+const BACKUP_KEY = `${KEY}-backup`;
+const SAVE_VERSION = 2;
 
 const defaults = {
+  version: SAVE_VERSION,
   coins: 0,
   totalCoins: 0,
   unlockedLevel: 1,
@@ -20,10 +24,12 @@ const defaults = {
   catBoxesOpened: [],
   dropHistory: [],
   selectedCharacter: "granny",
-  sound: true
+  sound: true,
+  performanceMode: "auto"
 };
 
 function clean(data) {
+  data = unpack(data);
   const result = {
     ...defaults,
     ...data,
@@ -43,6 +49,18 @@ function clean(data) {
     catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
+  result.version = SAVE_VERSION;
+  result.coins = Math.max(0, Math.floor(Number(result.coins) || 0));
+  result.totalCoins = Math.max(result.coins, Math.floor(Number(result.totalCoins) || 0));
+  result.unlockedLevel = Math.min(45, Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
+  result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
+  result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
+  result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
+  result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= 5))];
+  result.sound = result.sound !== false;
+  result.performanceMode = ["auto", "high", "balanced"].includes(result.performanceMode)
+    ? result.performanceMode
+    : "auto";
   if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEM_IDS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
   if (result.equippedHat !== "none" && !Object.keys(result.hatAssignments).length && result.rescuedCats.length) {
@@ -57,18 +75,80 @@ function clean(data) {
   return result;
 }
 
+function unpack(data = {}) {
+  if (!data || typeof data !== "object" || !data.progression) return data || {};
+  return {
+    version: data.version,
+    ...data.progression,
+    ...data.inventory,
+    ...data.layout,
+    ...data.settings
+  };
+}
+
+function pack(data) {
+  const save = clean(data);
+  return {
+    version: SAVE_VERSION,
+    progression: {
+      coins: save.coins,
+      totalCoins: save.totalCoins,
+      unlockedLevel: save.unlockedLevel,
+      levels: save.levels,
+      worldTrophies: save.worldTrophies,
+      catBoxesOpened: save.catBoxesOpened,
+      dropHistory: save.dropHistory
+    },
+    inventory: {
+      rescuedCats: save.rescuedCats,
+      owned: save.owned,
+      equippedHat: save.equippedHat,
+      equippedGear: save.equippedGear,
+      selectedCat: save.selectedCat,
+      hatAssignments: save.hatAssignments,
+      selectedCharacter: save.selectedCharacter
+    },
+    layout: {
+      activeDecor: save.activeDecor,
+      decorPositions: save.decorPositions
+    },
+    settings: {
+      sound: save.sound,
+      performanceMode: save.performanceMode
+    }
+  };
+}
+
+function parseStored(value) {
+  if (!value) return null;
+  const parsed = JSON.parse(value);
+  if (!parsed || typeof parsed !== "object") throw new Error("Invalid save");
+  return parsed;
+}
+
 export const SaveGame = {
   load() {
     try {
-      return clean(JSON.parse(localStorage.getItem(KEY) || "{}"));
+      return clean(parseStored(localStorage.getItem(KEY)) || {});
     } catch {
-      return clean({});
+      try {
+        return clean(parseStored(localStorage.getItem(BACKUP_KEY)) || {});
+      } catch {
+        return clean({});
+      }
     }
   },
 
   write(data) {
-    localStorage.setItem(KEY, JSON.stringify(clean(data)));
-    return data;
+    const current = localStorage.getItem(KEY);
+    try {
+      if (parseStored(current)) localStorage.setItem(BACKUP_KEY, current);
+    } catch {
+      // Never replace a good backup with corrupt primary data.
+    }
+    const cleaned = clean(data);
+    localStorage.setItem(KEY, JSON.stringify(pack(cleaned)));
+    return cleaned;
   },
 
   completeLevel(level, result) {
@@ -89,7 +169,7 @@ export const SaveGame = {
         limited: level.cat.limited
       };
       save.dropHistory.push({ ...reward, levelId: level.id });
-    } else if (level.grantsCatBox) {
+    } else if (firstClear && level.grantsCatBox) {
       reward = rollCatBox(save, level.world);
       save.catBoxesOpened.push(level.world);
       save.dropHistory.push({ ...reward, levelId: level.id });
@@ -229,12 +309,27 @@ export const SaveGame = {
 
   reset() {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(BACKUP_KEY);
     return this.load();
+  },
+
+  exportBackup() {
+    return JSON.stringify(pack(this.load()));
+  },
+
+  restoreBackup(serialized = localStorage.getItem(BACKUP_KEY)) {
+    try {
+      const restored = clean(parseStored(serialized));
+      localStorage.setItem(KEY, JSON.stringify(pack(restored)));
+      return restored;
+    } catch {
+      return false;
+    }
   }
 };
 
 function rollCatBox(save, world = 1, random = Math.random) {
-  const available = LEVELS.filter((level) => !save.rescuedCats.includes(level.cat.id));
+  const available = LEVELS.filter((level) => isLevelReleased(level) && !save.rescuedCats.includes(level.cat.id));
   if (!available.length) {
     save.coins += 125;
     return { type: "catbox-coins", coins: 125 };

@@ -6,7 +6,7 @@ The current release runs as a focused vertical slice: World 1 levels 1–5 plus 
 
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
-All 45 cats use distinct character art. A cat is rescued after each three-level chase; every world boss drops a weighted CatBox with common, uncommon, rare, legendary, and limited cats. Bosses can be replayed to grow the collection.
+All 45 cats remain in the project. The focused release exposes six cats; a cat is rescued after the first three-level chase and the boss grants one weighted CatBox on its first clear. Future cats unlock with their parked levels.
 
 Rescued cats share a living Cat House where they wander, eat, drink, sleep, play, socialize, watch fish, climb real furniture paths, and meow. The room uses an empty 3D-style architectural shell with separately layered interactive furniture, so visible cat trees, bridges, beds, and seats are usable rather than baked into the background.
 
@@ -34,10 +34,20 @@ Then open `http://localhost:8080`. Phaser loads from jsDelivr.
 - Pause: `Esc`
 
 Progress, rescued cats, shop purchases, and best ratings save in browser local storage.
+Save data is versioned, migrated from the old flat format, split into progression/inventory/layout/settings sections, and backed up before every write.
 
 Cat hats are assigned to one selected rescued cat. Cat House furniture is shared by the whole collection. Granny can equip one functional gear item at a time.
 
-Animation and game-feel systems include multi-frame skating and thief run cycles, squash and stretch, physical cane momentum, post-swing speed boosts, camera weight, landing bounce, reactive flowers, debris, weather, particles, and layered parallax. The thief advances independently and can escape; time limits and world-specific fall limits make clean routes and hook boosts important.
+Animation and game-feel systems include multi-frame skating and thief run cycles, physical cane momentum, post-swing speed lines, camera weight, render-safe landing feedback, reactive flowers, pooled debris, weather, particles, and layered parallax. The thief advances independently, reacts to Granny, avoids course hazards, and can escape.
+
+## Technical structure
+
+- `src/config/ReleaseConfig.js` controls the small public slice without deleting future content.
+- `src/config/PhysicsTuning.js` is the single movement and camera tuning source.
+- `src/levels/CoursePlanner.js` creates reusable, data-driven gaps, hooks, routes, obstacles, coins, and bounce platforms.
+- `src/systems/PerformanceProfile.js` selects high or balanced effects. The main menu also offers a manual quality mode.
+- `src/systems/DevTools.js` provides `F1` telemetry, `F2` hitboxes, `F3` slow motion, and `F4` segment skipping.
+- Physics for distant collectibles is disabled until it is relevant, while frequently used dust and landing debris are pooled.
 
 ## Visual system
 
@@ -50,6 +60,8 @@ Visual content is data-driven:
 - Furniture transforms and usable cat paths live together. Saving a moved or turned item rebuilds its interaction points, and cats use explicit walk and jump waypoints instead of flying to it.
 
 To add an item, add its asset and one catalog entry, then list it in save/progression data only if it changes game rules.
+
+New visuals must follow [`docs/ART_GUIDE.md`](docs/ART_GUIDE.md).
 
 ## Publish on GitHub Pages
 

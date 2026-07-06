@@ -48,6 +48,29 @@ export class MainMenu extends Phaser.Scene {
     const progressBg = this.add.rectangle(72, 675, 390, 14, 0x2f2335, 0.35).setOrigin(0, 0.5);
     progressBg.setStrokeStyle(2, COLORS.cream, 0.7);
     this.add.rectangle(72, 675, 390 * (save.rescuedCats.length / 45), 10, COLORS.coral).setOrigin(0, 0.5);
+    const quality = pill(this, 970, 675, 190, 38, `QUALITY ${save.performanceMode.toUpperCase()}`, { fill: COLORS.cream, size: 12 });
+    quality.on("pointerup", () => {
+      const modes = ["auto", "high", "balanced"];
+      save.performanceMode = modes[(modes.indexOf(save.performanceMode) + 1) % modes.length];
+      SaveGame.write(save);
+      this.scene.restart();
+    });
+    const reset = pill(this, 1168, 675, 170, 38, "RESET SAVE", { fill: COLORS.cream, size: 13 });
+    let resetArmed = false;
+    reset.on("pointerup", () => {
+      if (!resetArmed) {
+        resetArmed = true;
+        reset.label.setText("PRESS AGAIN");
+        this.time.delayedCall(2400, () => {
+          if (!reset.active) return;
+          resetArmed = false;
+          reset.label.setText("RESET SAVE");
+        });
+        return;
+      }
+      SaveGame.reset();
+      this.scene.restart();
+    });
     this.input.keyboard?.on("keydown-ENTER", () => this.scene.start("LevelSelect"));
   }
 
