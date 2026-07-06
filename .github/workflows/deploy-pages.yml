@@ -32,6 +32,14 @@ jobs:
       - name: Build static game
         run: npm run build
 
+      - name: Verify deploy artifact
+        run: |
+          test -f dist/index.html
+          test -f dist/assets/sprites/granny-skate.png
+          test -f dist/assets/backgrounds/world-1-hd.png
+          test -f dist/assets/furniture/scratcher.png
+          test -n "$(find dist/static -name '*.js' -print -quit)"
+
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
 
