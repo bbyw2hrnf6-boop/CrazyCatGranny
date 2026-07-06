@@ -1,5 +1,5 @@
 import { LEVELS } from "../levels/levels.js";
-import { HOME_ITEM_IDS } from "../visual/VisualCatalog.js";
+import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
 
 const KEY = "crazy-cat-granny-save-v1";
 
@@ -15,6 +15,7 @@ const defaults = {
   selectedCat: null,
   hatAssignments: {},
   activeDecor: [],
+  decorPositions: {},
   worldTrophies: [],
   catBoxesOpened: [],
   dropHistory: [],
@@ -31,6 +32,13 @@ function clean(data) {
     levels: data?.levels && typeof data.levels === "object" ? data.levels : {},
     hatAssignments: data?.hatAssignments && typeof data.hatAssignments === "object" ? data.hatAssignments : {},
     activeDecor: Array.isArray(data?.activeDecor) ? data.activeDecor : [],
+    decorPositions: data?.decorPositions && typeof data.decorPositions === "object"
+      ? Object.fromEntries(HOME_ITEM_IDS.flatMap((id) => {
+        if (!data.decorPositions[id]) return [];
+        const position = roomPosition(id, data.decorPositions[id]);
+        return position ? [[id, position]] : [];
+      }))
+      : {},
     worldTrophies: Array.isArray(data?.worldTrophies) ? data.worldTrophies : [],
     catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
@@ -174,6 +182,23 @@ export const SaveGame = {
     if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return false;
     if (save.activeDecor.includes(id)) save.activeDecor = save.activeDecor.filter((item) => item !== id);
     else save.activeDecor.push(id);
+    this.write(save);
+    return true;
+  },
+
+  setDecorPosition(id, x, y) {
+    const save = this.load();
+    if (!save.owned.includes(id) || !HOME_ITEM_IDS.includes(id)) return false;
+    const position = roomPosition(id, { x, y });
+    if (!position) return false;
+    save.decorPositions[id] = { x: Math.round(position.x), y: Math.round(position.y) };
+    this.write(save);
+    return position;
+  },
+
+  resetDecorPositions() {
+    const save = this.load();
+    save.decorPositions = {};
     this.write(save);
     return true;
   },

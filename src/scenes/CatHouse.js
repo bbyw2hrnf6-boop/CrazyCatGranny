@@ -1,8 +1,9 @@
 import { LEVELS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
-import { HAT_ITEMS, HOME_ITEMS } from "../visual/VisualCatalog.js";
+import { HAT_ITEMS, HOME_ITEMS, roomPosition } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
+  buildRoomPerches,
   createCat,
   createItemPreview,
   createRoomDecor,
@@ -57,13 +58,14 @@ export class CatHouse extends Phaser.Scene {
     room.on("pointerup", () => this.openRoomCustomizer());
     const shop = pill(this, 1100, 654, 245, 58, "🛍  OUTFIT SHOP", { fill: COLORS.yellow, size: 18 });
     shop.on("pointerup", () => this.scene.start("Shop"));
+    this.roomActionButtons = [room, shop];
   }
 
   drawRoom() {
     this.add.image(640, 360, "cat-house-bg").setDisplaySize(1280, 720).setDepth(-20);
     this.add.rectangle(150, 400, 300, 640, 0xfff4dc, 0.82).setDepth(-6)
       .setStrokeStyle(4, COLORS.ink, 0.75);
-    const room = createRoomDecor(this, this.save.activeDecor);
+    const room = createRoomDecor(this, this.save.activeDecor, this.save.decorPositions);
     this.roomFurniture = room.furniture;
     this.catPerches = room.perches;
   }
@@ -92,6 +94,7 @@ export class CatHouse extends Phaser.Scene {
   placeCats() {
     const rescued = LEVELS.filter((level) => this.save.rescuedCats.includes(level.cat.id));
     const scale = rescued.length > 32 ? 0.105 : rescued.length > 18 ? 0.125 : rescued.length > 9 ? 0.15 : 0.19;
+    const clockNow = this.game.loop.time || this.time.now;
     rescued.forEach((level, order) => {
       const random = new Phaser.Math.RandomDataGenerator([`cat-${level.id}`]);
       const x = random.between(380, 1210);
@@ -109,16 +112,20 @@ export class CatHouse extends Phaser.Scene {
         y,
         targetX: x,
         targetY: y,
-        speed: random.between(52, 78),
+        speed: random.between(30, 50),
         phase: random.realInRange(0, Math.PI * 2),
         baseScale: scale,
         state: "idle",
-        nextChange: this.time.now + random.between(500, 2600),
+        nextChange: clockNow + random.between(4000, 14000),
         path: [],
+        moveMode: "walk",
+        jump: null,
+        destinationPerchId: null,
+        destinationFurniture: null,
         bubble: null,
         bubbleUntil: 0,
         lastPaw: 0,
-        nextTwitch: this.time.now + random.between(1200, 4200)
+        nextTwitch: clockNow + random.between(3000, 7200)
       };
       this.roomCats.push(agent);
       cat.on("pointerover", () => this.tweens.add({ targets: cat, scale: scale * 1.08, duration: 100 }));
@@ -131,43 +138,22 @@ export class CatHouse extends Phaser.Scene {
     });
   }
 
-  update(time, delta) {
+  update(_time, delta) {
     if (!this.roomCats?.length) return;
+    const time = this.time.now;
     const step = Math.min(delta / 1000, 0.04);
     this.roomCats.forEach((agent, index) => {
-      if (time >= agent.nextChange) this.chooseCatBehavior(agent, time, index);
-      let dx = agent.targetX - agent.x;
-      let dy = agent.targetY - agent.y;
-      let distance = Math.hypot(dx, dy);
-      if (distance <= 8 && agent.path.length) {
-        agent.x = agent.targetX;
-        agent.y = agent.targetY;
-        const [nextX, nextY] = agent.path.shift();
-        agent.targetX = nextX;
-        agent.targetY = nextY;
-        dx = agent.targetX - agent.x;
-        dy = agent.targetY - agent.y;
-        distance = Math.hypot(dx, dy);
-      }
-      const moving = distance > 8 && (agent.state === "wander" || agent.state.startsWith("travel-"));
-      if (moving) {
-        agent.x += (dx / distance) * agent.speed * step;
-        agent.y += (dy / distance) * agent.speed * step;
-        agent.sprite.setFlipX(dx < 0);
-        const gait = Math.sin(time * 0.009 + agent.phase);
-        agent.sprite.setPosition(agent.x, agent.y - Math.abs(gait) * 2.3);
-        agent.sprite.setScale(agent.baseScale * (1 + gait * 0.012), agent.baseScale * (1 - gait * 0.02));
-        agent.sprite.setAngle(gait * 1.1);
-        if (Math.abs(gait) > 0.92 && time - agent.lastPaw > 260) {
-          agent.lastPaw = time;
-          const paw = this.add.ellipse(agent.x, agent.y + 25, 10, 4, 0x6d5365, 0.18).setDepth(7);
-          this.tweens.add({ targets: paw, alpha: 0, duration: 500, onComplete: () => paw.destroy() });
-        }
-      } else {
-        if (distance <= 8 && agent.state.startsWith("travel-")) this.beginCatAction(agent, time);
+      if (this.roomEditing) {
         this.animateCatAction(agent, time);
+      } else {
+        if (time >= agent.nextChange && !agent.jump) {
+          if (agent.y < 500) this.sendCatToFloor(agent, time);
+          else this.chooseCatBehavior(agent, time, index);
+        }
+        if (agent.jump) this.updateCatJump(agent, time);
+        else this.updateCatWalk(agent, time, step);
       }
-      if (time >= agent.nextTwitch && agent.state !== "sleep") {
+      if (!this.roomEditing && !agent.jump && time >= agent.nextTwitch && agent.state !== "sleep") {
         agent.nextTwitch = time + Phaser.Math.Between(2200, 6200);
         this.tweens.add({
           targets: agent.sprite,
@@ -177,7 +163,7 @@ export class CatHouse extends Phaser.Scene {
           ease: "Sine.inOut"
         });
       }
-      agent.sprite.setDepth(10 + Math.floor(agent.y / 12));
+      agent.sprite.setDepth(10 + Math.floor(agent.sprite.y / 12));
       if (agent.hat) this.syncCatHat(agent);
       if (agent.bubble) {
         if (agent.bubbleUntil && time > agent.bubbleUntil) this.clearCatBubble(agent);
@@ -189,90 +175,212 @@ export class CatHouse extends Phaser.Scene {
     });
   }
 
+  updateCatWalk(agent, time, step) {
+    let dx = agent.targetX - agent.x;
+    let dy = agent.targetY - agent.y;
+    let distance = Math.hypot(dx, dy);
+    if (distance <= 7) {
+      agent.x = agent.targetX;
+      agent.y = agent.targetY;
+      if (agent.path.length) {
+        this.startCatWaypoint(agent, agent.path.shift(), time);
+        dx = agent.targetX - agent.x;
+        dy = agent.targetY - agent.y;
+        distance = Math.hypot(dx, dy);
+      } else if (agent.state.startsWith("travel-")) {
+        this.beginCatAction(agent, time);
+        this.animateCatAction(agent, time);
+        return;
+      }
+    }
+
+    const moving = distance > 7 && (agent.state === "wander" || agent.state.startsWith("travel-"));
+    if (!moving) {
+      this.animateCatAction(agent, time);
+      return;
+    }
+
+    agent.x += (dx / distance) * agent.speed * step;
+    agent.y += (dy / distance) * agent.speed * step;
+    agent.sprite.setFlipX(dx < 0);
+    const gait = Math.sin(time * 0.0062 + agent.phase);
+    agent.sprite.setPosition(agent.x, agent.y - Math.abs(gait) * 1.5);
+    agent.sprite.setScale(agent.baseScale * (1 + gait * 0.008), agent.baseScale * (1 - gait * 0.014));
+    agent.sprite.setAngle(gait * 0.65);
+    if (Math.abs(gait) > 0.94 && time - agent.lastPaw > 420) {
+      agent.lastPaw = time;
+      const paw = this.add.ellipse(agent.x, agent.y + 25, 9, 4, 0x6d5365, 0.14).setDepth(7);
+      this.tweens.add({ targets: paw, alpha: 0, duration: 650, onComplete: () => paw.destroy() });
+    }
+  }
+
+  startCatPath(agent, path, time) {
+    agent.path = path.map((point, index) => Array.isArray(point)
+      ? { x: point[0], y: point[1], mode: index === 0 ? "walk" : "jump" }
+      : { ...point });
+    if (agent.path.length) this.startCatWaypoint(agent, agent.path.shift(), time);
+  }
+
+  sendCatToFloor(agent, time) {
+    const perch = this.catPerches.find((entry) => entry.id === agent.destinationPerchId);
+    agent.state = "travel-idle";
+    agent.destinationPerchId = null;
+    agent.destinationFurniture = null;
+    const exitPath = perch
+      ? perch.path.slice(0, -1).reverse().map((point) => ({ ...point, mode: "jump" }))
+      : [{ x: agent.x, y: 545, mode: "jump" }];
+    this.startCatPath(agent, exitPath, time);
+    agent.nextChange = time + 45000;
+  }
+
+  startCatWaypoint(agent, waypoint, time) {
+    agent.targetX = waypoint.x;
+    agent.targetY = waypoint.y;
+    agent.moveMode = waypoint.mode || "walk";
+    if (agent.moveMode !== "jump") return;
+    const distance = Phaser.Math.Distance.Between(agent.x, agent.y, waypoint.x, waypoint.y);
+    agent.jump = {
+      fromX: agent.x,
+      fromY: agent.y,
+      toX: waypoint.x,
+      toY: waypoint.y,
+      startedAt: time,
+      duration: Phaser.Math.Clamp(distance * 4.2, 440, 920),
+      height: Phaser.Math.Clamp(28 + Math.abs(waypoint.y - agent.y) * 0.22, 30, 82)
+    };
+  }
+
+  updateCatJump(agent, time) {
+    const jump = agent.jump;
+    const progress = Phaser.Math.Clamp((time - jump.startedAt) / jump.duration, 0, 1);
+    const direction = Math.sign(jump.toX - jump.fromX) || 1;
+    agent.x = Phaser.Math.Linear(jump.fromX, jump.toX, progress);
+    agent.y = Phaser.Math.Linear(jump.fromY, jump.toY, progress);
+    const lift = Math.sin(progress * Math.PI) * jump.height;
+    agent.sprite.setFlipX(direction < 0);
+    agent.sprite.setPosition(agent.x, agent.y - lift);
+    agent.sprite.setScale(
+      agent.baseScale * (1 - Math.sin(progress * Math.PI) * 0.035),
+      agent.baseScale * (1 + Math.sin(progress * Math.PI) * 0.055)
+    );
+    agent.sprite.setAngle(direction * Math.sin(progress * Math.PI) * -3.5);
+    if (progress < 1) return;
+
+    agent.x = jump.toX;
+    agent.y = jump.toY;
+    agent.jump = null;
+    agent.sprite.setPosition(agent.x, agent.y).setScale(agent.baseScale).setAngle(0);
+    if (agent.path.length) this.startCatWaypoint(agent, agent.path.shift(), time);
+    else if (agent.state.startsWith("travel-")) this.beginCatAction(agent, time);
+  }
+
   chooseCatBehavior(agent, time, index) {
     let roll = Phaser.Math.Between(0, 99);
     const doing = (activity) => this.roomCats.filter((cat) => (
       cat.state === activity || cat.state === `travel-${activity}`
     )).length;
-    if (roll >= 36 && roll < 52 && doing("eat") >= 3) roll = 0;
-    if (roll >= 52 && roll < 64 && doing("drink") >= 2) roll = 0;
-    if (roll >= 64 && roll < 79 && doing("play") >= 4) roll = 0;
-    if (roll >= 90 && doing("sleep") >= 5) roll = 0;
-    if (roll < 18 && (!this.catPerches.length || doing("perch") >= Math.min(4, this.catPerches.length))) roll = 24;
+    if (roll >= 52 && roll < 61 && doing("eat") >= 3) roll = 0;
+    if (roll >= 61 && roll < 68 && doing("drink") >= 2) roll = 0;
+    if (roll >= 68 && roll < 76 && doing("play") >= 3) roll = 0;
+    if (roll >= 87 && doing("sleep") >= Math.max(6, Math.ceil(this.roomCats.length * 0.36))) roll = 0;
+    if (roll >= 42 && roll < 52 && (!this.catPerches.length || doing("perch") >= Math.min(3, this.catPerches.length))) roll = 0;
     this.clearCatBubble(agent);
     agent.path = [];
-    if (roll < 18) {
-      const perch = this.catPerches[(agent.level.id + doing("perch")) % this.catPerches.length];
-      agent.state = "travel-perch";
-      agent.path = perch.path.map((point) => [...point]);
-      [agent.targetX, agent.targetY] = agent.path.shift();
-      agent.nextChange = time + 24000;
-    } else if (roll < 36) {
+    agent.jump = null;
+    agent.destinationPerchId = null;
+    agent.destinationFurniture = null;
+
+    if (roll < 30) {
+      agent.state = "idle";
+      agent.targetX = agent.x;
+      agent.targetY = agent.y;
+      agent.nextChange = time + Phaser.Math.Between(12000, 28000);
+    } else if (roll < 42) {
       agent.state = "wander";
-      agent.targetX = Phaser.Math.Clamp(agent.x + Phaser.Math.Between(-320, 320), 355, 1215);
-      agent.targetY = Phaser.Math.Clamp(agent.y + Phaser.Math.Between(-90, 90), 500, 620);
-      agent.nextChange = time + Phaser.Math.Between(6500, 10500);
-    } else if (roll < 52) {
+      agent.targetX = Phaser.Math.Clamp(agent.x + Phaser.Math.Between(-170, 170), 350, 1210);
+      agent.targetY = Phaser.Math.Clamp(agent.y + Phaser.Math.Between(-38, 38), 520, 610);
+      agent.nextChange = time + Phaser.Math.Between(9000, 16000);
+    } else if (roll < 52 && this.catPerches.length) {
+      const occupied = new Set(this.roomCats.map((cat) => cat.destinationPerchId).filter(Boolean));
+      const available = this.catPerches.filter((perch) => !occupied.has(perch.id));
+      const options = available.length ? available : this.catPerches;
+      const perch = options[(agent.level.id + doing("perch")) % options.length];
+      agent.state = "travel-perch";
+      agent.destinationPerchId = perch.id;
+      agent.destinationFurniture = perch.furniture;
+      this.startCatPath(agent, perch.path, time);
+      agent.nextChange = time + 60000;
+    } else if (roll < 61) {
       agent.state = "travel-eat";
       const foodSlot = doing("eat");
       agent.targetX = 1148 + foodSlot * 34;
       agent.targetY = 574 + (foodSlot % 2) * 28;
-      agent.nextChange = time + 18000;
-    } else if (roll < 64) {
+      agent.nextChange = time + 45000;
+    } else if (roll < 68) {
       agent.state = "travel-drink";
       const waterSlot = doing("drink");
       agent.targetX = 1092 + waterSlot * 46;
       agent.targetY = 586 + waterSlot * 20;
-      agent.nextChange = time + 18000;
-    } else if (roll < 79) {
+      agent.nextChange = time + 45000;
+    } else if (roll < 76) {
       agent.state = "travel-play";
-      agent.targetX = this.save.activeDecor.includes("yarnbasket") ? 520 : Phaser.Math.Between(600, 900);
-      agent.targetY = this.save.activeDecor.includes("yarnbasket") ? 545 : 600;
-      agent.nextChange = time + 18000;
-    } else if (roll < 84 && this.save.activeDecor.includes("aquarium")) {
+      const yarn = this.roomFurniture.yarnbasket;
+      agent.targetX = yarn ? yarn.x : Phaser.Math.Between(600, 900);
+      agent.targetY = yarn ? Phaser.Math.Clamp(yarn.y - 22, 525, 600) : 585;
+      agent.destinationFurniture = yarn ? "yarnbasket" : null;
+      agent.nextChange = time + 45000;
+    } else if (roll < 82 && this.roomFurniture.aquarium) {
       agent.state = "travel-watch";
-      agent.path = [[1045, 555], [1070, 440]];
-      [agent.targetX, agent.targetY] = agent.path.shift();
-      agent.nextChange = time + 18000;
-    } else if (roll < 90 && this.roomCats.length > 1) {
+      agent.targetX = Phaser.Math.Clamp(this.roomFurniture.aquarium.x - 42, 350, 1210);
+      agent.targetY = 540;
+      agent.destinationFurniture = "aquarium";
+      agent.nextChange = time + 45000;
+    } else if (roll < 87 && this.roomCats.length > 1) {
       const floorFriends = this.roomCats.filter((cat) => cat !== agent && cat.y >= 490);
       const friend = floorFriends.length
         ? Phaser.Utils.Array.GetRandom(floorFriends)
         : this.roomCats[(index + 1) % this.roomCats.length];
       agent.state = "travel-social";
       agent.targetX = friend.x + Phaser.Math.Between(-35, 35);
-      agent.targetY = friend.y;
-      agent.nextChange = time + 15000;
+      agent.targetY = Phaser.Math.Clamp(friend.y, 520, 610);
+      agent.nextChange = time + 40000;
     } else {
       agent.state = "travel-sleep";
       const sleepingPerches = this.catPerches.filter((perch) => ["catbed", "windowseat", "velvetsofa"].includes(perch.furniture));
-      if (sleepingPerches.length && doing("sleep") < sleepingPerches.length) {
-        const perch = sleepingPerches[(agent.level.id + doing("sleep")) % sleepingPerches.length];
-        agent.path = perch.path.map((point) => [...point]);
-        [agent.targetX, agent.targetY] = agent.path.shift();
+      const occupied = new Set(this.roomCats.map((cat) => cat.destinationPerchId).filter(Boolean));
+      const availableBeds = sleepingPerches.filter((perch) => !occupied.has(perch.id));
+      if (availableBeds.length) {
+        const perch = availableBeds[(agent.level.id + doing("sleep")) % availableBeds.length];
+        agent.destinationPerchId = perch.id;
+        agent.destinationFurniture = perch.furniture;
+        this.startCatPath(agent, perch.path, time);
       } else {
         agent.targetX = Phaser.Math.Between(570, 980);
-        agent.targetY = Phaser.Math.Between(535, 610);
+        agent.targetY = Phaser.Math.Between(545, 605);
       }
-      agent.nextChange = time + 22000;
+      agent.nextChange = time + 70000;
     }
-    if (Math.random() > 0.95) this.catSpeaks(agent, "meow!", "meow", 1200);
+    if (Math.random() > 0.985) this.catSpeaks(agent, "meow!", "meow", 1200);
   }
 
   beginCatAction(agent, time) {
     agent.x = agent.targetX;
     agent.y = agent.targetY;
     agent.state = agent.state.replace("travel-", "");
+    if (agent.state === "idle") {
+      agent.destinationPerchId = null;
+      agent.destinationFurniture = null;
+    }
     const durations = {
-      eat: Phaser.Math.Between(4200, 7000),
-      drink: Phaser.Math.Between(3200, 5600),
-      play: Phaser.Math.Between(4000, 6800),
-      social: Phaser.Math.Between(3200, 6000),
-      watch: Phaser.Math.Between(4500, 8000),
-      perch: Phaser.Math.Between(5000, 9000),
-      sleep: Phaser.Math.Between(9000, 16000)
+      eat: Phaser.Math.Between(8000, 14000),
+      drink: Phaser.Math.Between(6500, 11000),
+      play: Phaser.Math.Between(7000, 12000),
+      social: Phaser.Math.Between(6500, 12000),
+      watch: Phaser.Math.Between(12000, 22000),
+      perch: Phaser.Math.Between(14000, 28000),
+      sleep: Phaser.Math.Between(28000, 60000)
     };
-    const duration = durations[agent.state] || 3500;
+    const duration = durations[agent.state] || Phaser.Math.Between(10000, 22000);
     agent.nextChange = time + duration;
     if (agent.state === "eat" && Math.random() > 0.55) this.catSpeaks(agent, "yum", "purr", 1500);
     if (agent.state === "drink" && Math.random() > 0.68) this.catSpeaks(agent, "sip", null, 1300);
@@ -434,11 +542,78 @@ export class CatHouse extends Phaser.Scene {
 
   openRoomCustomizer() {
     this.closeOverlay();
+    this.roomEditing = true;
+    this.roomActionButtons?.forEach((button) => button.setVisible(false));
+    this.roomCats.forEach((agent) => {
+      this.clearCatBubble(agent);
+      agent.path = [];
+      agent.jump = null;
+      agent.destinationPerchId = null;
+      agent.destinationFurniture = null;
+      agent.x = Phaser.Math.Clamp(agent.x, 350, 1210);
+      agent.y = Phaser.Math.Clamp(Math.max(agent.y, 545), 545, 610);
+      agent.targetX = agent.x;
+      agent.targetY = agent.y;
+      agent.state = "idle";
+      agent.nextChange = Number.POSITIVE_INFINITY;
+      agent.sprite.setPosition(agent.x, agent.y).setScale(agent.baseScale).setAngle(0);
+    });
+
+    const parts = [];
+    const banner = this.add.rectangle(790, 116, 720, 64, COLORS.ink, 0.94).setDepth(74);
+    banner.setStrokeStyle(4, COLORS.cream);
+    const title = this.add.text(790, 103, "DRAG FURNITURE TO MOVE IT", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
+    const hint = this.add.text(790, 130, "Wall pieces stay on walls · floor pieces stay grounded", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(75);
+    const storage = pill(this, 700, 658, 220, 52, "STORAGE", { fill: COLORS.cream, size: 17 }).setDepth(75);
+    const reset = pill(this, 920, 658, 180, 52, "RESET", { fill: COLORS.cream, size: 17 }).setDepth(75);
+    const done = pill(this, 1120, 658, 180, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
+    storage.on("pointerup", () => this.openRoomStorage());
+    reset.on("pointerup", () => {
+      SaveGame.resetDecorPositions();
+      sound(this, "buy");
+      this.scene.restart({ page: this.page });
+    });
+    done.on("pointerup", () => this.scene.restart({ page: this.page }));
+    parts.push(banner, title, hint, storage, reset, done);
+
+    Object.entries(this.roomFurniture).forEach(([id, visual]) => {
+      const labelY = Math.max(155, visual.y - visual.height * 0.5 - 12);
+      const label = this.add.text(visual.x, labelY, HOME_ITEMS.find((item) => item.id === id)?.name || id, textStyle(12, "#fff7df"))
+        .setOrigin(0.5)
+        .setDepth(73)
+        .setBackgroundColor("#34283ad9")
+        .setPadding(7, 3);
+      visual.setDepth(72).setInteractive({ useHandCursor: true, draggable: true });
+      this.input.setDraggable(visual);
+      visual.on("dragstart", () => {
+        visual.setScale(1.04).setDepth(76);
+        label.setDepth(77);
+      });
+      visual.on("drag", (_pointer, dragX, dragY) => {
+        const position = roomPosition(id, { x: dragX, y: dragY });
+        visual.setPosition(position.x, position.y);
+        label.setPosition(position.x, Math.max(155, position.y - visual.height * 0.5 - 12));
+      });
+      visual.on("dragend", () => {
+        visual.setScale(1).setDepth(72);
+        label.setDepth(73);
+        SaveGame.setDecorPosition(id, visual.x, visual.y);
+        this.save = SaveGame.load();
+        this.catPerches = buildRoomPerches(this.save.activeDecor, this.save.decorPositions);
+        sound(this, "buy");
+      });
+      parts.push(label);
+    });
+    this.editorParts = parts;
+  }
+
+  openRoomStorage() {
+    this.closeOverlay();
     const parts = [];
     const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
     const panel = this.add.rectangle(640, 360, 960, 610, COLORS.cream).setDepth(81);
     panel.setStrokeStyle(7, COLORS.ink);
-    const title = this.add.text(640, 90, "DESIGN THE CAT HOUSE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
+    const title = this.add.text(640, 90, "CAT HOUSE STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
     const sub = this.add.text(640, 128, "Tap owned furniture to place or store it", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(82);
     parts.push(shade, panel, title, sub);
     HOME_ITEMS.forEach(({ id, name }, index) => {

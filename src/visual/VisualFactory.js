@@ -2,6 +2,7 @@ import {
   HOME_ITEMS,
   VISUAL_RULES,
   catVisual,
+  roomPosition,
   visualItem
 } from "./VisualCatalog.js";
 
@@ -109,21 +110,51 @@ export function createItemPreview(scene, itemId, x, y, options = {}) {
 export function createFurniture(scene, itemId, options = {}) {
   const look = visualItem(itemId);
   if (!look || look.kind !== "furniture" || look.room.wallpaper) return null;
-  const room = { ...look.room, ...options };
+  const position = roomPosition(itemId, options);
+  const room = { ...look.room, ...options, ...position };
   const image = scene.add.image(0, 0, look.texture).setScale(room.scale);
   const shadow = room.wall
     ? null
     : scene.add.ellipse(0, image.displayHeight * 0.39, image.displayWidth * 0.72, Math.max(9, image.displayWidth * 0.1), VISUAL_RULES.shadowColor, 0.12);
   const children = shadow ? [shadow, image] : [image];
   return scene.add.container(room.x, room.y, children)
+    .setSize(image.displayWidth, image.displayHeight)
     .setDepth(room.depth ?? (room.wall ? -5 : -4))
     .setData("visualKind", "furniture")
-    .setData("itemId", itemId);
+    .setData("itemId", itemId)
+    .setData("wallMounted", Boolean(room.wall))
+    .setData("normalDepth", room.depth ?? (room.wall ? -5 : -4));
 }
 
-export function createRoomDecor(scene, activeDecor = []) {
-  const furniture = {};
+export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
   const perches = [];
+  HOME_ITEMS.forEach((item) => {
+    if (!activeDecor.includes(item.id) || !item.room.perches) return;
+    const position = roomPosition(item.id, decorPositions[item.id]);
+    const dx = position.x - item.room.x;
+    const dy = position.y - item.room.y;
+    item.room.perches.forEach((perch, perchIndex) => {
+      const path = perch.path.map(([x, y], index) => ({
+        x: x + dx,
+        y: index === 0
+          ? Math.max(535, Math.min(600, y + (item.room.wall ? 0 : dy * 0.25)))
+          : y + dy,
+        mode: index === 0 ? "walk" : "jump"
+      }));
+      perches.push({
+        id: `${item.id}-${perchIndex}`,
+        x: perch.x + dx,
+        y: perch.y + dy,
+        path,
+        furniture: item.id
+      });
+    });
+  });
+  return perches;
+}
+
+export function createRoomDecor(scene, activeDecor = [], decorPositions = {}) {
+  const furniture = {};
   const wallpaper = activeDecor.includes("wallpaper")
     ? scene.add.tileSprite(790, 270, 980, 360, "room-wallpaper")
       .setTileScale(0.42)
@@ -135,11 +166,14 @@ export function createRoomDecor(scene, activeDecor = []) {
 
   HOME_ITEMS.forEach((item) => {
     if (!activeDecor.includes(item.id) || item.room.wallpaper) return;
-    const visual = createFurniture(scene, item.id);
+    const visual = createFurniture(scene, item.id, decorPositions[item.id] || {});
     furniture[item.id] = visual;
-    (item.room.perches || []).forEach((perch) => perches.push({ ...perch, furniture: item.id }));
   });
-  return { furniture, perches, wallpaper };
+  return {
+    furniture,
+    perches: buildRoomPerches(activeDecor, decorPositions),
+    wallpaper
+  };
 }
 
 export function createGrannyGear(scene, granny, gearId, depth = 14) {

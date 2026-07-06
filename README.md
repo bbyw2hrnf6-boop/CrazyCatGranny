@@ -44,7 +44,8 @@ Visual content is data-driven:
 - `src/visual/VisualCatalog.js` is the single source for asset paths, shop data, cat anchors, wearable fitting, room placement, furniture perches, scale, and layer rules.
 - `src/visual/VisualFactory.js` renders the same cat, accessory, gear, furniture, wallpaper, and preview components in every scene.
 - Cat accessories inherit the cat’s position, facing direction, rotation, squash, visibility, alpha, depth, and camera scroll factor.
-- Room furniture placement and usable cat paths live together, so adding or moving furniture does not require edits across multiple scenes.
+- Room furniture can be dragged inside grounded wall/floor zones; positions persist in the save game.
+- Furniture placement and usable cat paths live together. Moving an item also moves its interaction points, and cats use explicit walk and jump waypoints instead of flying to it.
 
 To add an item, add its asset and one catalog entry, then list it in save/progression data only if it changes game rules.
 
