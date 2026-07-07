@@ -70,7 +70,7 @@ function planObstacles(level, gaps) {
   const textures = level.world === 1 && level.gimmick === "glass"
     ? ["glass", "crate"]
     : WORLD_TEXTURES[level.world];
-  for (let x = 1380, index = 0; x < level.length - 520; x += level.boss ? 850 : 1250, index += 1) {
+  for (let x = 1420, index = 0; x < level.length - 520; x += level.boss ? 920 : 1320, index += 1) {
     const blockingGap = gaps.find(([start, end]) => x > start - 90 && x < end + 90);
     const safeX = blockingGap ? blockingGap[1] + 115 : x;
     if (safeX < level.length - 520) {
@@ -83,13 +83,13 @@ function planObstacles(level, gaps) {
 function planCoins(level, gaps, raised, obstacleXs) {
   const coins = [];
   let coinIndex = 0;
-  for (let x = 420; x < level.length - 350; x += 175) {
+  for (let x = 390; x < level.length - 350; x += 135) {
     const upper = raised.find(([platformX, , width]) => x > platformX + 34 && x < platformX + width - 34);
     const overGap = gaps.some(([start, end]) => x > start - 42 && x < end + 42);
-    const nearObstacle = obstacleXs.some((obstacleX) => Math.abs(x - obstacleX) < 150);
+    const nearObstacle = obstacleXs.some((obstacleX) => Math.abs(x - obstacleX) < 118);
     if ((!upper && overGap) || nearObstacle) continue;
     const surfaceY = upper ? upper[1] : 590;
-    coins.push({ x, y: surfaceY - 105 - Math.sin(coinIndex * 0.82) * 18 });
+    coins.push({ x, y: surfaceY - 108 - Math.sin(coinIndex * 0.82) * 20 });
     coinIndex += 1;
   }
   return coins;

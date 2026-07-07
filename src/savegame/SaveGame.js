@@ -26,6 +26,7 @@ const defaults = {
   decorPositions: {},
   worldTrophies: [],
   catBoxesOpened: [],
+  pendingCatBoxes: [],
   dropHistory: [],
   selectedCharacter: "granny",
   sound: true,
@@ -52,6 +53,7 @@ function clean(data) {
       : {},
     worldTrophies: Array.isArray(data?.worldTrophies) ? data.worldTrophies : [],
     catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
+    pendingCatBoxes: Array.isArray(data?.pendingCatBoxes) ? data.pendingCatBoxes : [],
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
   result.version = SAVE_VERSION;
@@ -62,6 +64,15 @@ function clean(data) {
   result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
   result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
+  result.catBoxesOpened = result.catBoxesOpened.map(Number).filter((id) => id >= 1 && id <= getWorldCount());
+  result.pendingCatBoxes = result.pendingCatBoxes
+    .map((box, index) => ({
+      id: typeof box?.id === "string" ? box.id : `legacy-box-${index + 1}`,
+      world: Math.max(1, Math.min(getWorldCount(), Number(box?.world) || 1)),
+      levelId: Math.max(1, Math.min(getTotalLevelCount(), Number(box?.levelId) || 1)),
+      earnedAt: Math.max(0, Math.floor(Number(box?.earnedAt) || 0))
+    }))
+    .filter((box) => box.id);
   result.sound = result.sound !== false;
   result.performanceMode = ["auto", "high", "balanced"].includes(result.performanceMode)
     ? result.performanceMode
@@ -104,6 +115,7 @@ function pack(data) {
       levels: save.levels,
       worldTrophies: save.worldTrophies,
       catBoxesOpened: save.catBoxesOpened,
+      pendingCatBoxes: save.pendingCatBoxes,
       dropHistory: save.dropHistory
     },
     inventory: {
@@ -135,6 +147,7 @@ function progressScore(save) {
     + save.unlockedLevel * 1000
     + save.worldTrophies.length * 500
     + save.rescuedCats.length * 250
+    + save.pendingCatBoxes.length * 180
     + save.owned.length * 40
     + save.totalCoins
     + save.coins;
@@ -154,6 +167,16 @@ function parseStored(value) {
   const parsed = JSON.parse(value);
   if (!parsed || typeof parsed !== "object") throw new Error("Invalid save");
   return parsed;
+}
+
+function createPendingCatBox(level) {
+  const stamp = Date.now();
+  return {
+    id: `box-${level.world}-${level.id}-${stamp}`,
+    world: level.world,
+    levelId: level.id,
+    earnedAt: stamp
+  };
 }
 
 export const SaveGame = {
@@ -224,8 +247,9 @@ export const SaveGame = {
       };
       save.dropHistory.push({ ...reward, levelId: level.id });
     } else if (firstClear && level.grantsCatBox) {
-      reward = rollCatBoxReward(save, level.world);
-      save.catBoxesOpened.push(level.world);
+      const box = createPendingCatBox(level);
+      save.pendingCatBoxes.push(box);
+      reward = { type: "catbox-pending", world: level.world, levelId: level.id, boxId: box.id };
       save.dropHistory.push({ ...reward, levelId: level.id });
     }
     save.levels[level.id] = {
@@ -245,6 +269,21 @@ export const SaveGame = {
     const reward = rollCatBoxReward(save, world, random);
     save.catBoxesOpened.push(Number(world) || 1);
     save.dropHistory.push({ ...reward, levelId: null });
+    this.write(save);
+    return reward;
+  },
+
+  openPendingCatBox(boxId = null, random = Math.random) {
+    const save = this.load();
+    if (!save.pendingCatBoxes.length) return { type: "none" };
+    const index = boxId
+      ? save.pendingCatBoxes.findIndex((box) => box.id === boxId)
+      : 0;
+    const safeIndex = index >= 0 ? index : 0;
+    const [box] = save.pendingCatBoxes.splice(safeIndex, 1);
+    const reward = rollCatBoxReward(save, box.world, random);
+    save.catBoxesOpened.push(box.world);
+    save.dropHistory.push({ ...reward, levelId: box.levelId, boxId: box.id });
     this.write(save);
     return reward;
   },
@@ -416,6 +455,7 @@ export const SaveGame = {
         levels: {},
         worldTrophies: [],
         catBoxesOpened: [],
+        pendingCatBoxes: [],
         dropHistory: [],
         selectedCat: null
       });

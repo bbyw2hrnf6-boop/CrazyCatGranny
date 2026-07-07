@@ -2,7 +2,7 @@ import { getTotalLevelCount } from "../../content/GameContentStats.js";
 import { LEVELS } from "../../levels/levels.js";
 import { nextReleasedLevelId } from "../../config/ReleaseConfig.js";
 import { catFrameForLevel, createCat } from "../../visual/VisualFactory.js";
-import { COLORS, pill, sound, textStyle } from "../../ui/ui.js";
+import { COLORS, pill, textStyle } from "../../ui/ui.js";
 
 export class ResultsPanel {
   constructor(scene) {
@@ -27,8 +27,8 @@ export class ResultsPanel {
     }
     const resultTitle = scene.level.id === getTotalLevelCount()
       ? "GRAND CHASE WON!"
-      : reward.type === "catbox"
-        ? "CATBOX DROP!"
+      : reward.type === "catbox-pending"
+        ? "CATBOX FOUND!"
         : reward.type === "rescue"
           ? "CAT RESCUED!"
           : scene.level.boss
@@ -36,20 +36,21 @@ export class ResultsPanel {
             : "LEVEL CLEAR!";
     scene.add.text(640, 105, resultTitle, textStyle(43, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(102);
     const levelsUntilCat = scene.level.boss ? 0 : 3 - scene.chapterStep;
-    const rescueCopy = reward.type === "catbox" && rewardLevel
+    const rescueCopy = reward.type === "catbox-pending"
+      ? "Mystery CatBox stored in the Cat House. Open it whenever you like!"
+      : reward.type === "catbox" && rewardLevel
       ? `${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} · ${rewardLevel.cat.name} joined the Cat House!`
       : reward.type === "catbox-coins"
         ? `Cat collection full · CatBox converted to ${reward.coins} coins!`
         : reward.type === "rescue" && rewardLevel
           ? `${rewardLevel.cat.name} is safe after the three-level chase!`
           : scene.level.boss
-            ? `🏆 ${scene.worldData.name} trophy earned · CatBox already claimed.`
+            ? `🏆 ${scene.worldData.name} trophy earned.`
             : firstClear
               ? `${levelsUntilCat} more level${levelsUntilCat === 1 ? "" : "s"} until the next cat rescue.`
               : "Level replayed · improve paws, treats and time.";
     const rewardCopy = scene.add.text(640, 287, rescueCopy, textStyle(21, reward.limited ? "#a45ad0" : "#5f4b5d"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    if (reward.type === "catbox" && cat) this.createCatBoxReveal(cat, rewardCopy, reward);
     scene.add.text(640, 337, "🐾".repeat(result.paws) + "·".repeat(3 - result.paws), textStyle(41, "#f2a532"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(102);
 
@@ -77,51 +78,5 @@ export class ResultsPanel {
       : scene.scene.start("LevelSelect", { worldId: scene.level.world }));
     home.on("pointerup", () => scene.scene.start("CatHouse", { page: scene.level.world }));
     shade.setInteractive();
-  }
-
-  createCatBoxReveal(cat, rewardCopy, reward) {
-    const scene = this.scene;
-    cat.setVisible(false).setScale(0.05);
-    rewardCopy.setText("Mystery CatBox opening…");
-    const rarityColor = {
-      Common: 0x69b9a7,
-      Uncommon: 0x5d8fce,
-      Rare: 0x9467bd,
-      Legendary: 0xf0b83f
-    }[reward.rarity] || 0x69b9a7;
-    const g = scene.add.graphics();
-    g.fillStyle(0x241a2a, 0.24).fillEllipse(0, 52, 180, 28);
-    g.fillStyle(rarityColor).fillRoundedRect(-78, -35, 156, 92, 14);
-    g.lineStyle(6, COLORS.ink).strokeRoundedRect(-78, -35, 156, 92, 14);
-    g.fillStyle(0xffe0a1).fillTriangle(-66, -34, -50, -75, -26, -34)
-      .fillTriangle(26, -34, 50, -75, 67, -34);
-    g.fillStyle(0xfff1c5).fillRoundedRect(-86, -48, 172, 28, 10);
-    g.lineStyle(5, COLORS.ink).strokeRoundedRect(-86, -48, 172, 28, 10);
-    g.fillStyle(0x3b2a40).fillCircle(0, 8, 16)
-      .fillCircle(-20, -7, 9).fillCircle(0, -12, 9).fillCircle(20, -7, 9);
-    const label = scene.add.text(0, 38, "CATBOX", textStyle(16, "#fff7df")).setOrigin(0.5);
-    const box = scene.add.container(640, 220, [g, label]).setScrollFactor(0).setDepth(105);
-    scene.tweens.add({ targets: box, angle: { from: -3, to: 3 }, duration: 95, yoyo: true, repeat: 7 });
-    scene.time.delayedCall(900, () => {
-      scene.cameras.main.flash(220, 255, 226, 125);
-      box.destroy();
-      cat.setVisible(true);
-      scene.tweens.add({ targets: cat, scaleX: 0.27, scaleY: 0.27, duration: 360, ease: "Back.out" });
-      rewardCopy.setText(`${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} CAT!`);
-      for (let i = 0; i < 10; i += 1) {
-        const sparkle = scene.add.image(640, 220, "sparkle").setScale(0.25).setScrollFactor(0).setDepth(106);
-        const angle = i / 10 * Math.PI * 2;
-        scene.tweens.add({
-          targets: sparkle,
-          x: 640 + Math.cos(angle) * 130,
-          y: 220 + Math.sin(angle) * 90,
-          alpha: 0,
-          angle: 180,
-          duration: 700,
-          onComplete: () => sparkle.destroy()
-        });
-      }
-      sound(scene, "win");
-    });
   }
 }

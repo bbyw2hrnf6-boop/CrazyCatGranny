@@ -14,13 +14,13 @@ export const WORLDS = [
 ];
 
 const worldLevels = [WORLD_1_LEVELS, WORLD_2_LEVELS, WORLD_3_LEVELS, WORLD_4_LEVELS, WORLD_5_LEVELS];
-const originalLengths = [5000, 5400, 5600, 5800, 6100, 6300, 6500, 6800, 7200];
+const originalLengths = [5600, 6050, 6300, 6550, 6900, 7150, 7450, 7800, 8300];
 
 export const LEVELS = worldLevels.flatMap((entries, worldIndex) => entries.map((entry, levelIndex) => {
   const id = worldIndex * 9 + levelIndex + 1;
   const length = worldIndex === 0
     ? originalLengths[levelIndex]
-    : 6900 + worldIndex * 600 + levelIndex * 260 + (levelIndex === 8 ? 850 : 0);
+    : 7500 + worldIndex * 650 + levelIndex * 320 + (levelIndex === 8 ? 1000 : 0);
   return {
     id,
     title: entry[0],

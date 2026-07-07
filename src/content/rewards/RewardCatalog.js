@@ -2,6 +2,7 @@ import { LEVELS } from "../levels/levelRegistry.js";
 import { isLevelReleased } from "../../config/ReleaseConfig.js";
 
 export const CATBOX_COIN_FALLBACK = 125;
+export const CATBOX_COIN_CHANCE = 0.24;
 export const CATBOX_RARITY_WEIGHT = Object.freeze({
   Common: 54,
   Uncommon: 28,
@@ -9,11 +10,24 @@ export const CATBOX_RARITY_WEIGHT = Object.freeze({
   Legendary: 5
 });
 
+function coinRewardForWorld(world = 1) {
+  return 80 + Math.max(0, Number(world) || 1) * 20;
+}
+
+function grantCatBoxCoins(save, world, fallback = false) {
+  const coins = fallback ? CATBOX_COIN_FALLBACK : coinRewardForWorld(world);
+  save.coins += coins;
+  save.totalCoins += coins;
+  return { type: "catbox-coins", coins };
+}
+
 export function rollCatBoxReward(save, world = 1, random = Math.random) {
   const available = LEVELS.filter((level) => isLevelReleased(level) && !save.rescuedCats.includes(level.cat.id));
   if (!available.length) {
-    save.coins += CATBOX_COIN_FALLBACK;
-    return { type: "catbox-coins", coins: CATBOX_COIN_FALLBACK };
+    return grantCatBoxCoins(save, world, true);
+  }
+  if ((Number(random()) || 0) < CATBOX_COIN_CHANCE) {
+    return grantCatBoxCoins(save, world);
   }
   const weighted = available.map((level) => {
     let weight = CATBOX_RARITY_WEIGHT[level.cat.rarity] || 10;

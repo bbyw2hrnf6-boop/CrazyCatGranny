@@ -155,7 +155,7 @@ export class GameScene extends Phaser.Scene {
     this.skyLayer = this.add.tileSprite(0, 0, 1280, 720, `world-bg-${world}`)
       .setOrigin(0).setScrollFactor(0).setDepth(-20).setAlpha(0.94);
     this.skyLayer.tilePositionX = this.backgroundOffset;
-    const g = this.add.graphics().setDepth(-18).setAlpha(0.16);
+    const g = this.add.graphics().setDepth(-18).setAlpha(0.06);
     g.fillStyle(this.worldData.sky, 0.2).fillRect(0, 0, this.level.length, 720);
     g.fillStyle(world === 1 ? 0xfff0b8 : 0xffd49d, 0.9).fillCircle(980, 115, 63);
 
@@ -410,8 +410,9 @@ export class GameScene extends Phaser.Scene {
     });
 
     obstacles.forEach(({ x, texture }) => {
-      const obstacle = this.breakables.create(x, texture === "lantern-gate" ? 520 : texture === "bicycle" ? 548 : 540, texture);
-      const scale = texture === "crate" ? 0.8 : texture === "glass" ? 1 : 0.82;
+      const config = this.obstacleConfig(texture);
+      const obstacle = this.breakables.create(x, config.y, texture);
+      const scale = config.scale;
       obstacle.setScale(scale).refreshBody();
       obstacle.setData("type", texture);
     });
@@ -473,6 +474,23 @@ export class GameScene extends Phaser.Scene {
       }
     }
     return platform;
+  }
+
+  obstacleConfig(texture) {
+    const settings = {
+      crate: { height: 86, scale: 1.02 },
+      glass: { height: 112, scale: 0.98 },
+      bicycle: { height: 82, scale: 0.98 },
+      "tulip-cart": { height: 92, scale: 1.02 },
+      "lantern-gate": { height: 120, scale: 0.92 },
+      "road-barrier": { height: 74, scale: 1.08 },
+      "carnival-drum": { height: 88, scale: 1.05 }
+    };
+    const config = settings[texture] || { height: 90, scale: 1 };
+    return {
+      ...config,
+      y: 590 - (config.height * config.scale) / 2
+    };
   }
 
   createThief() {
@@ -1131,10 +1149,6 @@ export class GameScene extends Phaser.Scene {
 
   resultPanel(result, firstClear, reward = { type: "none" }) {
     this.resultsPanel.show(result, firstClear, reward);
-  }
-
-  createCatBoxReveal(cat, rewardCopy, reward) {
-    this.resultsPanel.createCatBoxReveal(cat, rewardCopy, reward);
   }
 
   togglePause() {

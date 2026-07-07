@@ -34,8 +34,8 @@ export class CatHouse extends Phaser.Scene {
     this.drawRoom();
     addPaperTexture(this);
     topBar(this, "GRANNY'S CAT HOUSE", () => this.scene.start("MainMenu"));
-    const badge = coinBadge(this);
-    badge.setValue(this.save.coins);
+    this.badge = coinBadge(this);
+    this.badge.setValue(this.save.coins);
     this.add.text(715, 112, `${this.save.rescuedCats.length}/${getTotalCatCount()} CATS HOME`, textStyle(18, "#6d596d")).setOrigin(0);
 
     if (this.save.rescuedCats.length === 0) {
@@ -64,6 +64,17 @@ export class CatHouse extends Phaser.Scene {
     const shop = pill(this, 1100, 654, 245, 58, "🛍  OUTFIT SHOP", { fill: COLORS.yellow, size: 18 });
     shop.on("pointerup", () => this.scene.start("Shop"));
     this.roomActionButtons = [room, shop];
+    if (this.save.pendingCatBoxes.length) {
+      const boxes = pill(this, 585, 654, 245, 58, `!  CATBOX x${this.save.pendingCatBoxes.length}`, {
+        fill: COLORS.coral,
+        color: "#fff7df",
+        size: 18
+      });
+      boxes.on("pointerup", () => this.openCatBoxStorage());
+      this.add.rectangle(484, 628, 26, 26, COLORS.yellow).setStrokeStyle(3, COLORS.ink).setDepth(12);
+      this.add.text(484, 628, "!", textStyle(20, "#2f2335")).setOrigin(0.5).setDepth(13);
+      this.roomActionButtons.push(boxes);
+    }
   }
 
   drawRoom() {
@@ -737,6 +748,102 @@ export class CatHouse extends Phaser.Scene {
     close.on("pointerup", () => this.closeOverlay());
     parts.push(close);
     this.overlayParts = parts;
+  }
+
+  drawCatBoxIcon(x, y, depth = 83, scale = 1, color = 0x9467bd) {
+    const g = this.add.graphics();
+    g.fillStyle(0x241a2a, 0.22).fillEllipse(0, 54, 160, 24);
+    g.fillStyle(color).fillRoundedRect(-70, -34, 140, 86, 13);
+    g.lineStyle(6, COLORS.ink).strokeRoundedRect(-70, -34, 140, 86, 13);
+    g.fillStyle(0xffe0a1).fillTriangle(-60, -33, -44, -72, -20, -33)
+      .fillTriangle(20, -33, 44, -72, 60, -33);
+    g.fillStyle(0xfff1c5).fillRoundedRect(-78, -48, 156, 28, 10);
+    g.lineStyle(5, COLORS.ink).strokeRoundedRect(-78, -48, 156, 28, 10);
+    g.fillStyle(0x3b2a40).fillCircle(0, 7, 15)
+      .fillCircle(-19, -7, 8).fillCircle(0, -12, 8).fillCircle(19, -7, 8);
+    const label = this.add.text(0, 36, "CATBOX", textStyle(15, "#fff7df")).setOrigin(0.5);
+    return this.add.container(x, y, [g, label]).setScale(scale).setDepth(depth);
+  }
+
+  openCatBoxStorage() {
+    this.closeOverlay();
+    const parts = [];
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
+    const panel = this.add.rectangle(640, 360, 840, 560, COLORS.cream).setDepth(81);
+    panel.setStrokeStyle(7, COLORS.ink);
+    const title = this.add.text(640, 100, "MYSTERY CATBOX STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
+    const sub = this.add.text(640, 138, "Boss CatBoxes wait here until you choose to open them.", textStyle(17, "#725f72")).setOrigin(0.5).setDepth(82);
+    parts.push(shade, panel, title, sub);
+
+    if (!this.save.pendingCatBoxes.length) {
+      const empty = this.add.text(640, 335, "No CatBoxes waiting right now.", textStyle(24, "#725f72")).setOrigin(0.5).setDepth(82);
+      parts.push(empty);
+    } else {
+      this.save.pendingCatBoxes.slice(0, 6).forEach((box, index) => {
+        const col = index % 3;
+        const row = Math.floor(index / 3);
+        const x = 410 + col * 230;
+        const y = 285 + row * 180;
+        const card = this.add.rectangle(x, y, 190, 145, 0xffffff).setDepth(82);
+        card.setStrokeStyle(5, COLORS.ink);
+        const icon = this.drawCatBoxIcon(x, y - 20, 83, 0.68, box.world === 2 ? 0xff9b4a : 0x9467bd);
+        const label = this.add.text(x, y + 48, `WORLD ${box.world} BOX`, textStyle(14, "#2f2335")).setOrigin(0.5).setDepth(83);
+        const hit = this.add.rectangle(x, y, 190, 145, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(84);
+        hit.on("pointerup", () => this.openStoredCatBox(box.id));
+        parts.push(card, icon, label, hit);
+      });
+    }
+    const close = pill(this, 640, 620, 170, 50, "CLOSE", { fill: COLORS.yellow, size: 17 }).setDepth(84);
+    close.on("pointerup", () => this.closeOverlay());
+    parts.push(close);
+    this.overlayParts = parts;
+  }
+
+  openStoredCatBox(boxId) {
+    const reward = SaveGame.openPendingCatBox(boxId);
+    this.save = SaveGame.load();
+    this.registry.set("save", this.save);
+    this.badge?.setValue(this.save.coins);
+    sound(this, reward.type === "catbox-coins" ? "coin" : "win");
+    this.showCatBoxReward(reward);
+  }
+
+  showCatBoxReward(reward) {
+    this.closeOverlay();
+    const parts = [];
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
+    const panel = this.add.rectangle(640, 360, 820, 560, COLORS.cream).setDepth(81);
+    panel.setStrokeStyle(7, COLORS.ink);
+    const title = this.add.text(640, 104, "CATBOX OPENED!", textStyle(35, "#ec5966")).setOrigin(0.5).setDepth(82);
+    parts.push(shade, panel, title);
+
+    if (reward.type === "catbox-coins") {
+      const coin = this.add.image(640, 255, "coin").setScale(1.65).setDepth(82);
+      const copy = this.add.text(640, 375, `${reward.coins} COINS!`, textStyle(34, "#f2a532")).setOrigin(0.5).setDepth(82);
+      const sub = this.add.text(640, 422, "Sometimes the mystery box is full of shiny trouble money.", textStyle(18, "#725f72")).setOrigin(0.5).setDepth(82);
+      this.tweens.add({ targets: coin, y: 235, angle: 12, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      parts.push(coin, copy, sub);
+    } else if (reward.type === "catbox") {
+      const rewardLevel = LEVELS.find((level) => level.cat.id === reward.catId);
+      const cat = rewardLevel ? createCat(this, 640, 270, rewardLevel.id - 1, 0.36).setDepth(82) : null;
+      const copy = this.add.text(
+        640,
+        410,
+        rewardLevel ? `${rewardLevel.cat.name.toUpperCase()} JOINED THE CAT HOUSE!` : "A NEW CAT JOINED!",
+        textStyle(28, reward.limited ? "#a45ad0" : "#2f2335")
+      ).setOrigin(0.5).setDepth(82);
+      const sub = this.add.text(640, 450, `${reward.rarity}${reward.limited ? " · LIMITED" : ""}`, textStyle(18, "#725f72")).setOrigin(0.5).setDepth(82);
+      if (cat) this.tweens.add({ targets: cat, y: 250, angle: 4, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      parts.push(cat, copy, sub);
+    } else {
+      const copy = this.add.text(640, 340, "No CatBox was available.", textStyle(25, "#725f72")).setOrigin(0.5).setDepth(82);
+      parts.push(copy);
+    }
+
+    const done = pill(this, 640, 575, 220, 54, "DONE", { fill: COLORS.yellow, size: 19 }).setDepth(84);
+    done.on("pointerup", () => this.scene.restart({ page: this.page }));
+    parts.push(done);
+    this.overlayParts = parts.filter(Boolean);
   }
 
   closeOverlay() {

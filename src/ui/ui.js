@@ -102,7 +102,7 @@ export function addPaperTexture(scene) {
 
 export function sound(scene, kind = "coin") {
   if (!scene.registry.get("save")?.sound) return;
-  const context = scene.sound.context;
+  const context = scene.sound?.context;
   if (!context) return;
   if (context.state === "suspended") context.resume();
   const oscillator = context.createOscillator();
