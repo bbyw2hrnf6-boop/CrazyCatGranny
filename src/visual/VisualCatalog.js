@@ -257,7 +257,22 @@ const furniture = [
 const gear = [
   {
     id: "helmetBoost", name: "Crash Helmet", icon: "⛑", price: 45, color: 0xf1b63b, frame: 0,
-    detail: "Faster recovery", granny: { anchor: "head", x: 0, y: 0, scale: 0.095, angle: 0 }
+    detail: "Faster recovery",
+    granny: {
+      anchor: "head",
+      x: 0,
+      y: 0,
+      scale: 0.1,
+      angle: 0,
+      originX: 0.54,
+      originY: 0.53,
+      frameAnchors: {
+        0: { x: 70, y: -150, angle: -7, scale: 1 },
+        1: { x: 78, y: -154, angle: -4, scale: 1 },
+        2: { x: -170, y: -146, angle: -8, scale: 1 },
+        3: { x: 98, y: -132, angle: 2, scale: 1 }
+      }
+    }
   },
   {
     id: "bananaBoost", name: "Banana Belt", icon: "⌣", price: 55, color: 0xffd34d, frame: 1,

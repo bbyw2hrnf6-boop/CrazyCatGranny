@@ -225,7 +225,7 @@ export function createGrannyGear(scene, granny, gearId, depth = 14) {
   const look = visualItem(gearId);
   if (!look || look.kind !== "gear") return null;
   const visual = scene.add.image(granny.x, granny.y, look.texture, look.frame)
-    .setOrigin(0.5)
+    .setOrigin(look.granny.originX ?? 0.5, look.granny.originY ?? 0.5)
     .setScale(look.granny.scale)
     .setDepth(depth)
     .setData("visualKind", "granny-gear")
@@ -242,12 +242,17 @@ function currentGrannyFrame(granny) {
   return Number.isFinite(numericFrame) ? numericFrame : 0;
 }
 
-function grannyGearAnchor(granny, anchorName = "torso") {
-  const frameAnchors = GRANNY_GEAR_ANCHORS[currentGrannyFrame(granny)] || GRANNY_GEAR_ANCHORS.default;
+function grannyGearAnchor(granny, look) {
+  const frame = currentGrannyFrame(granny);
+  const anchorName = look.granny.anchor || "torso";
+  const frameAnchors = GRANNY_GEAR_ANCHORS[frame] || GRANNY_GEAR_ANCHORS.default;
   const base = GRANNY_GEAR_ANCHORS.default[anchorName] || GRANNY_GEAR_ANCHORS.default.torso;
+  const itemFrameAnchors = look.granny.frameAnchors || {};
   return {
     ...base,
-    ...(frameAnchors[anchorName] || {})
+    ...(frameAnchors[anchorName] || {}),
+    ...(itemFrameAnchors.default || {}),
+    ...(itemFrameAnchors[frame] || {})
   };
 }
 
@@ -258,7 +263,7 @@ export function syncGrannyGear(visual, granny) {
   const baseScale = visual.getData("hostBaseScale") || 0.29;
   const ratioX = Math.abs(granny.scaleX) / baseScale;
   const ratioY = Math.abs(granny.scaleY) / baseScale;
-  const anchor = grannyGearAnchor(granny, look.granny.anchor);
+  const anchor = grannyGearAnchor(granny, look);
   const flip = granny.flipX ? -1 : 1;
   const radians = Phaser.Math.DegToRad(granny.angle);
   const anchorX = (anchor.x + look.granny.x) * Math.abs(granny.scaleX) * flip;
