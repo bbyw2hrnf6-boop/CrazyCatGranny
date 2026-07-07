@@ -134,17 +134,7 @@ export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
   HOME_ITEMS.forEach((item) => {
     if (!activeDecor.includes(item.id) || !item.room.perches) return;
     const position = roomPosition(item.id, decorPositions[item.id]);
-    const radians = position.angle * (Math.PI / 180);
-    const cosine = Math.cos(radians);
-    const sine = Math.sin(radians);
-    const transformPoint = (x, y) => {
-      const localX = (x - item.room.x) * position.size * (position.flipX ? -1 : 1);
-      const localY = (y - item.room.y) * position.size;
-      return {
-        x: Math.max(330, Math.min(1220, position.x + localX * cosine - localY * sine)),
-        y: Math.max(145, Math.min(605, position.y + localX * sine + localY * cosine))
-      };
-    };
+    const transformPoint = roomTransform(item, position);
     item.room.perches.forEach((perch, perchIndex) => {
       const path = perch.path.map(([x, y], index) => {
         const point = transformPoint(x, y);
@@ -167,6 +157,40 @@ export function buildRoomPerches(activeDecor = [], decorPositions = {}) {
   return perches;
 }
 
+export function buildRoomInteractionAnchors(activeDecor = [], decorPositions = {}) {
+  const anchors = [];
+  HOME_ITEMS.forEach((item) => {
+    if (!activeDecor.includes(item.id) || !item.room.anchors) return;
+    const position = roomPosition(item.id, decorPositions[item.id]);
+    const transformPoint = roomTransform(item, position);
+    item.room.anchors.forEach((anchor, index) => {
+      const point = transformPoint(anchor.x, anchor.y);
+      anchors.push({
+        id: `${item.id}-${anchor.type}-${index}`,
+        type: anchor.type,
+        furniture: item.id,
+        x: point.x,
+        y: point.y
+      });
+    });
+  });
+  return anchors;
+}
+
+function roomTransform(item, position) {
+  const radians = position.angle * (Math.PI / 180);
+  const cosine = Math.cos(radians);
+  const sine = Math.sin(radians);
+  return (x, y) => {
+    const localX = (x - item.room.x) * position.size * (position.flipX ? -1 : 1);
+    const localY = (y - item.room.y) * position.size;
+    return {
+      x: Math.max(330, Math.min(1220, position.x + localX * cosine - localY * sine)),
+      y: Math.max(145, Math.min(605, position.y + localX * sine + localY * cosine))
+    };
+  };
+}
+
 export function createRoomDecor(scene, activeDecor = [], decorPositions = {}) {
   const furniture = {};
   const wallpaper = activeDecor.includes("wallpaper")
@@ -186,6 +210,7 @@ export function createRoomDecor(scene, activeDecor = [], decorPositions = {}) {
   return {
     furniture,
     perches: buildRoomPerches(activeDecor, decorPositions),
+    anchors: buildRoomInteractionAnchors(activeDecor, decorPositions),
     wallpaper
   };
 }

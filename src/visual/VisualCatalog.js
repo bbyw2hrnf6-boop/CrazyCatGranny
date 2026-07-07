@@ -66,6 +66,10 @@ const furniture = [
     id: "scratcher", name: "Scratch Tower", icon: "♜", price: 75, color: 0xc88755,
     room: {
       x: 390, y: 400, scale: 0.42,
+      anchors: [
+        { type: "play", x: 382, y: 560 },
+        { type: "watch", x: 440, y: 555 }
+      ],
       perches: [
         { x: 364, y: 435, path: [[340, 560], [350, 480], [364, 435]] },
         { x: 382, y: 328, path: [[340, 560], [350, 480], [364, 435], [382, 328]] },
@@ -77,21 +81,41 @@ const furniture = [
     id: "catbed", name: "Cloud Bed", icon: "☁", price: 95, color: 0xa4d6db,
     room: {
       x: 1085, y: 560, scale: 0.36,
+      anchors: [
+        { type: "sleep", x: 1085, y: 548 },
+        { type: "social", x: 1038, y: 585 }
+      ],
       perches: [{ x: 1085, y: 548, path: [[1060, 600], [1085, 548]] }]
     }
   },
   {
     id: "yarnbasket", name: "Yarn Basket", icon: "◉", price: 120, color: 0x9e5b9d,
-    room: { x: 520, y: 570, scale: 0.32 }
+    room: {
+      x: 520, y: 570, scale: 0.32,
+      anchors: [
+        { type: "play", x: 520, y: 548 },
+        { type: "social", x: 575, y: 585 }
+      ]
+    }
   },
   {
     id: "aquarium", name: "Tiny Aquarium", icon: "◈", price: 180, color: 0x51b3c1,
-    room: { x: 1110, y: 205, scale: 0.34 }
+    room: {
+      x: 1110, y: 205, scale: 0.34,
+      anchors: [
+        { type: "watch", x: 1068, y: 540 },
+        { type: "social", x: 1125, y: 580 }
+      ]
+    }
   },
   {
     id: "windowseat", name: "Window Throne", icon: "▣", price: 140, color: 0x78aec9,
     room: {
       x: 1015, y: 430, scale: 0.36,
+      anchors: [
+        { type: "sleep", x: 1015, y: 370 },
+        { type: "watch", x: 955, y: 540 }
+      ],
       perches: [{ x: 1015, y: 370, path: [[980, 585], [1015, 470], [1015, 370]] }]
     }
   },
@@ -99,6 +123,10 @@ const furniture = [
     id: "catbridge", name: "Wall Bridge", icon: "⌁", price: 165, color: 0xc88a58,
     room: {
       x: 790, y: 270, scale: 0.48,
+      anchors: [
+        { type: "watch", x: 725, y: 295 },
+        { type: "play", x: 690, y: 570 }
+      ],
       perches: [
         { x: 725, y: 295, path: [[680, 570], [690, 390], [725, 295]] },
         { x: 805, y: 235, path: [[680, 570], [690, 390], [725, 295], [805, 235]] }
@@ -109,6 +137,11 @@ const furniture = [
     id: "velvetsofa", name: "Velvet Sofa", icon: "▰", price: 210, color: 0x835d8c,
     room: {
       x: 700, y: 445, scale: 0.66,
+      anchors: [
+        { type: "sleep", x: 635, y: 365 },
+        { type: "sleep", x: 740, y: 365 },
+        { type: "social", x: 700, y: 545 }
+      ],
       perches: [
         { x: 635, y: 365, path: [[600, 585], [620, 440], [635, 365]] },
         { x: 740, y: 365, path: [[760, 585], [750, 440], [740, 365]] }
