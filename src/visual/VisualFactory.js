@@ -227,12 +227,11 @@ export function syncGrannyGear(visual, granny) {
   const baseScale = visual.getData("hostBaseScale") || 0.29;
   const ratioX = Math.abs(granny.scaleX) / baseScale;
   const ratioY = Math.abs(granny.scaleY) / baseScale;
-  const anchorScale = (ratioX + ratioY) * 0.5;
   const anchor = grannyGearAnchor(granny, look.granny.anchor);
   const flip = granny.flipX ? -1 : 1;
   const radians = Phaser.Math.DegToRad(granny.angle);
-  const anchorX = (anchor.x + look.granny.x) * anchorScale * flip;
-  const anchorY = (anchor.y + look.granny.y) * anchorScale;
+  const anchorX = (anchor.x + look.granny.x) * Math.abs(granny.scaleX) * flip;
+  const anchorY = (anchor.y + look.granny.y) * Math.abs(granny.scaleY);
   const x = anchorX * Math.cos(radians) - anchorY * Math.sin(radians);
   const y = anchorX * Math.sin(radians) + anchorY * Math.cos(radians);
   visual.setPosition(granny.x + x, granny.y + y);

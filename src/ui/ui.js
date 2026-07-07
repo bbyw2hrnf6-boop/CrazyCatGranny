@@ -1,3 +1,5 @@
+import { toggleFullscreen } from "../systems/FullscreenManager.js";
+
 export const COLORS = {
   ink: 0x2f2335,
   cream: 0xfff7df,
@@ -67,6 +69,9 @@ export function topBar(scene, title, onBack) {
     back.on("pointerup", onBack);
     elements.push(back);
   }
+  const fullscreen = pill(scene, 1035, 46, 66, 54, "⛶", { fill: COLORS.yellow, size: 25 });
+  fullscreen.on("pointerup", () => toggleFullscreen(scene));
+  elements.push(fullscreen);
   elements.push(scene.add.text(onBack ? 110 : 48, 49, title, textStyle(34)).setOrigin(0, 0.5));
   return elements;
 }
