@@ -36,20 +36,26 @@ export function syncCatAccessory(cat, accessory) {
   if (!cat?.active || !accessory?.active) return;
   const look = visualItem(accessory.getData("itemId"));
   if (!look) return;
-  const anchor = cat.getData("anchors")?.head || { x: -75, y: -140 };
+  const anchors = cat.getData("anchors") || {};
+  const anchor = anchors[look.anchor || "head"] || anchors.head || { x: -75, y: -140 };
   const direction = cat.flipX ? -1 : 1;
   const scaleX = Math.abs(cat.scaleX);
   const scaleY = Math.abs(cat.scaleY);
+  const localX = (anchor.x + (look.offsetX || 0)) * scaleX * direction;
+  const localY = (anchor.y + (look.offsetY || 0)) * scaleY;
+  const angle = Phaser.Math.DegToRad(cat.angle || 0);
+  const cosine = Math.cos(angle);
+  const sine = Math.sin(angle);
   accessory.setPosition(
-    cat.x + (anchor.x + (look.offsetX || 0)) * scaleX * direction,
-    cat.y + (anchor.y + (look.offsetY || 0)) * scaleY
+    cat.x + localX * cosine - localY * sine,
+    cat.y + localX * sine + localY * cosine
   );
   accessory.setScale(scaleX * look.attachScale, scaleY * look.attachScale);
   accessory.setFlipX(cat.flipX);
   accessory.setAngle(cat.angle + (look.angle || 0) * direction);
   accessory.setAlpha(cat.alpha);
   accessory.setVisible(cat.visible);
-  accessory.setDepth(cat.depth + 1);
+  accessory.setDepth(cat.depth + (look.depthOffset ?? 1));
   accessory.setScrollFactor(cat.scrollFactorX, cat.scrollFactorY);
 }
 

@@ -97,6 +97,7 @@ export class GameScene extends Phaser.Scene {
     this.events.on("granny-land", this.onGrannyLand, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off("granny-land", this.onGrannyLand, this));
     this.createThief();
+    this.createCatSoundMoments();
     this.createFinish();
     this.runHud = new RunHud(this);
     this.resultsPanel = new ResultsPanel(this);
@@ -535,6 +536,25 @@ export class GameScene extends Phaser.Scene {
     const catFrame = this.chapterCatLevel ? this.chapterCatLevel.id : this.level.id;
     this.cageCat = createCat(this, 640, 455, catFrameForLevel(catFrame), 0.06).setDepth(12);
     if (!this.chapterCatLevel) this.cageCat.setTint(0x4b3b50).setAlpha(0.78);
+  }
+
+  createCatSoundMoments() {
+    this.time.addEvent({
+      delay: Phaser.Math.Between(7200, 11200),
+      loop: true,
+      callback: () => {
+        if (!this.running || this.finished || !this.cageCat?.visible) return;
+        sound(this, Math.random() > 0.45 ? "meow2" : "chirp");
+        this.tweens.add({
+          targets: this.cageCat,
+          y: this.cageCat.y - 6,
+          angle: this.cageCat.angle + 3,
+          duration: 140,
+          yoyo: true,
+          ease: "Sine.inOut"
+        });
+      }
+    });
   }
 
   createFinish() {

@@ -995,17 +995,31 @@ export class CatHouse extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 820, 560, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
     const title = this.add.text(640, 104, "CATBOX OPENED!", textStyle(35, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
-    parts.push(shade, panel, title);
+    const rewardWorld = Number(reward.world || reward.sourceWorld || 1);
+    const box = this.drawCatBoxIcon(640, 250, depth + 2, 0.78, rewardWorld % 2 ? 0x9467bd : 0x41b9ad);
+    sound(this, "box");
+    this.tweens.add({
+      targets: box,
+      y: 230,
+      angle: -7,
+      scale: 0.86,
+      duration: 230,
+      yoyo: true,
+      repeat: 1,
+      ease: "Sine.inOut"
+    });
+    parts.push(shade, panel, title, box);
 
     if (reward.type === "catbox-coins") {
-      const coin = this.add.image(640, 255, "coin").setScale(1.65).setDepth(depth + 2);
+      const coin = this.add.image(640, 278, "coin").setScale(0.2).setAlpha(0).setDepth(depth + 3);
       const copy = this.add.text(640, 375, `${reward.coins} COINS!`, textStyle(34, "#f2a532")).setOrigin(0.5).setDepth(depth + 2);
       const sub = this.add.text(640, 422, "Sometimes the mystery box is full of shiny trouble money.", textStyle(18, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
-      this.tweens.add({ targets: coin, y: 235, angle: 12, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      this.tweens.add({ targets: coin, alpha: 1, scale: 1.65, y: 235, angle: 12, duration: 520, delay: 360, ease: "Back.out" });
+      this.tweens.add({ targets: coin, y: 247, angle: -8, duration: 520, delay: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       parts.push(coin, copy, sub);
     } else if (reward.type === "catbox") {
       const rewardLevel = LEVELS.find((level) => level.cat.id === reward.catId);
-      const cat = rewardLevel ? createCat(this, 640, 270, rewardLevel.id - 1, 0.36).setDepth(depth + 2) : null;
+      const cat = rewardLevel ? createCat(this, 640, 292, rewardLevel.id - 1, 0.08).setAlpha(0).setDepth(depth + 3) : null;
       const copy = this.add.text(
         640,
         410,
@@ -1013,7 +1027,11 @@ export class CatHouse extends Phaser.Scene {
         textStyle(28, reward.limited ? "#a45ad0" : "#2f2335")
       ).setOrigin(0.5).setDepth(depth + 2);
       const sub = this.add.text(640, 450, `${reward.rarity}${reward.limited ? " · LIMITED" : ""}`, textStyle(18, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
-      if (cat) this.tweens.add({ targets: cat, y: 250, angle: 4, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      if (cat) {
+        sound(this, "meow2");
+        this.tweens.add({ targets: cat, alpha: 1, scale: 0.36, y: 250, angle: 4, duration: 520, delay: 330, ease: "Back.out" });
+        this.tweens.add({ targets: cat, y: 262, angle: -4, duration: 520, delay: 920, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      }
       parts.push(cat, copy, sub);
     } else {
       const copy = this.add.text(640, 340, "No CatBox was available.", textStyle(25, "#725f72")).setOrigin(0.5).setDepth(depth + 2);

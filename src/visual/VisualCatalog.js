@@ -44,33 +44,33 @@ const HEAD_ANCHORS = [
 ];
 
 const hats = [
-  { id: "partyHat", name: "Party Hat", icon: "△", price: 25, color: 0xec5966, frame: 0, attachScale: 0.54, originY: 0.59 },
-  { id: "crown", name: "Tiny Crown", icon: "♛", price: 60, color: 0xffcc4d, frame: 1, attachScale: 0.52, originY: 0.59 },
-  { id: "cowboy", name: "Meowboy Hat", icon: "⌒", price: 90, color: 0x9b633d, frame: 2, attachScale: 0.46, originY: 0.59 },
-  { id: "beanie", name: "Blue Beanie", icon: "●", price: 110, color: 0x4b86c5, frame: 3, attachScale: 0.5, originY: 0.58 },
-  { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 135, color: 0x6b4a86, frame: 4, attachScale: 0.43, originY: 0.57 },
-  { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 150, color: 0x8394a0, frame: 5, attachScale: 0.46, originY: 0.56 },
-  { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 80, color: 0xd9576d, frame: 6, attachScale: 0.45, originY: 0.56, offsetY: 12 },
-  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53 },
+  { id: "partyHat", name: "Party Hat", icon: "△", price: 25, color: 0xec5966, frame: 0, attachScale: 0.54, originY: 0.59, anchor: "head" },
+  { id: "crown", name: "Tiny Crown", icon: "♛", price: 60, color: 0xffcc4d, frame: 1, attachScale: 0.52, originY: 0.59, anchor: "head" },
+  { id: "cowboy", name: "Meowboy Hat", icon: "⌒", price: 90, color: 0x9b633d, frame: 2, attachScale: 0.46, originY: 0.59, anchor: "head", offsetY: 3 },
+  { id: "beanie", name: "Blue Beanie", icon: "●", price: 110, color: 0x4b86c5, frame: 3, attachScale: 0.5, originY: 0.58, anchor: "head", offsetY: 4 },
+  { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 135, color: 0x6b4a86, frame: 4, attachScale: 0.43, originY: 0.57, anchor: "head", offsetY: -2 },
+  { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 150, color: 0x8394a0, frame: 5, attachScale: 0.46, originY: 0.56, anchor: "head", offsetY: 2 },
+  { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 80, color: 0xd9576d, frame: 6, attachScale: 0.45, originY: 0.56, anchor: "head", offsetY: 12 },
+  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53, anchor: "head", offsetY: 5 },
   {
     id: "redBandana", name: "Rescue Bandana", icon: "◆", price: 70, color: 0xe85454,
     texture: "cat-costume-red-bandana", asset: "assets/cat-costumes/red-bandana.svg",
-    attachScale: 0.4, originY: 0.52, offsetY: 72, detail: "Neck outfit"
+    attachScale: 0.34, originY: 0.52, anchor: "neck", offsetY: 6, detail: "Neck outfit"
   },
   {
     id: "roundGlasses", name: "Round Glasses", icon: "∞", price: 95, color: 0x4a7db8,
     texture: "cat-costume-round-glasses", asset: "assets/cat-costumes/round-glasses.svg",
-    attachScale: 0.36, originY: 0.5, offsetX: 2, offsetY: 38, detail: "Face outfit"
+    attachScale: 0.28, originY: 0.5, anchor: "face", offsetY: 1, detail: "Face outfit"
   },
   {
     id: "flowerCollar", name: "Flower Collar", icon: "✿", price: 115, color: 0xf0a65d,
     texture: "cat-costume-flower-collar", asset: "assets/cat-costumes/flower-collar.svg",
-    attachScale: 0.42, originY: 0.52, offsetY: 78, detail: "Neck outfit"
+    attachScale: 0.32, originY: 0.52, anchor: "neck", offsetY: 3, detail: "Neck outfit"
   },
   {
     id: "starCape", name: "Star Cape", icon: "★", price: 145, color: 0x6f7fd9,
     texture: "cat-costume-star-cape", asset: "assets/cat-costumes/star-cape.svg",
-    attachScale: 0.48, originY: 0.5, offsetX: -12, offsetY: 98, detail: "Back outfit"
+    attachScale: 0.36, originY: 0.36, anchor: "back", offsetY: 12, depthOffset: 0.5, detail: "Back outfit"
   }
 ].map((item) => ({
   ...item,
@@ -321,11 +321,17 @@ export function catVisual(frame = 0) {
   const safeFrame = Math.max(0, Math.min(getTotalCatCount() - 1, Number(frame) || 0));
   const world = Math.floor(safeFrame / levelsPerWorld);
   const [x, y] = HEAD_ANCHORS[world][safeFrame % levelsPerWorld];
+  const facingBias = x < 0 ? -1 : 1;
   return {
     texture: `cat-real-${world + 1}`,
     frame: safeFrame % levelsPerWorld,
     globalFrame: safeFrame,
-    anchors: { head: { x, y } }
+    anchors: {
+      head: { x, y },
+      face: { x: x * 0.78, y: y + 54 },
+      neck: { x: x * 0.5, y: y + 116 },
+      back: { x: x * 0.24 - 44 * facingBias, y: y + 132 }
+    }
   };
 }
 

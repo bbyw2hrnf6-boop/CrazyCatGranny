@@ -42,10 +42,30 @@ export class BossEncounter {
       parts.push(scene.add.rectangle(0, -120, 70, 75, 0x33243d));
       parts.push(scene.add.text(0, 82, "♫", textStyle(36, "#ffdc63")).setOrigin(0.5));
     }
-    scene.bossVisual = scene.add.container(scene.bossPhasePositions[0] + 250, 320, parts).setDepth(20);
+    scene.bossVisual = scene.add.container(scene.bossPhasePositions[0] + 250, 320, parts)
+      .setDepth(20)
+      .setScale(0.7)
+      .setAlpha(0);
+    scene.tweens.add({ targets: scene.bossVisual, scale: 1, alpha: 1, duration: 520, ease: "Back.out" });
     scene.tweens.add({ targets: scene.bossVisual, y: 300, angle: 2.5, duration: 620, yoyo: true, repeat: -1, ease: "Sine.inOut" });
     scene.bossName = scene.add.text(scene.bossVisual.x, 205, this.title(), textStyle(18, "#fff7df"))
       .setOrigin(0.5).setDepth(22).setBackgroundColor("#3b2c40").setPadding(12, 5);
+    const warning = scene.add.text(scene.bossVisual.x, 140, "BOSS FIGHT!", textStyle(28, "#fff7df"))
+      .setOrigin(0.5)
+      .setDepth(29)
+      .setBackgroundColor("#ec5966dd")
+      .setPadding(18, 6);
+    sound(scene, "hiss");
+    scene.tweens.add({
+      targets: warning,
+      y: 112,
+      scale: 1.08,
+      alpha: 0,
+      duration: 1000,
+      delay: 520,
+      ease: "Sine.in",
+      onComplete: () => warning.destroy()
+    });
     this.spawnWeakPoint();
   }
 

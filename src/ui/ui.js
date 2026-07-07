@@ -117,7 +117,12 @@ export function sound(scene, kind = "coin") {
     win: [740, 0.4, "triangle"],
     buy: [460, 0.2, "sine"],
     meow: [470, 0.34, "sawtooth"],
+    meow2: [560, 0.28, "triangle"],
+    chirp: [740, 0.16, "sine"],
     purr: [92, 0.42, "square"],
+    hiss: [180, 0.22, "sawtooth"],
+    box: [260, 0.26, "square"],
+    rescue: [620, 0.45, "triangle"],
     boss: [330, 0.55, "triangle"],
     land: [145, 0.12, "triangle"],
     skate: [230, 0.06, "square"]
@@ -131,8 +136,15 @@ export function sound(scene, kind = "coin") {
     oscillator.frequency.linearRampToValueAtTime(720, now + duration * 0.45);
     oscillator.frequency.exponentialRampToValueAtTime(360, now + duration);
   }
+  if (kind === "meow2") {
+    oscillator.frequency.linearRampToValueAtTime(820, now + duration * 0.38);
+    oscillator.frequency.exponentialRampToValueAtTime(420, now + duration);
+  }
+  if (kind === "chirp") oscillator.frequency.exponentialRampToValueAtTime(1180, now + duration);
+  if (kind === "box") oscillator.frequency.exponentialRampToValueAtTime(130, now + duration);
+  if (kind === "rescue") oscillator.frequency.exponentialRampToValueAtTime(1040, now + duration);
   if (kind === "boss") oscillator.frequency.exponentialRampToValueAtTime(880, now + duration);
-  gain.gain.setValueAtTime(kind === "purr" ? 0.018 : 0.06, now);
+  gain.gain.setValueAtTime(kind === "purr" ? 0.018 : kind === "hiss" ? 0.035 : 0.06, now);
   gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
   oscillator.connect(gain);
   gain.connect(context.destination);

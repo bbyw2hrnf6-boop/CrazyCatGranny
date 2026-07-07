@@ -2,6 +2,7 @@ import { getTotalLevelCount, getLevelsForWorld } from "../content/GameContentSta
 import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
 import { LEVELS, levelById, WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
+import { catFrameForLevel, createCat } from "../visual/VisualFactory.js";
 import { COLORS, coinBadge, pill, sound, textStyle } from "../ui/ui.js";
 
 const MAP_POSITIONS = [
@@ -96,6 +97,7 @@ export class LevelCompleteMapScene extends Phaser.Scene {
 
   showSummary(title, nextLevelId = null) {
     title.setText(this.rewardTitle());
+    this.playRewardMoment();
     const panel = this.add.rectangle(640, 560, 760, 210, COLORS.cream, 0.96).setDepth(30);
     panel.setStrokeStyle(7, COLORS.ink);
     this.add.text(640, 500, this.rewardCopy(), textStyle(20, "#5f4b5d", { wordWrap: { width: 680 }, align: "center" }))
@@ -116,6 +118,91 @@ export class LevelCompleteMapScene extends Phaser.Scene {
       ? this.scene.start("LevelIntroScene", { levelId: nextLevelId })
       : this.scene.start("LevelSelect", { worldId: this.level.world }));
     home.on("pointerup", () => this.scene.start("CatHouse", { page: this.level.world }));
+  }
+
+  playRewardMoment() {
+    if (this.reward.type === "rescue") {
+      this.playRescueMoment();
+      return;
+    }
+    if (this.reward.type === "catbox-pending") {
+      this.playCatBoxStoredMoment();
+      return;
+    }
+    if (this.level.boss) {
+      this.playBossTrophyMoment();
+    }
+  }
+
+  playRescueMoment() {
+    const rewardLevel = this.reward.catId
+      ? LEVELS.find((level) => level.cat.id === this.reward.catId)
+      : this.level;
+    const frame = rewardLevel ? catFrameForLevel(rewardLevel.id) : catFrameForLevel(this.level.id);
+    const granny = this.add.sprite(500, 355, "granny-skate", 0).setScale(0.22).setDepth(24).play("granny-skating");
+    const cat = createCat(this, 780, 330, frame, 0.22).setDepth(25);
+    const heart = this.add.text(640, 310, "♥", textStyle(64, "#ec5966")).setOrigin(0.5).setDepth(26).setScale(0.1);
+    const bubble = this.add.text(790, 250, "MEOW!", textStyle(20, "#ec5966"))
+      .setOrigin(0.5)
+      .setDepth(27)
+      .setBackgroundColor("#fff7dfdd")
+      .setPadding(10, 4);
+    sound(this, "meow2");
+    this.tweens.add({ targets: bubble, y: 238, duration: 260, yoyo: true, repeat: 2, ease: "Sine.inOut" });
+    this.tweens.add({ targets: cat, x: 650, y: 338, angle: 7, duration: 720, ease: "Back.out" });
+    this.tweens.add({ targets: granny, x: 595, duration: 700, ease: "Sine.out" });
+    this.tweens.add({
+      targets: heart,
+      scale: 1,
+      y: 286,
+      duration: 440,
+      delay: 420,
+      ease: "Back.out",
+      onComplete: () => sound(this, "rescue")
+    });
+  }
+
+  playCatBoxStoredMoment() {
+    const box = this.drawRewardBox(640, 245, 25, 1, this.reward.world % 2 ? 0x9467bd : 0x41b9ad);
+    const label = this.add.text(640, 345, "Stored safely in the Cat House", textStyle(19, "#fff7df"))
+      .setOrigin(0.5)
+      .setDepth(26)
+      .setBackgroundColor("#2f2335cc")
+      .setPadding(14, 5);
+    const arrow = this.add.text(640, 294, "↓", textStyle(42, "#ffcc4d")).setOrigin(0.5).setDepth(27).setAlpha(0);
+    sound(this, "box");
+    this.tweens.add({ targets: box, y: 292, scale: 1.1, angle: -5, duration: 430, ease: "Bounce.out" });
+    this.tweens.add({ targets: arrow, alpha: 1, y: 318, duration: 360, delay: 260, yoyo: true, repeat: 1 });
+    this.tweens.add({ targets: label, scale: 1.04, duration: 480, yoyo: true, repeat: 1, ease: "Sine.inOut" });
+  }
+
+  playBossTrophyMoment() {
+    const trophy = this.add.text(640, 305, "★", textStyle(92, "#ffcc4d")).setOrigin(0.5).setDepth(26).setScale(0.15);
+    const rays = this.add.graphics().setDepth(25);
+    rays.lineStyle(5, 0xfff7df, 0.76);
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 6) {
+      rays.beginPath()
+        .moveTo(640 + Math.cos(angle) * 36, 305 + Math.sin(angle) * 36)
+        .lineTo(640 + Math.cos(angle) * 92, 305 + Math.sin(angle) * 92)
+        .strokePath();
+    }
+    sound(this, "boss");
+    this.tweens.add({ targets: trophy, scale: 1, angle: 360, duration: 620, ease: "Back.out" });
+    this.tweens.add({ targets: rays, alpha: 0, scale: 1.35, duration: 900, delay: 260, onComplete: () => rays.destroy() });
+  }
+
+  drawRewardBox(x, y, depth = 25, scale = 1, color = 0x9467bd) {
+    const g = this.add.graphics();
+    g.fillStyle(0x241a2a, 0.22).fillEllipse(0, 54, 160, 24);
+    g.fillStyle(color).fillRoundedRect(-70, -34, 140, 86, 13);
+    g.lineStyle(6, COLORS.ink).strokeRoundedRect(-70, -34, 140, 86, 13);
+    g.fillStyle(0xffe0a1).fillTriangle(-60, -33, -44, -72, -20, -33)
+      .fillTriangle(20, -33, 44, -72, 60, -33);
+    g.fillStyle(0xfff1c5).fillRoundedRect(-78, -48, 156, 28, 10);
+    g.lineStyle(5, COLORS.ink).strokeRoundedRect(-78, -48, 156, 28, 10);
+    g.fillStyle(0x3b2a40).fillCircle(0, 7, 15)
+      .fillCircle(-19, -7, 8).fillCircle(0, -12, 8).fillCircle(19, -7, 8);
+    return this.add.container(x, y, [g]).setScale(scale).setDepth(depth);
   }
 
   rewardTitle() {
