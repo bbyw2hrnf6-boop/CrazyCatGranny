@@ -7,7 +7,6 @@ import {
   syncGrannyGear
 } from "../visual/VisualFactory.js";
 import { levelById, worldById } from "../levels/levels.js";
-import { getLevelCountForWorld } from "../content/GameContentStats.js";
 import { planCourse } from "../levels/CoursePlanner.js";
 import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
 import { performanceProfile } from "../systems/PerformanceProfile.js";
@@ -27,8 +26,8 @@ export class GameScene extends Phaser.Scene {
   init(data) {
     this.level = levelById(data.levelId);
     this.worldData = worldById(this.level.world);
-    this.chapterStep = ((this.level.id - 1) % 3) + 1;
-    const chapterReward = levelById(Math.min(this.level.world * getLevelCountForWorld(this.level.world), Math.ceil(this.level.id / 3) * 3));
+    this.chapterStep = ((this.level.worldStep - 1) % 2) + 1;
+    const chapterReward = levelById(this.level.grantsCat ? this.level.id : this.level.id + 1);
     this.chapterCatLevel = !this.level.boss && !chapterReward.boss ? chapterReward : null;
     this.coinsCollected = 0;
     this.treatsCollected = 0;
@@ -622,7 +621,7 @@ export class GameScene extends Phaser.Scene {
       ? "BOSS RUN — MYSTERY CATBOX!"
       : this.level.grantsCat
         ? `FINAL CHASE — SAVE ${shownLevel.cat.name.toUpperCase()}!`
-        : `CHASE ${this.chapterStep}/3 — KEEP UP!`;
+        : `CHASE ${this.chapterStep}/2 — KEEP UP!`;
     const title = this.add.text(640, 175, introTitle, textStyle(35, "#ec5966"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(92);
     const sub = this.add.text(640, 365, this.level.subtitle, textStyle(24, "#2f2335")).setOrigin(0.5).setScrollFactor(0).setDepth(92);

@@ -37,7 +37,7 @@ export class ResultsPanel {
             ? "WORLD SAVED!"
             : "LEVEL CLEAR!";
     scene.add.text(640, 105, resultTitle, textStyle(43, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    const levelsUntilCat = scene.level.boss ? 0 : 3 - scene.chapterStep;
+    const levelsUntilCat = scene.level.boss ? 0 : 2 - scene.chapterStep;
     const rescueCopy = reward.type === "catbox-pending"
       ? "Mystery CatBox stored in the Cat House. Open it whenever you like!"
       : reward.type === "catbox" && rewardLevel
@@ -45,7 +45,7 @@ export class ResultsPanel {
       : reward.type === "catbox-coins"
         ? `Cat collection full · CatBox converted to ${reward.coins} coins!`
         : reward.type === "rescue" && rewardLevel
-          ? `${rewardCatName} is safe after the three-level chase!`
+          ? `${rewardCatName} is safe after the two-level chase!`
           : scene.level.boss
             ? `🏆 ${scene.worldData.name} trophy earned.`
             : firstClear

@@ -261,7 +261,7 @@ export const SaveGame = {
     save.totalCoins += earned;
     save.unlockedLevel = Math.max(save.unlockedLevel, Math.min(getTotalLevelCount(), level.id + 1));
     let reward = { type: "none" };
-    if (firstClear && level.grantsCat && !save.rescuedCats.includes(level.cat.id)) {
+    if (level.grantsCat && !save.rescuedCats.includes(level.cat.id)) {
       save.rescuedCats.push(level.cat.id);
       reward = {
         type: "rescue",

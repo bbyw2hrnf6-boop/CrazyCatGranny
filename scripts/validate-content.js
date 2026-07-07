@@ -17,6 +17,8 @@ if (!unique(CAT_CATALOG.map((cat) => cat.id))) errors.push("Cat IDs must be uniq
 if (getTotalLevelCount() !== LEVELS.length) errors.push("Total level count does not match LEVELS.");
 if (getTotalCatCount() !== CAT_CATALOG.length) errors.push("Total cat count does not match CAT_CATALOG.");
 if (getWorldCount() !== WORLDS.length) errors.push("World count does not match WORLDS.");
+if (RELEASE_CONFIG.playableWorlds.length !== WORLDS.length) errors.push("All worlds should be released in full-campaign mode.");
+if (RELEASE_CONFIG.playableLevelIds.length !== LEVELS.length) errors.push("All levels should be released in full-campaign mode.");
 
 RELEASE_CONFIG.playableLevelIds.forEach((levelId) => {
   if (!LEVELS.some((level) => level.id === levelId)) errors.push(`Released level ${levelId} does not exist.`);
@@ -33,6 +35,17 @@ LEVELS.filter((level) => level.boss).forEach((level) => {
   if (!BOSS_DEFINITIONS.some((boss) => boss.worldId === level.world)) {
     errors.push(`Boss level ${level.id} has no boss definition for world ${level.world}.`);
   }
+});
+
+WORLDS.forEach((world) => {
+  const levels = LEVELS.filter((level) => level.world === world.id);
+  levels.forEach((level) => {
+    const shouldGrantCat = !level.boss && level.worldStep % 2 === 0;
+    if (level.grantsCat !== shouldGrantCat) {
+      errors.push(`Level ${level.id} has the wrong two-level cat rescue cadence.`);
+    }
+    if (level.boss && !level.grantsCatBox) errors.push(`Boss level ${level.id} should grant a CatBox.`);
+  });
 });
 
 LEVELS.forEach((level) => {

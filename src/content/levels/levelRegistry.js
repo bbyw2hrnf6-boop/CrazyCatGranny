@@ -15,6 +15,7 @@ export const WORLDS = [
 
 const worldLevels = [WORLD_1_LEVELS, WORLD_2_LEVELS, WORLD_3_LEVELS, WORLD_4_LEVELS, WORLD_5_LEVELS];
 const originalLengths = [5600, 6050, 6300, 6550, 6900, 7150, 7450, 7800, 8300];
+const LEVELS_PER_RESCUE = 2;
 
 export const LEVELS = worldLevels.flatMap((entries, worldIndex) => entries.map((entry, levelIndex) => {
   const id = worldIndex * 9 + levelIndex + 1;
@@ -26,12 +27,13 @@ export const LEVELS = worldLevels.flatMap((entries, worldIndex) => entries.map((
     title: entry[0],
     subtitle: entry[1],
     world: worldIndex + 1,
+    worldStep: levelIndex + 1,
     length,
     targetTime: Number((length / (330 + id * 4) * 1.45).toFixed(1)),
     gimmick: entry[2],
     boss: levelIndex === 8,
     cat: catForLevel(id, worldIndex, levelIndex),
-    grantsCat: levelIndex === 2 || levelIndex === 5,
+    grantsCat: levelIndex < 8 && (levelIndex + 1) % LEVELS_PER_RESCUE === 0,
     grantsCatBox: levelIndex === 8
   };
 }));

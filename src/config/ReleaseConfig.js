@@ -1,10 +1,12 @@
 export const RELEASE_CONFIG = Object.freeze({
-  mode: "vertical-slice",
-  playableWorlds: Object.freeze([1, 2, 3]),
+  mode: "full-campaign",
+  playableWorlds: Object.freeze([1, 2, 3, 4, 5]),
   playableLevelIds: Object.freeze([
     1, 2, 3, 4, 5, 6, 7, 8, 9,
     10, 11, 12, 13, 14, 15, 16, 17, 18,
-    19, 20, 21, 22, 23, 24, 25, 26, 27
+    19, 20, 21, 22, 23, 24, 25, 26, 27,
+    28, 29, 30, 31, 32, 33, 34, 35, 36,
+    37, 38, 39, 40, 41, 42, 43, 44, 45
   ])
 });
 
@@ -24,6 +26,7 @@ export function nextReleasedLevelId(level, levels) {
 export function isLevelUnlocked(level, save) {
   if (!isLevelReleased(level)) return false;
   if (level.id <= Number(save?.unlockedLevel || 1)) return true;
+  if (RELEASE_CONFIG.mode === "full-campaign" && level.worldStep === 1) return true;
   const released = RELEASE_CONFIG.playableLevelIds;
   const index = released.indexOf(level.id);
   const previousId = released[index - 1];

@@ -71,7 +71,7 @@ export class LevelSelect extends Phaser.Scene {
     WORLDS.forEach((world, index) => {
       const firstLevel = getFirstLevelIdForWorld(world.id);
       const released = isWorldReleased(world.id);
-      const unlocked = released && save.unlockedLevel >= firstLevel;
+      const unlocked = released && (save.unlockedLevel >= firstLevel || RELEASE_CONFIG.mode === "full-campaign");
       const current = world.id === this.worldId;
       const button = pill(this, 465 + index * 145, 137, 128, 48, unlocked ? String(world.id).padStart(2, "0") : released ? "🔒" : "SOON", {
         fill: current ? world.accent : unlocked ? COLORS.cream : 0xa69ca5,
@@ -130,11 +130,12 @@ export class LevelSelect extends Phaser.Scene {
     const panel = this.add.rectangle(px, py, 350, 104, COLORS.ink, 0.95).setDepth(20);
     panel.setStrokeStyle(4, COLORS.cream);
     const title = this.add.text(px, py - 25, `${level.id}. ${level.title}`, textStyle(21, "#fff7df")).setOrigin(0.5).setDepth(21);
+    const localStep = ((level.worldStep - 1) % 2) + 1;
     const rewardCopy = level.grantsCatBox
       ? "BOSS RUN · TROPHY + SURPRISE CATBOX"
       : level.grantsCat
         ? `${level.cat.name} RESCUE CHECKPOINT`
-        : `CHASE ${((level.id - 1) % 3) + 1}/3 · NO CAT DROP YET`;
+        : `CHASE ${localStep}/2 · CAT RESCUE NEXT`;
     const sub = this.add.text(px, py + 5, rewardCopy, textStyle(15, "#ffcd54")).setOrigin(0.5).setDepth(21);
     const length = this.add.text(px, py + 31, `${Math.round(level.length / 100) * 10}m chase`, textStyle(12, "#cabdcb")).setOrigin(0.5).setDepth(21);
     this.hoverCard = [panel, title, sub, length];

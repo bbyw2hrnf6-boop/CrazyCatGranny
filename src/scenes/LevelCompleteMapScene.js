@@ -139,18 +139,45 @@ export class LevelCompleteMapScene extends Phaser.Scene {
       ? LEVELS.find((level) => level.cat.id === this.reward.catId)
       : this.level;
     const frame = rewardLevel ? catFrameForLevel(rewardLevel.id) : catFrameForLevel(this.level.id);
-    const granny = this.add.sprite(500, 355, "granny-skate", 0).setScale(0.22).setDepth(24).play("granny-skating");
-    const cat = createCat(this, 780, 330, frame, 0.22).setDepth(25);
-    const heart = this.add.text(640, 310, "♥", textStyle(64, "#ec5966")).setOrigin(0.5).setDepth(26).setScale(0.1);
-    const bubble = this.add.text(790, 250, "MEOW!", textStyle(20, "#ec5966"))
+    const catName = rewardLevel ? SaveGame.catName(rewardLevel.cat.id, rewardLevel.cat.name) : "Cat";
+    const rarity = rewardLevel ? rewardLevel.cat.rarity.toUpperCase() : "RESCUED";
+    const popup = this.add.rectangle(640, 304, 570, 242, COLORS.cream, 0.96).setDepth(23).setScale(0.25);
+    popup.setStrokeStyle(7, COLORS.ink);
+    const glow = this.add.circle(640, 306, 104, 0xffcc4d, 0.24).setDepth(24).setScale(0.1);
+    const rays = this.add.graphics().setDepth(24);
+    rays.lineStyle(5, 0xfff7df, 0.62);
+    for (let angle = 0; angle < Math.PI * 2; angle += Math.PI / 8) {
+      rays.beginPath()
+        .moveTo(640 + Math.cos(angle) * 74, 306 + Math.sin(angle) * 74)
+        .lineTo(640 + Math.cos(angle) * 138, 306 + Math.sin(angle) * 138)
+        .strokePath();
+    }
+    rays.setAlpha(0);
+
+    const granny = this.add.sprite(470, 352, "granny-skate", 0).setScale(0.2).setDepth(25).play("granny-skating");
+    const cat = createCat(this, 825, 330, frame, 0.22).setDepth(27).setAlpha(0);
+    const heart = this.add.text(640, 302, "♥", textStyle(64, "#ec5966")).setOrigin(0.5).setDepth(28).setScale(0.1);
+    const nameplate = this.add.text(640, 410, `${catName.toUpperCase()} IS HOME!`, textStyle(27, "#2f2335", { align: "center" }))
       .setOrigin(0.5)
-      .setDepth(27)
+      .setDepth(28)
+      .setAlpha(0);
+    const rarityText = this.add.text(640, 444, rarity, textStyle(16, rewardLevel?.cat.limited ? "#a45ad0" : "#725f72"))
+      .setOrigin(0.5)
+      .setDepth(28)
+      .setAlpha(0);
+    const bubble = this.add.text(816, 248, "MEOW!", textStyle(20, "#ec5966"))
+      .setOrigin(0.5)
+      .setDepth(29)
       .setBackgroundColor("#fff7dfdd")
-      .setPadding(10, 4);
+      .setPadding(10, 4)
+      .setAlpha(0);
     sound(this, "meow2");
-    this.tweens.add({ targets: bubble, y: 238, duration: 260, yoyo: true, repeat: 2, ease: "Sine.inOut" });
-    this.tweens.add({ targets: cat, x: 650, y: 338, angle: 7, duration: 720, ease: "Back.out" });
-    this.tweens.add({ targets: granny, x: 595, duration: 700, ease: "Sine.out" });
+    this.tweens.add({ targets: popup, scale: 1, duration: 360, ease: "Back.out" });
+    this.tweens.add({ targets: glow, scale: 1, duration: 420, ease: "Back.out" });
+    this.tweens.add({ targets: rays, alpha: 1, angle: 24, duration: 420, ease: "Sine.out" });
+    this.tweens.add({ targets: cat, alpha: 1, x: 666, y: 328, angle: 7, duration: 740, delay: 140, ease: "Back.out" });
+    this.tweens.add({ targets: granny, x: 570, duration: 680, delay: 80, ease: "Sine.out" });
+    this.tweens.add({ targets: bubble, alpha: 1, y: 236, duration: 240, delay: 260, yoyo: true, repeat: 2, ease: "Sine.inOut" });
     this.tweens.add({
       targets: heart,
       scale: 1,
@@ -160,6 +187,9 @@ export class LevelCompleteMapScene extends Phaser.Scene {
       ease: "Back.out",
       onComplete: () => sound(this, "rescue")
     });
+    this.tweens.add({ targets: [nameplate, rarityText], alpha: 1, y: "-=8", duration: 320, delay: 620, ease: "Sine.out" });
+    this.tweens.add({ targets: cat, y: 318, duration: 520, delay: 860, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+    this.tweens.add({ targets: glow, alpha: 0.38, scale: 1.08, duration: 700, delay: 780, yoyo: true, repeat: -1, ease: "Sine.inOut" });
   }
 
   playCatBoxStoredMoment() {
@@ -215,7 +245,7 @@ export class LevelCompleteMapScene extends Phaser.Scene {
   rewardCopy() {
     if (this.reward.type === "catbox-pending") return "Mystery CatBox stored in the Cat House. Open it whenever you like!";
     if (this.reward.type === "catbox-coins") return `Cat collection full · CatBox converted to ${this.reward.coins} coins!`;
-    if (this.reward.type === "rescue") return "The rescued cat is safe in the Cat House.";
+    if (this.reward.type === "rescue") return "Two chases complete. The rescued cat is safe in the Cat House.";
     if (this.level.boss) return `${this.world.name} trophy earned.`;
     return this.firstClear ? "This level is ticked off. The chase moves to the next stop." : "Replay complete. Try for more paws, treats and coins.";
   }

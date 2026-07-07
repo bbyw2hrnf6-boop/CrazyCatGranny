@@ -592,7 +592,7 @@ export class CatHouse extends Phaser.Scene {
     ).setOrigin(0.5).setDepth(depth + 1);
     const trait = this.add.text(865, 340, `“${level.cat.trait}”`, textStyle(20, "#fff7df", { wordWrap: { width: 300 }, align: "center" })).setOrigin(0.5).setDepth(depth + 1);
     const drop = this.save.dropHistory.find((entry) => entry.catId === level.cat.id);
-    const rescueSource = drop?.type === "catbox" ? "Surprise CatBox pull" : `Three-level rescue · Level ${drop?.levelId || level.id}`;
+    const rescueSource = drop?.type === "catbox" ? "Surprise CatBox pull" : `Two-level rescue · Level ${drop?.levelId || level.id}`;
     const rescue = this.add.text(865, 400, rescueSource, textStyle(16, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
     const outfit = this.add.text(865, 435, currentHat === "none" ? "Outfit: natural fur" : `Outfit: ${currentHat}`, textStyle(15, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
     const customize = pill(this, 705, 535, 200, 58, "✦  CUSTOMIZE", { fill: COLORS.yellow, size: 17 }).setDepth(depth + 2);
