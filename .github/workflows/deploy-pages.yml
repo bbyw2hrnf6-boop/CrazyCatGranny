@@ -37,7 +37,8 @@ jobs:
           test -f dist/index.html
           test -f dist/assets/sprites/granny-skate.png
           test -f dist/assets/backgrounds/world-1-hd.png
-          test -f dist/assets/furniture/scratcher.png
+          test -f dist/assets/furniture/front/scratcher-front.svg
+          test -f dist/assets/audio/cat-meow-pleading.mp3
           test -n "$(find dist/static -name '*.js' -print -quit)"
 
       - name: Configure GitHub Pages
