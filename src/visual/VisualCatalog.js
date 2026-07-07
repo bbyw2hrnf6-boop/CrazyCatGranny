@@ -51,19 +51,40 @@ const hats = [
   { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 135, color: 0x6b4a86, frame: 4, attachScale: 0.43, originY: 0.57 },
   { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 150, color: 0x8394a0, frame: 5, attachScale: 0.46, originY: 0.56 },
   { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 80, color: 0xd9576d, frame: 6, attachScale: 0.45, originY: 0.56, offsetY: 12 },
-  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53 }
+  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53 },
+  {
+    id: "redBandana", name: "Rescue Bandana", icon: "◆", price: 70, color: 0xe85454,
+    texture: "cat-costume-red-bandana", asset: "assets/cat-costumes/red-bandana.svg",
+    attachScale: 0.4, originY: 0.52, offsetY: 72, detail: "Neck outfit"
+  },
+  {
+    id: "roundGlasses", name: "Round Glasses", icon: "∞", price: 95, color: 0x4a7db8,
+    texture: "cat-costume-round-glasses", asset: "assets/cat-costumes/round-glasses.svg",
+    attachScale: 0.36, originY: 0.5, offsetX: 2, offsetY: 38, detail: "Face outfit"
+  },
+  {
+    id: "flowerCollar", name: "Flower Collar", icon: "✿", price: 115, color: 0xf0a65d,
+    texture: "cat-costume-flower-collar", asset: "assets/cat-costumes/flower-collar.svg",
+    attachScale: 0.42, originY: 0.52, offsetY: 78, detail: "Neck outfit"
+  },
+  {
+    id: "starCape", name: "Star Cape", icon: "★", price: 145, color: 0x6f7fd9,
+    texture: "cat-costume-star-cape", asset: "assets/cat-costumes/star-cape.svg",
+    attachScale: 0.48, originY: 0.5, offsetX: -12, offsetY: 98, detail: "Back outfit"
+  }
 ].map((item) => ({
   ...item,
   tab: "HATS",
   kind: "hat",
-  texture: "cat-accessories",
-  detail: "Cat outfit",
-  previewScale: 0.24
+  texture: item.texture || "cat-accessories",
+  detail: item.detail || "Cat outfit",
+  previewScale: item.previewScale || 0.24
 }));
 
 const furniture = [
   {
     id: "scratcher", name: "Scratch Tower", icon: "♜", price: 75, color: 0xc88755,
+    asset: "assets/furniture/front/scratcher-front.svg",
     room: {
       x: 390, y: 400, scale: 0.42,
       anchors: [
@@ -79,6 +100,7 @@ const furniture = [
   },
   {
     id: "catbed", name: "Cloud Bed", icon: "☁", price: 95, color: 0xa4d6db,
+    asset: "assets/furniture/front/catbed-front.svg",
     room: {
       x: 1085, y: 560, scale: 0.36,
       anchors: [
@@ -90,6 +112,7 @@ const furniture = [
   },
   {
     id: "yarnbasket", name: "Yarn Basket", icon: "◉", price: 120, color: 0x9e5b9d,
+    asset: "assets/furniture/front/yarnbasket-front.svg",
     room: {
       x: 520, y: 570, scale: 0.32,
       anchors: [
@@ -100,6 +123,7 @@ const furniture = [
   },
   {
     id: "aquarium", name: "Tiny Aquarium", icon: "◈", price: 180, color: 0x51b3c1,
+    asset: "assets/furniture/front/aquarium-front.svg",
     room: {
       x: 1110, y: 205, scale: 0.34,
       anchors: [
@@ -110,6 +134,7 @@ const furniture = [
   },
   {
     id: "windowseat", name: "Window Throne", icon: "▣", price: 140, color: 0x78aec9,
+    asset: "assets/furniture/front/windowseat-front.svg",
     room: {
       x: 1015, y: 430, scale: 0.36,
       anchors: [
@@ -121,6 +146,7 @@ const furniture = [
   },
   {
     id: "catbridge", name: "Wall Bridge", icon: "⌁", price: 165, color: 0xc88a58,
+    asset: "assets/furniture/front/catbridge-front.svg",
     room: {
       x: 790, y: 270, scale: 0.48,
       anchors: [
@@ -135,6 +161,7 @@ const furniture = [
   },
   {
     id: "velvetsofa", name: "Velvet Sofa", icon: "▰", price: 210, color: 0x835d8c,
+    asset: "assets/furniture/front/velvetsofa-front.svg",
     room: {
       x: 700, y: 445, scale: 0.66,
       anchors: [
@@ -148,20 +175,82 @@ const furniture = [
       ]
     }
   },
-  { id: "wallpaper", name: "Paw Wallpaper", icon: "⁙", price: 190, color: 0xe79b9f, room: { wallpaper: true } }
+  {
+    id: "roundtree", name: "Round Cat Tree", icon: "○", price: 240, color: 0xd79a5c,
+    asset: "assets/furniture/front/roundtree-front.svg",
+    detail: "Climb and nap",
+    room: {
+      x: 460, y: 510, scale: 0.42,
+      anchors: [
+        { type: "play", x: 430, y: 570 },
+        { type: "sleep", x: 470, y: 430 }
+      ],
+      perches: [
+        { x: 470, y: 430, path: [[430, 580], [450, 500], [470, 430]] },
+        { x: 505, y: 325, path: [[430, 580], [450, 500], [470, 430], [505, 325]] }
+      ]
+    }
+  },
+  {
+    id: "moonperch", name: "Moon Perch", icon: "☾", price: 175, color: 0xa8b9e8,
+    asset: "assets/furniture/front/moonperch-front.svg",
+    detail: "Wall nap perch",
+    room: {
+      x: 575, y: 255, scale: 0.38,
+      anchors: [
+        { type: "watch", x: 550, y: 315 },
+        { type: "sleep", x: 590, y: 282 }
+      ],
+      perches: [{ x: 590, y: 282, path: [[555, 570], [550, 390], [590, 282]] }]
+    }
+  },
+  {
+    id: "bookcaseperch", name: "Bookcase Perch", icon: "▤", price: 260, color: 0x9c6c52,
+    asset: "assets/furniture/front/bookcaseperch-front.svg",
+    detail: "Shelves and paths",
+    room: {
+      x: 875, y: 470, scale: 0.45,
+      anchors: [
+        { type: "watch", x: 835, y: 500 },
+        { type: "social", x: 900, y: 585 }
+      ],
+      perches: [
+        { x: 835, y: 390, path: [[900, 585], [870, 500], [835, 390]] },
+        { x: 910, y: 305, path: [[900, 585], [870, 500], [835, 390], [910, 305]] }
+      ]
+    }
+  },
+  {
+    id: "fishcondo", name: "Fish Condo", icon: "◇", price: 230, color: 0x50a9b5,
+    asset: "assets/furniture/front/fishcondo-front.svg",
+    detail: "Hide and play",
+    room: {
+      x: 940, y: 555, scale: 0.37,
+      anchors: [
+        { type: "play", x: 910, y: 570 },
+        { type: "sleep", x: 960, y: 520 }
+      ],
+      perches: [{ x: 960, y: 520, path: [[920, 590], [940, 555], [960, 520]] }]
+    }
+  },
+  {
+    id: "wallpaper", name: "Paw Wallpaper", icon: "⁙", price: 190, color: 0xe79b9f,
+    asset: "assets/furniture/front/wallpaper-front.svg",
+    room: { wallpaper: true }
+  }
 ].map((item) => ({
   ...item,
   tab: "HOME",
   kind: "furniture",
   texture: `furniture-${item.id}`,
-  detail: item.id === "catbed" ? "Cats nap here"
+  detail: item.detail || (item.id === "catbed" ? "Cats nap here"
     : item.id === "yarnbasket" ? "Cats play here"
       : item.id === "aquarium" ? "Cat television"
         : item.id === "windowseat" ? "Sunny nap spot"
           : item.id === "catbridge" ? "Shared climbing path"
             : item.id === "velvetsofa" ? "Room centerpiece"
               : item.id === "wallpaper" ? "Whole-room style"
-                : "Placed in Cat House",
+                : "Placed in Cat House"),
   previewScale: 0.2
 }));
 
@@ -243,10 +332,11 @@ export function catVisual(frame = 0) {
 export const VISUAL_ASSETS = Object.freeze({
   images: [
     ...Array.from({ length: getWorldCount() }, (_, index) => [`world-bg-${index + 1}`, `assets/backgrounds/world-${index + 1}-hd.png`]),
-    ["cat-house-bg", "assets/backgrounds/cat-house-hd.png"],
+    ["cat-house-bg", "assets/backgrounds/cat-house-front.svg"],
     ["shop-bg", "assets/backgrounds/shop-hd.png"],
     ["room-wallpaper", "assets/backgrounds/paw-wallpaper.png"],
-    ...furniture.map((item) => [item.texture, `assets/furniture/${item.id}.png`])
+    ...furniture.map((item) => [item.texture, item.asset || `assets/furniture/${item.id}.png`]),
+    ...hats.filter((item) => item.asset).map((item) => [item.texture, item.asset])
   ],
   sheets: [
     ["granny-skate", "assets/sprites/granny-skate.png", 512, 512],

@@ -36,6 +36,10 @@ export class Shop extends Phaser.Scene {
     g.fillStyle(0xc95d60).fillTriangle(0, 0, 320, 0, 0, 240).fillTriangle(1280, 0, 960, 0, 1280, 240);
   }
 
+  catDisplayName(level) {
+    return SaveGame.catName(level.cat.id, level.cat.name);
+  }
+
   makeTabs() {
     ["HATS", "HOME", "GEAR"].forEach((tab, index) => {
       const button = pill(this, 755 + index * 155, 125, 140, 48, tab, {
@@ -59,32 +63,53 @@ export class Shop extends Phaser.Scene {
   renderItems() {
     this.itemObjects = [];
     const list = SHOP_ITEMS.filter((item) => item.tab === this.activeTab);
+    const compact = list.length > 8;
+    const columns = compact ? 6 : 4;
+    const cardWidth = compact ? 178 : 245;
+    const cardHeight = compact ? 162 : 205;
+    const xStart = compact ? 155 : 205;
+    const xGap = compact ? 194 : 290;
+    const yStart = compact ? 280 : 310;
+    const yGap = compact ? 185 : 250;
+    const iconRadius = compact ? 38 : 50;
     list.forEach((item, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      const x = 205 + col * 290;
-      const y = 310 + row * 250;
+      const col = index % columns;
+      const row = Math.floor(index / columns);
+      const x = xStart + col * xGap;
+      const y = yStart + row * yGap;
       const owned = this.save.owned.includes(item.id);
       const equipped = item.tab === "HATS"
         ? Boolean(this.save.hatAssignments[item.id])
         : item.tab === "GEAR" && this.save.equippedGear === item.id;
-      const panel = this.add.rectangle(x, y, 245, 205, COLORS.cream).setStrokeStyle(5, COLORS.ink);
-      const iconBg = this.add.circle(x, y - 38, 50, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
-      const icon = createItemPreview(this, item.id, x, y - 38, { scale: 0.92 });
-      const name = this.add.text(x, y + 20, item.name, textStyle(20)).setOrigin(0.5);
-      const detail = this.add.text(x, y + 48, item.detail, textStyle(12, "#8a7588")).setOrigin(0.5);
-      const hatCat = item.tab === "HATS" && this.save.hatAssignments[item.id]
-        ? LEVELS.find((level) => level.cat.id === this.save.hatAssignments[item.id])?.cat.name
+      const panel = this.add.rectangle(x, y, cardWidth, cardHeight, COLORS.cream).setStrokeStyle(5, COLORS.ink);
+      const iconBg = this.add.circle(x, y - (compact ? 32 : 38), iconRadius, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
+      const icon = createItemPreview(this, item.id, x, y - (compact ? 32 : 38), { scale: compact ? 0.72 : 0.92 });
+      const name = this.add.text(x, y + (compact ? 17 : 20), item.name, textStyle(compact ? 15 : 20, "#2f2335", {
+        wordWrap: { width: cardWidth - 18 },
+        align: "center"
+      })).setOrigin(0.5);
+      const detail = this.add.text(x, y + (compact ? 41 : 48), item.detail, textStyle(compact ? 10 : 12, "#8a7588", {
+        wordWrap: { width: cardWidth - 18 },
+        align: "center"
+      })).setOrigin(0.5);
+      const assignedLevel = item.tab === "HATS" && this.save.hatAssignments[item.id]
+        ? LEVELS.find((level) => level.cat.id === this.save.hatAssignments[item.id])
         : null;
+      const hatCat = assignedLevel
+        ? this.catDisplayName(assignedLevel)
+        : null;
+      const hatCatLabel = hatCat && hatCat.length > (compact ? 8 : 13)
+        ? `${hatCat.slice(0, compact ? 7 : 12)}...`
+        : hatCat;
       const ownedLabel = item.tab === "HOME"
         ? this.save.activeDecor.includes(item.id) ? "PLACED" : "IN STORAGE"
-        : item.tab === "HATS" && hatCat
-          ? `ON ${hatCat.toUpperCase()}`
+        : item.tab === "HATS" && hatCatLabel
+          ? `ON ${hatCatLabel.toUpperCase()}`
           : equipped
             ? "EQUIPPED"
             : "TAP TO EQUIP";
-      const price = this.add.text(x, y + 76, owned ? ownedLabel : `● ${item.price}`, textStyle(15, owned ? "#3f9f7c" : "#7a6077")).setOrigin(0.5);
-      const hit = this.add.rectangle(x, y, 245, 205, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      const price = this.add.text(x, y + (compact ? 67 : 76), owned ? ownedLabel : `● ${item.price}`, textStyle(compact ? 12 : 15, owned ? "#3f9f7c" : "#7a6077")).setOrigin(0.5);
+      const hit = this.add.rectangle(x, y, cardWidth, cardHeight, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on("pointerover", () => {
         this.tweens.add({ targets: [panel, iconBg, name, price], scale: 1.035, duration: 90 });
         this.tweens.add({ targets: icon, scale: 1.08, duration: 110, ease: "Back.out" });
@@ -174,7 +199,7 @@ export class Shop extends Phaser.Scene {
       card.setStrokeStyle(4, assigned ? COLORS.coral : COLORS.ink);
       const cat = createCat(this, x, y - 12, level.id - 1, 0.14).setDepth(63);
       const previewHat = attachCatAccessory(this, cat, item.id, 64);
-      const name = this.add.text(x, y + 45, level.cat.name, textStyle(14)).setOrigin(0.5).setDepth(64);
+      const name = this.add.text(x, y + 45, this.catDisplayName(level), textStyle(14)).setOrigin(0.5).setDepth(64);
       const hit = this.add.rectangle(x, y, 154, 116, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(65);
       hit.on("pointerup", () => {
         SaveGame.assignHat(item.id, level.cat.id);
@@ -182,7 +207,7 @@ export class Shop extends Phaser.Scene {
         this.registry.set("save", this.save);
         this.closeCatPicker();
         this.refresh();
-        this.toast(`${item.name} equipped to ${level.cat.name}!`);
+        this.toast(`${item.name} equipped to ${this.catDisplayName(level)}!`);
       });
       parts.push(card, cat, previewHat, name, hit);
     });

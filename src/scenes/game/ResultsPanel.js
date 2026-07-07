@@ -1,6 +1,7 @@
 import { getTotalLevelCount } from "../../content/GameContentStats.js";
 import { LEVELS } from "../../levels/levels.js";
 import { nextReleasedLevelId } from "../../config/ReleaseConfig.js";
+import { SaveGame } from "../../savegame/SaveGame.js";
 import { catFrameForLevel, createCat } from "../../visual/VisualFactory.js";
 import { COLORS, pill, textStyle } from "../../ui/ui.js";
 
@@ -15,6 +16,7 @@ export class ResultsPanel {
     const panel = scene.add.rectangle(640, 354, 760, 590, COLORS.cream).setScrollFactor(0).setDepth(101);
     panel.setStrokeStyle(8, COLORS.ink);
     const rewardLevel = reward.catId ? LEVELS.find((entry) => entry.cat.id === reward.catId) : null;
+    const rewardCatName = rewardLevel ? SaveGame.catName(rewardLevel.cat.id, rewardLevel.cat.name) : null;
     let cat = null;
     if (rewardLevel) {
       cat = createCat(scene, 640, 220, catFrameForLevel(rewardLevel.id), 0.27).setScrollFactor(0).setDepth(102);
@@ -39,11 +41,11 @@ export class ResultsPanel {
     const rescueCopy = reward.type === "catbox-pending"
       ? "Mystery CatBox stored in the Cat House. Open it whenever you like!"
       : reward.type === "catbox" && rewardLevel
-      ? `${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} · ${rewardLevel.cat.name} joined the Cat House!`
+      ? `${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} · ${rewardCatName} joined the Cat House!`
       : reward.type === "catbox-coins"
         ? `Cat collection full · CatBox converted to ${reward.coins} coins!`
         : reward.type === "rescue" && rewardLevel
-          ? `${rewardLevel.cat.name} is safe after the three-level chase!`
+          ? `${rewardCatName} is safe after the three-level chase!`
           : scene.level.boss
             ? `🏆 ${scene.worldData.name} trophy earned.`
             : firstClear

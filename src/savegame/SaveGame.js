@@ -9,7 +9,8 @@ const BACKUP_TIME_KEY = `${BACKUP_KEY}-time`;
 const MANUAL_BACKUP_KEY = `${KEY}-manual-backup`;
 const MANUAL_BACKUP_TIME_KEY = `${MANUAL_BACKUP_KEY}-time`;
 const SAVE_VERSION = 2;
-const STARTING_COINS = 500;
+const STARTING_COINS = 150;
+const MAX_CAT_NAME_LENGTH = 18;
 
 const defaults = {
   version: SAVE_VERSION,
@@ -22,6 +23,7 @@ const defaults = {
   equippedHat: "none",
   equippedGear: "none",
   selectedCat: null,
+  catNames: {},
   hatAssignments: {},
   activeDecor: [],
   decorPositions: {},
@@ -36,6 +38,13 @@ const defaults = {
   updatedAt: 0
 };
 
+function sanitizeCatName(value) {
+  return String(value || "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, MAX_CAT_NAME_LENGTH);
+}
+
 function clean(data) {
   data = unpack(data);
   const result = {
@@ -44,6 +53,7 @@ function clean(data) {
     rescuedCats: Array.isArray(data?.rescuedCats) ? data.rescuedCats : [],
     owned: Array.isArray(data?.owned) ? data.owned : [],
     levels: data?.levels && typeof data.levels === "object" ? data.levels : {},
+    catNames: data?.catNames && typeof data.catNames === "object" ? data.catNames : {},
     hatAssignments: data?.hatAssignments && typeof data.hatAssignments === "object" ? data.hatAssignments : {},
     activeDecor: Array.isArray(data?.activeDecor) ? data.activeDecor : [],
     decorPositions: data?.decorPositions && typeof data.decorPositions === "object"
@@ -70,6 +80,10 @@ function clean(data) {
   result.unlockedLevel = Math.min(getTotalLevelCount(), Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
   result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
   result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
+  result.catNames = Object.fromEntries(Object.entries(result.catNames)
+    .filter(([id]) => typeof id === "string")
+    .map(([id, name]) => [id, sanitizeCatName(name)])
+    .filter(([, name]) => name));
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
   result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
   result.catBoxesOpened = result.catBoxesOpened.map(Number).filter((id) => id >= 1 && id <= getWorldCount());
@@ -132,6 +146,7 @@ function pack(data) {
       equippedHat: save.equippedHat,
       equippedGear: save.equippedGear,
       selectedCat: save.selectedCat,
+      catNames: save.catNames,
       hatAssignments: save.hatAssignments,
       selectedCharacter: save.selectedCharacter
     },
@@ -323,6 +338,21 @@ export const SaveGame = {
     }
   },
 
+  catName(catId, fallback = "Cat") {
+    const save = this.load();
+    return save.catNames[catId] || fallback;
+  },
+
+  renameCat(catId, name) {
+    const save = this.load();
+    if (!save.rescuedCats.includes(catId)) return false;
+    const cleanName = sanitizeCatName(name);
+    if (cleanName) save.catNames[catId] = cleanName;
+    else delete save.catNames[catId];
+    this.write(save);
+    return true;
+  },
+
   assignHat(hatId, catId) {
     const save = this.load();
     if (!save.owned.includes(hatId) || !save.rescuedCats.includes(catId)) return false;
@@ -467,7 +497,8 @@ export const SaveGame = {
         catBoxesOpened: [],
         pendingCatBoxes: [],
         dropHistory: [],
-        selectedCat: null
+        selectedCat: null,
+        catNames: {}
       });
     } else if (section === "layout") {
       save.activeDecor = save.owned.filter((id) => HOME_ITEM_IDS.includes(id));

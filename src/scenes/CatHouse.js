@@ -15,6 +15,8 @@ const NATURAL_FUR = { id: "none", name: "Natural Fur", icon: "×", color: "#8f7d
 const CAT_DEPTH_BASE = 90;
 const CAT_PAW_DEPTH = 62;
 const CAT_LITTER_DEPTH = 64;
+const ROOM_EDITOR_DEPTH = 120;
+const CAT_MODAL_DEPTH = 170;
 
 export class CatHouse extends Phaser.Scene {
   constructor() {
@@ -102,14 +104,20 @@ export class CatHouse extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 64, 76, rescued ? COLORS.cream : 0xbaaeb5).setOrigin(0);
       card.setStrokeStyle(3, rescued ? COLORS.ink : 0x958792);
       if (rescued) {
+        const displayName = this.catDisplayName(level);
+        const shortName = displayName.length > 9 ? `${displayName.slice(0, 8)}...` : displayName;
         createCat(this, x + 32, y + 31, level.id - 1, 0.12);
-        this.add.text(x + 32, y + 64, level.cat.name, textStyle(12)).setOrigin(0.5);
+        this.add.text(x + 32, y + 64, shortName, textStyle(12)).setOrigin(0.5);
         card.setInteractive({ useHandCursor: true }).on("pointerup", () => this.showCatCard(level));
       } else {
         this.add.text(x + 32, y + 34, "?", textStyle(28, "#8e818d")).setOrigin(0.5);
         this.add.text(x + 32, y + 64, `LV ${level.id}`, textStyle(10, "#7f737e")).setOrigin(0.5);
       }
     });
+  }
+
+  catDisplayName(level) {
+    return SaveGame.catName(level.cat.id, level.cat.name);
   }
 
   placeCats() {
@@ -562,32 +570,52 @@ export class CatHouse extends Phaser.Scene {
 
   showCatCard(level) {
     this.card?.forEach((item) => item.destroy());
-    const shade = this.add.rectangle(790, 370, 650, 460, COLORS.ink, 0.95).setDepth(70);
+    const displayName = this.catDisplayName(level);
+    const depth = CAT_MODAL_DEPTH;
+    const shade = this.add.rectangle(790, 370, 650, 460, COLORS.ink, 0.95).setDepth(depth);
     shade.setStrokeStyle(6, COLORS.cream);
-    const portrait = createCat(this, 625, 350, level.id - 1, 0.35).setDepth(71);
+    const portrait = createCat(this, 625, 350, level.id - 1, 0.35).setDepth(depth + 1);
     const currentHat = SaveGame.hatForCat(level.cat.id);
     const portraitHat = this.addHat(portrait, currentHat);
     if (portraitHat) this.syncCatHat({ sprite: portrait, hat: portraitHat });
-    const title = this.add.text(865, 235, level.cat.name.toUpperCase(), textStyle(35, "#ffcc4d")).setOrigin(0.5).setDepth(71);
+    const title = this.add.text(
+      865,
+      235,
+      displayName.toUpperCase(),
+      textStyle(32, "#ffcc4d", { wordWrap: { width: 360 }, align: "center" })
+    ).setOrigin(0.5).setDepth(depth + 1);
     const rarity = this.add.text(
       865,
       280,
       `${level.cat.rarity}${level.cat.limited ? " · LIMITED" : ""}`,
       textStyle(17, level.cat.limited ? "#d69cff" : "#cabacf")
-    ).setOrigin(0.5).setDepth(71);
-    const trait = this.add.text(865, 340, `“${level.cat.trait}”`, textStyle(20, "#fff7df", { wordWrap: { width: 300 }, align: "center" })).setOrigin(0.5).setDepth(71);
+    ).setOrigin(0.5).setDepth(depth + 1);
+    const trait = this.add.text(865, 340, `“${level.cat.trait}”`, textStyle(20, "#fff7df", { wordWrap: { width: 300 }, align: "center" })).setOrigin(0.5).setDepth(depth + 1);
     const drop = this.save.dropHistory.find((entry) => entry.catId === level.cat.id);
     const rescueSource = drop?.type === "catbox" ? "Surprise CatBox pull" : `Three-level rescue · Level ${drop?.levelId || level.id}`;
-    const rescue = this.add.text(865, 400, rescueSource, textStyle(16, "#d9c9d8")).setOrigin(0.5).setDepth(71);
-    const outfit = this.add.text(865, 435, currentHat === "none" ? "Outfit: natural fur" : `Outfit: ${currentHat}`, textStyle(15, "#d9c9d8")).setOrigin(0.5).setDepth(71);
-    const customize = pill(this, 785, 535, 235, 58, "✦  CUSTOMIZE", { fill: COLORS.yellow, size: 19 }).setDepth(72);
-    const close = pill(this, 1035, 535, 150, 58, "CLOSE", { fill: COLORS.cream, size: 18 }).setDepth(72);
-    this.card = [shade, portrait, portraitHat, title, rarity, trait, rescue, outfit, customize, close].filter(Boolean);
+    const rescue = this.add.text(865, 400, rescueSource, textStyle(16, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
+    const outfit = this.add.text(865, 435, currentHat === "none" ? "Outfit: natural fur" : `Outfit: ${currentHat}`, textStyle(15, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
+    const customize = pill(this, 705, 535, 200, 58, "✦  CUSTOMIZE", { fill: COLORS.yellow, size: 17 }).setDepth(depth + 2);
+    const rename = pill(this, 910, 535, 150, 58, "RENAME", { fill: COLORS.cream, size: 17 }).setDepth(depth + 2);
+    const close = pill(this, 1070, 535, 125, 58, "CLOSE", { fill: COLORS.cream, size: 17 }).setDepth(depth + 2);
+    this.card = [shade, portrait, portraitHat, title, rarity, trait, rescue, outfit, customize, rename, close].filter(Boolean);
     customize.on("pointerup", () => this.openCatCustomizer(level));
+    rename.on("pointerup", () => this.renameCat(level));
     close.on("pointerup", () => {
       this.card.forEach((item) => item.destroy());
       this.card = null;
     });
+  }
+
+  renameCat(level) {
+    if (typeof window === "undefined") return;
+    const nextName = window.prompt("Name this cat", this.catDisplayName(level));
+    if (nextName === null) return;
+    if (!SaveGame.renameCat(level.cat.id, nextName)) return;
+    this.save = SaveGame.load();
+    this.registry.set("save", this.save);
+    sound(this, "buy");
+    this.showCatCard(level);
   }
 
   openCatCustomizer(level) {
@@ -595,17 +623,18 @@ export class CatHouse extends Phaser.Scene {
     this.card = null;
     this.closeOverlay();
     const parts = [];
-    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
-    const panel = this.add.rectangle(640, 360, 920, 610, COLORS.cream).setDepth(81);
+    const depth = CAT_MODAL_DEPTH;
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(depth).setInteractive();
+    const panel = this.add.rectangle(640, 360, 920, 610, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
-    const title = this.add.text(640, 88, `CUSTOMIZE ${level.cat.name.toUpperCase()}`, textStyle(31, "#ec5966")).setOrigin(0.5).setDepth(82);
-    const portrait = createCat(this, 330, 335, level.id - 1, 0.42).setDepth(82);
+    const title = this.add.text(640, 88, `CUSTOMIZE ${this.catDisplayName(level).toUpperCase()}`, textStyle(31, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
+    const portrait = createCat(this, 330, 335, level.id - 1, 0.42).setDepth(depth + 2);
     parts.push(shade, panel, title, portrait);
     const current = SaveGame.hatForCat(level.cat.id);
     const portraitHat = this.addHat(portrait, current);
     if (portraitHat) {
       this.syncCatHat({ sprite: portrait, hat: portraitHat });
-      portraitHat.setDepth(83);
+      portraitHat.setDepth(depth + 3);
       parts.push(portraitHat);
     }
     [NATURAL_FUR, ...HAT_ITEMS].forEach(({ id, name, icon, color }, index) => {
@@ -614,15 +643,15 @@ export class CatHouse extends Phaser.Scene {
       const row = Math.floor(index / 3);
       const x = 585 + col * 170;
       const y = 205 + row * 135;
-      const card = this.add.rectangle(x, y, 145, 105, current === id ? COLORS.yellow : owned ? 0xffffff : 0xb9afb7).setDepth(82);
+      const card = this.add.rectangle(x, y, 145, 105, current === id ? COLORS.yellow : owned ? 0xffffff : 0xb9afb7).setDepth(depth + 2);
       card.setStrokeStyle(4, current === id ? COLORS.coral : COLORS.ink);
       const symbol = owned && id !== "none"
-        ? createItemPreview(this, id, x, y - 20, { scale: 0.62, depth: 83 })
-        : this.add.text(x, y - 17, owned ? icon : "🔒", textStyle(31, color)).setOrigin(0.5).setDepth(83);
-      const label = this.add.text(x, y + 27, name, textStyle(13, owned ? "#2f2335" : "#7d717c")).setOrigin(0.5).setDepth(83);
+        ? createItemPreview(this, id, x, y - 20, { scale: 0.62, depth: depth + 3 })
+        : this.add.text(x, y - 17, owned ? icon : "🔒", textStyle(31, color)).setOrigin(0.5).setDepth(depth + 3);
+      const label = this.add.text(x, y + 27, name, textStyle(13, owned ? "#2f2335" : "#7d717c")).setOrigin(0.5).setDepth(depth + 3);
       parts.push(card, symbol, label);
       if (owned) {
-        const hit = this.add.rectangle(x, y, 145, 105, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(84);
+        const hit = this.add.rectangle(x, y, 145, 105, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(depth + 4);
         hit.on("pointerup", () => {
           if (id === "none") SaveGame.clearCatHat(level.cat.id);
           else SaveGame.assignHat(id, level.cat.id);
@@ -632,7 +661,7 @@ export class CatHouse extends Phaser.Scene {
         parts.push(hit);
       }
     });
-    const close = pill(this, 1040, 630, 145, 48, "CLOSE", { fill: COLORS.yellow, size: 16 }).setDepth(84);
+    const close = pill(this, 1040, 630, 145, 48, "CLOSE", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
     close.on("pointerup", () => this.closeOverlay());
     parts.push(close);
     this.overlayParts = parts;
@@ -662,20 +691,21 @@ export class CatHouse extends Phaser.Scene {
     );
     this.editorLabels = {};
     const parts = [];
-    const blocker = this.add.rectangle(640, 360, 1280, 720, 0xffffff, 0.001).setDepth(69).setInteractive();
-    const banner = this.add.rectangle(790, 116, 720, 64, COLORS.ink, 0.94).setDepth(74);
+    const depth = ROOM_EDITOR_DEPTH;
+    const blocker = this.add.rectangle(640, 360, 1280, 720, 0xffffff, 0.001).setDepth(depth).setInteractive();
+    const banner = this.add.rectangle(790, 116, 720, 64, COLORS.ink, 0.94).setDepth(depth + 4);
     banner.setStrokeStyle(4, COLORS.cream);
-    const title = this.add.text(790, 103, "DRAG · TURN · FLIP · RESIZE", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(75);
-    this.editorHint = this.add.text(790, 130, "Select furniture · Done saves layout and rebuilds cat paths", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(75);
-    const reference = pill(this, 245, 658, 95, 52, "2D REF", { fill: COLORS.cream, size: 12 }).setDepth(75);
-    const storage = pill(this, 355, 658, 105, 52, "STORE", { fill: COLORS.cream, size: 13 }).setDepth(75);
-    const turnLeft = pill(this, 465, 658, 105, 52, "-1°", { fill: COLORS.cream, size: 17 }).setDepth(75);
-    const turnRight = pill(this, 575, 658, 105, 52, "+1°", { fill: COLORS.cream, size: 17 }).setDepth(75);
-    const flip = pill(this, 680, 658, 95, 52, "FLIP", { fill: COLORS.cream, size: 13 }).setDepth(75);
-    const sizeDown = pill(this, 780, 658, 95, 52, "SIZE −", { fill: COLORS.cream, size: 13 }).setDepth(75);
-    const sizeUp = pill(this, 880, 658, 95, 52, "SIZE +", { fill: COLORS.cream, size: 13 }).setDepth(75);
-    const reset = pill(this, 980, 658, 95, 52, "RESET", { fill: COLORS.cream, size: 13 }).setDepth(75);
-    const done = pill(this, 1130, 658, 190, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(75);
+    const title = this.add.text(790, 103, "DRAG · TURN · FLIP · RESIZE", textStyle(21, "#ffdc61")).setOrigin(0.5).setDepth(depth + 5);
+    this.editorHint = this.add.text(790, 130, "Select furniture · Done saves layout and rebuilds cat paths", textStyle(13, "#fff7df")).setOrigin(0.5).setDepth(depth + 5);
+    const reference = pill(this, 245, 658, 95, 52, "2D REF", { fill: COLORS.cream, size: 12 }).setDepth(depth + 5);
+    const storage = pill(this, 355, 658, 105, 52, "STORE", { fill: COLORS.cream, size: 13 }).setDepth(depth + 5);
+    const turnLeft = pill(this, 465, 658, 105, 52, "-1°", { fill: COLORS.cream, size: 17 }).setDepth(depth + 5);
+    const turnRight = pill(this, 575, 658, 105, 52, "+1°", { fill: COLORS.cream, size: 17 }).setDepth(depth + 5);
+    const flip = pill(this, 680, 658, 95, 52, "FLIP", { fill: COLORS.cream, size: 13 }).setDepth(depth + 5);
+    const sizeDown = pill(this, 780, 658, 95, 52, "SIZE −", { fill: COLORS.cream, size: 13 }).setDepth(depth + 5);
+    const sizeUp = pill(this, 880, 658, 95, 52, "SIZE +", { fill: COLORS.cream, size: 13 }).setDepth(depth + 5);
+    const reset = pill(this, 980, 658, 95, 52, "RESET", { fill: COLORS.cream, size: 13 }).setDepth(depth + 5);
+    const done = pill(this, 1130, 658, 190, 52, "DONE", { fill: COLORS.yellow, size: 17 }).setDepth(depth + 5);
     reference.on("pointerup", () => this.openFurnitureReference());
     storage.on("pointerup", () => this.openRoomStorage());
     turnLeft.on("pointerup", () => this.rotateSelectedFurniture(-1));
@@ -695,17 +725,17 @@ export class CatHouse extends Phaser.Scene {
       const labelY = Math.max(155, visual.y - visual.displayHeight * 0.5 - 12);
       const label = this.add.text(visual.x, labelY, HOME_ITEMS.find((item) => item.id === id)?.name || id, textStyle(12, "#fff7df"))
         .setOrigin(0.5)
-        .setDepth(73)
+        .setDepth(depth + 3)
         .setBackgroundColor("#34283ad9")
         .setPadding(7, 3);
-      visual.setDepth(72).setInteractive({ useHandCursor: true, draggable: true });
+      visual.setDepth(depth + 2).setInteractive({ useHandCursor: true, draggable: true });
       this.input.setDraggable(visual);
       visual.on("pointerdown", () => this.selectFurniture(id));
       visual.on("dragstart", () => {
         this.selectFurniture(id);
         const transform = this.draftDecorPositions[id];
-        visual.setScale((transform.flipX ? -1 : 1) * transform.size * 1.04, transform.size * 1.04).setDepth(76);
-        label.setDepth(77);
+        visual.setScale((transform.flipX ? -1 : 1) * transform.size * 1.04, transform.size * 1.04).setDepth(depth + 6);
+        label.setDepth(depth + 7);
       });
       visual.on("drag", (_pointer, dragX, dragY) => {
         const position = roomPosition(id, { ...this.draftDecorPositions[id], x: dragX, y: dragY });
@@ -715,8 +745,8 @@ export class CatHouse extends Phaser.Scene {
       });
       visual.on("dragend", () => {
         const transform = this.draftDecorPositions[id];
-        visual.setScale((transform.flipX ? -1 : 1) * transform.size, transform.size).setDepth(72);
-        label.setDepth(73);
+        visual.setScale((transform.flipX ? -1 : 1) * transform.size, transform.size).setDepth(depth + 2);
+        label.setDepth(depth + 3);
       });
       this.editorLabels[id] = label;
       parts.push(label);
@@ -771,39 +801,42 @@ export class CatHouse extends Phaser.Scene {
     parts.push(shade, panel, title, legend);
 
     HOME_ITEMS.forEach((item, index) => {
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      const x = 228 + col * 275;
-      const y = 225 + row * 275;
-      const card = this.add.rectangle(x, y, 235, 220, 0xfff7df).setDepth(182);
+      const col = index % 5;
+      const row = Math.floor(index / 5);
+      const x = 150 + col * 245;
+      const y = 180 + row * 185;
+      const card = this.add.rectangle(x, y, 205, 158, 0xfff7df).setDepth(182);
       card.setStrokeStyle(4, COLORS.ink);
       const image = item.room.wallpaper
-        ? this.add.image(x, y - 34, "room-wallpaper").setDisplaySize(128, 94).setDepth(183)
-        : this.add.image(x, y - 32, item.texture).setDepth(183);
+        ? this.add.image(x, y - 28, item.texture).setDisplaySize(96, 96).setDepth(183)
+        : this.add.image(x, y - 28, item.texture).setDepth(183);
       if (!item.room.wallpaper) {
-        const scale = Math.min(0.5, 150 / Math.max(image.width, image.height));
+        const scale = Math.min(0.42, 112 / Math.max(image.width, image.height));
         image.setScale(scale);
       }
-      const floor = this.add.circle(x - 78, y + 42, 7, COLORS.yellow).setStrokeStyle(2, COLORS.ink).setDepth(184);
-      const label = this.add.text(x, y + 75, item.name, textStyle(15, "#2f2335")).setOrigin(0.5).setDepth(184);
+      const floor = this.add.circle(x - 70, y + 26, 6, COLORS.yellow).setStrokeStyle(2, COLORS.ink).setDepth(184);
+      const label = this.add.text(x, y + 48, item.name, textStyle(12, "#2f2335", {
+        wordWrap: { width: 180 },
+        align: "center"
+      })).setOrigin(0.5).setDepth(184);
       const layer = this.add.text(
         x,
-        y + 98,
+        y + 68,
         item.room.wallpaper ? "background layer" : item.room.y < 450 ? "wall/furniture layer" : "floor furniture layer",
-        textStyle(10, "#725f72")
+        textStyle(9, "#725f72")
       ).setOrigin(0.5).setDepth(184);
       parts.push(card, image, floor, label, layer);
 
       (item.room.anchors || []).forEach((anchor, anchorIndex) => {
-        const dotX = x + Phaser.Math.Clamp((anchor.x - item.room.x) * 0.38, -75, 75);
-        const dotY = y - 30 + Phaser.Math.Clamp((anchor.y - item.room.y) * 0.38, -62, 58);
+        const dotX = x + Phaser.Math.Clamp((anchor.x - item.room.x) * 0.3, -62, 62);
+        const dotY = y - 28 + Phaser.Math.Clamp((anchor.y - item.room.y) * 0.3, -45, 42);
         const color = anchor.type === "sleep" ? 0x3f9f7c : 0xec5966;
         const dot = this.add.circle(dotX, dotY, anchorIndex ? 6 : 7, color).setStrokeStyle(2, 0xfff7df).setDepth(185);
         parts.push(dot);
       });
       (item.room.perches || []).slice(0, 3).forEach((perch) => {
-        const dotX = x + Phaser.Math.Clamp((perch.x - item.room.x) * 0.38, -75, 75);
-        const dotY = y - 30 + Phaser.Math.Clamp((perch.y - item.room.y) * 0.38, -62, 58);
+        const dotX = x + Phaser.Math.Clamp((perch.x - item.room.x) * 0.3, -62, 62);
+        const dotY = y - 28 + Phaser.Math.Clamp((perch.y - item.room.y) * 0.3, -45, 42);
         const dot = this.add.circle(dotX, dotY, 6, 0x3f9f7c).setStrokeStyle(2, 0xfff7df).setDepth(185);
         parts.push(dot);
       });
@@ -854,29 +887,33 @@ export class CatHouse extends Phaser.Scene {
   openRoomStorage() {
     this.closeOverlay();
     const parts = [];
-    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
-    const panel = this.add.rectangle(640, 360, 960, 610, COLORS.cream).setDepth(81);
+    const depth = CAT_MODAL_DEPTH;
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(depth).setInteractive();
+    const panel = this.add.rectangle(640, 360, 960, 610, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
-    const title = this.add.text(640, 90, "CAT HOUSE STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
-    const sub = this.add.text(640, 128, "Tap owned furniture to place or store it", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(82);
+    const title = this.add.text(640, 90, "CAT HOUSE STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
+    const sub = this.add.text(640, 128, "Tap owned furniture to place or store it", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
     parts.push(shade, panel, title, sub);
     HOME_ITEMS.forEach(({ id, name }, index) => {
       const owned = this.save.owned.includes(id);
       const active = this.save.activeDecor.includes(id);
-      const col = index % 4;
-      const row = Math.floor(index / 4);
-      const x = 295 + col * 230;
-      const y = 275 + row * 190;
-      const card = this.add.rectangle(x, y, 195, 155, active ? 0xd9f2dc : owned ? 0xffffff : 0xb9afb7).setDepth(82);
+      const col = index % 6;
+      const row = Math.floor(index / 6);
+      const x = 215 + col * 170;
+      const y = 275 + row * 185;
+      const card = this.add.rectangle(x, y, 148, 150, active ? 0xd9f2dc : owned ? 0xffffff : 0xb9afb7).setDepth(depth + 2);
       card.setStrokeStyle(5, active ? COLORS.teal : COLORS.ink);
       const symbol = owned
-        ? createItemPreview(this, id, x, y - 27, { scale: 0.72, depth: 83 })
-        : this.add.text(x, y - 25, "🔒", textStyle(38, "#7d717c")).setOrigin(0.5).setDepth(83);
-      const label = this.add.text(x, y + 22, name, textStyle(15)).setOrigin(0.5).setDepth(83);
-      const status = this.add.text(x, y + 52, owned ? (active ? "PLACED" : "IN STORAGE") : "BUY IN SHOP", textStyle(11, active ? "#3f9f7c" : "#857884")).setOrigin(0.5).setDepth(83);
+        ? createItemPreview(this, id, x, y - 29, { scale: 0.56, depth: depth + 3 })
+        : this.add.text(x, y - 25, "🔒", textStyle(38, "#7d717c")).setOrigin(0.5).setDepth(depth + 3);
+      const label = this.add.text(x, y + 21, name, textStyle(12, "#2f2335", {
+        wordWrap: { width: 132 },
+        align: "center"
+      })).setOrigin(0.5).setDepth(depth + 3);
+      const status = this.add.text(x, y + 54, owned ? (active ? "PLACED" : "IN STORAGE") : "BUY IN SHOP", textStyle(10, active ? "#3f9f7c" : "#857884")).setOrigin(0.5).setDepth(depth + 3);
       parts.push(card, symbol, label, status);
       if (owned) {
-        const hit = this.add.rectangle(x, y, 195, 155, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(84);
+        const hit = this.add.rectangle(x, y, 148, 150, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(depth + 4);
         hit.on("pointerup", () => {
           SaveGame.toggleDecor(id);
           sound(this, "buy");
@@ -885,7 +922,7 @@ export class CatHouse extends Phaser.Scene {
         parts.push(hit);
       }
     });
-    const close = pill(this, 1050, 630, 145, 48, "CLOSE", { fill: COLORS.yellow, size: 16 }).setDepth(84);
+    const close = pill(this, 1050, 630, 145, 48, "CLOSE", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
     close.on("pointerup", () => this.closeOverlay());
     parts.push(close);
     this.overlayParts = parts;
@@ -909,15 +946,16 @@ export class CatHouse extends Phaser.Scene {
   openCatBoxStorage() {
     this.closeOverlay();
     const parts = [];
-    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
-    const panel = this.add.rectangle(640, 360, 840, 560, COLORS.cream).setDepth(81);
+    const depth = CAT_MODAL_DEPTH;
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(depth).setInteractive();
+    const panel = this.add.rectangle(640, 360, 840, 560, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
-    const title = this.add.text(640, 100, "MYSTERY CATBOX STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(82);
-    const sub = this.add.text(640, 138, "Boss CatBoxes wait here until you choose to open them.", textStyle(17, "#725f72")).setOrigin(0.5).setDepth(82);
+    const title = this.add.text(640, 100, "MYSTERY CATBOX STORAGE", textStyle(32, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
+    const sub = this.add.text(640, 138, "Boss CatBoxes wait here until you choose to open them.", textStyle(17, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
     parts.push(shade, panel, title, sub);
 
     if (!this.save.pendingCatBoxes.length) {
-      const empty = this.add.text(640, 335, "No CatBoxes waiting right now.", textStyle(24, "#725f72")).setOrigin(0.5).setDepth(82);
+      const empty = this.add.text(640, 335, "No CatBoxes waiting right now.", textStyle(24, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
       parts.push(empty);
     } else {
       this.save.pendingCatBoxes.slice(0, 6).forEach((box, index) => {
@@ -925,16 +963,16 @@ export class CatHouse extends Phaser.Scene {
         const row = Math.floor(index / 3);
         const x = 410 + col * 230;
         const y = 285 + row * 180;
-        const card = this.add.rectangle(x, y, 190, 145, 0xffffff).setDepth(82);
+        const card = this.add.rectangle(x, y, 190, 145, 0xffffff).setDepth(depth + 2);
         card.setStrokeStyle(5, COLORS.ink);
-        const icon = this.drawCatBoxIcon(x, y - 20, 83, 0.68, box.world === 2 ? 0xff9b4a : 0x9467bd);
-        const label = this.add.text(x, y + 48, `WORLD ${box.world} BOX`, textStyle(14, "#2f2335")).setOrigin(0.5).setDepth(83);
-        const hit = this.add.rectangle(x, y, 190, 145, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(84);
+        const icon = this.drawCatBoxIcon(x, y - 20, depth + 3, 0.68, box.world === 2 ? 0xff9b4a : 0x9467bd);
+        const label = this.add.text(x, y + 48, `WORLD ${box.world} BOX`, textStyle(14, "#2f2335")).setOrigin(0.5).setDepth(depth + 3);
+        const hit = this.add.rectangle(x, y, 190, 145, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(depth + 4);
         hit.on("pointerup", () => this.openStoredCatBox(box.id));
         parts.push(card, icon, label, hit);
       });
     }
-    const close = pill(this, 640, 620, 170, 50, "CLOSE", { fill: COLORS.yellow, size: 17 }).setDepth(84);
+    const close = pill(this, 640, 620, 170, 50, "CLOSE", { fill: COLORS.yellow, size: 17 }).setDepth(depth + 4);
     close.on("pointerup", () => this.closeOverlay());
     parts.push(close);
     this.overlayParts = parts;
@@ -952,36 +990,37 @@ export class CatHouse extends Phaser.Scene {
   showCatBoxReward(reward) {
     this.closeOverlay();
     const parts = [];
-    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(80).setInteractive();
-    const panel = this.add.rectangle(640, 360, 820, 560, COLORS.cream).setDepth(81);
+    const depth = CAT_MODAL_DEPTH;
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(depth).setInteractive();
+    const panel = this.add.rectangle(640, 360, 820, 560, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
-    const title = this.add.text(640, 104, "CATBOX OPENED!", textStyle(35, "#ec5966")).setOrigin(0.5).setDepth(82);
+    const title = this.add.text(640, 104, "CATBOX OPENED!", textStyle(35, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
     parts.push(shade, panel, title);
 
     if (reward.type === "catbox-coins") {
-      const coin = this.add.image(640, 255, "coin").setScale(1.65).setDepth(82);
-      const copy = this.add.text(640, 375, `${reward.coins} COINS!`, textStyle(34, "#f2a532")).setOrigin(0.5).setDepth(82);
-      const sub = this.add.text(640, 422, "Sometimes the mystery box is full of shiny trouble money.", textStyle(18, "#725f72")).setOrigin(0.5).setDepth(82);
+      const coin = this.add.image(640, 255, "coin").setScale(1.65).setDepth(depth + 2);
+      const copy = this.add.text(640, 375, `${reward.coins} COINS!`, textStyle(34, "#f2a532")).setOrigin(0.5).setDepth(depth + 2);
+      const sub = this.add.text(640, 422, "Sometimes the mystery box is full of shiny trouble money.", textStyle(18, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
       this.tweens.add({ targets: coin, y: 235, angle: 12, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       parts.push(coin, copy, sub);
     } else if (reward.type === "catbox") {
       const rewardLevel = LEVELS.find((level) => level.cat.id === reward.catId);
-      const cat = rewardLevel ? createCat(this, 640, 270, rewardLevel.id - 1, 0.36).setDepth(82) : null;
+      const cat = rewardLevel ? createCat(this, 640, 270, rewardLevel.id - 1, 0.36).setDepth(depth + 2) : null;
       const copy = this.add.text(
         640,
         410,
-        rewardLevel ? `${rewardLevel.cat.name.toUpperCase()} JOINED THE CAT HOUSE!` : "A NEW CAT JOINED!",
+        rewardLevel ? `${this.catDisplayName(rewardLevel).toUpperCase()} JOINED THE CAT HOUSE!` : "A NEW CAT JOINED!",
         textStyle(28, reward.limited ? "#a45ad0" : "#2f2335")
-      ).setOrigin(0.5).setDepth(82);
-      const sub = this.add.text(640, 450, `${reward.rarity}${reward.limited ? " · LIMITED" : ""}`, textStyle(18, "#725f72")).setOrigin(0.5).setDepth(82);
+      ).setOrigin(0.5).setDepth(depth + 2);
+      const sub = this.add.text(640, 450, `${reward.rarity}${reward.limited ? " · LIMITED" : ""}`, textStyle(18, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
       if (cat) this.tweens.add({ targets: cat, y: 250, angle: 4, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       parts.push(cat, copy, sub);
     } else {
-      const copy = this.add.text(640, 340, "No CatBox was available.", textStyle(25, "#725f72")).setOrigin(0.5).setDepth(82);
+      const copy = this.add.text(640, 340, "No CatBox was available.", textStyle(25, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
       parts.push(copy);
     }
 
-    const done = pill(this, 640, 575, 220, 54, "DONE", { fill: COLORS.yellow, size: 19 }).setDepth(84);
+    const done = pill(this, 640, 575, 220, 54, "DONE", { fill: COLORS.yellow, size: 19 }).setDepth(depth + 4);
     done.on("pointerup", () => this.scene.restart({ page: this.page }));
     parts.push(done);
     this.overlayParts = parts.filter(Boolean);

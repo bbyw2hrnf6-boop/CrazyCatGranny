@@ -13,11 +13,11 @@
 
   <rect width="1400" height="860" fill="#f8efd8"/>
   <text x="700" y="58" text-anchor="middle" class="title">Crazy Cat Granny - 2D Furniture Front Reference</text>
-  <text x="700" y="88" text-anchor="middle" class="meta">Front-facing source PNGs · red = action anchor · green = perch/sleep anchor · yellow = floor/path anchor</text>
+  <text x="700" y="88" text-anchor="middle" class="meta">Front-facing source SVGs · red = action anchor · green = perch/sleep anchor · yellow = floor/path anchor</text>
 
   <g transform="translate(35 125)">
     <rect class="card" width="300" height="300"/>
-    <image href="scratcher.png" x="61" y="38" width="178" height="196" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/scratcher-front.svg" x="61" y="38" width="178" height="196" preserveAspectRatio="xMidYMid meet"/>
     <circle class="anchor" cx="154" cy="238" r="10"/>
     <circle class="perch" cx="148" cy="153" r="9"/>
     <circle class="floor" cx="104" cy="250" r="8"/>
@@ -27,7 +27,7 @@
 
   <g transform="translate(375 125)">
     <rect class="card" width="300" height="300"/>
-    <image href="catbed.png" x="52" y="88" width="196" height="118" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/catbed-front.svg" x="52" y="88" width="196" height="118" preserveAspectRatio="xMidYMid meet"/>
     <circle class="perch" cx="150" cy="175" r="10"/>
     <circle class="floor" cx="102" cy="232" r="8"/>
     <text x="150" y="270" text-anchor="middle" class="label">Cloud Bed</text>
@@ -36,7 +36,7 @@
 
   <g transform="translate(715 125)">
     <rect class="card" width="300" height="300"/>
-    <image href="yarnbasket.png" x="72" y="92" width="156" height="118" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/yarnbasket-front.svg" x="72" y="92" width="156" height="118" preserveAspectRatio="xMidYMid meet"/>
     <circle class="anchor" cx="150" cy="185" r="10"/>
     <circle class="floor" cx="205" cy="236" r="8"/>
     <text x="150" y="270" text-anchor="middle" class="label">Yarn Basket</text>
@@ -45,7 +45,7 @@
 
   <g transform="translate(1055 125)">
     <rect class="card" width="300" height="300"/>
-    <image href="aquarium.png" x="64" y="48" width="172" height="156" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/aquarium-front.svg" x="64" y="48" width="172" height="156" preserveAspectRatio="xMidYMid meet"/>
     <circle class="anchor" cx="110" cy="236" r="10"/>
     <circle class="floor" cx="168" cy="246" r="8"/>
     <text x="150" y="270" text-anchor="middle" class="label">Tiny Aquarium</text>
@@ -54,7 +54,7 @@
 
   <g transform="translate(35 480)">
     <rect class="card" width="300" height="300"/>
-    <image href="windowseat.png" x="36" y="44" width="228" height="166" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/windowseat-front.svg" x="36" y="44" width="228" height="166" preserveAspectRatio="xMidYMid meet"/>
     <circle class="perch" cx="150" cy="155" r="10"/>
     <circle class="anchor" cx="90" cy="235" r="10"/>
     <text x="150" y="270" text-anchor="middle" class="label">Window Throne</text>
@@ -63,7 +63,7 @@
 
   <g transform="translate(375 480)">
     <rect class="card" width="300" height="300"/>
-    <image href="catbridge.png" x="36" y="36" width="228" height="178" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/catbridge-front.svg" x="36" y="36" width="228" height="178" preserveAspectRatio="xMidYMid meet"/>
     <circle class="perch" cx="115" cy="128" r="9"/>
     <circle class="perch" cx="190" cy="92" r="9"/>
     <circle class="floor" cx="72" cy="238" r="8"/>
@@ -73,7 +73,7 @@
 
   <g transform="translate(715 480)">
     <rect class="card" width="300" height="300"/>
-    <image href="velvetsofa.png" x="28" y="58" width="244" height="166" preserveAspectRatio="xMidYMid meet"/>
+    <image href="front/velvetsofa-front.svg" x="28" y="58" width="244" height="166" preserveAspectRatio="xMidYMid meet"/>
     <circle class="perch" cx="98" cy="134" r="10"/>
     <circle class="perch" cx="198" cy="134" r="10"/>
     <circle class="floor" cx="150" cy="238" r="8"/>
@@ -83,7 +83,7 @@
 
   <g transform="translate(1055 480)">
     <rect class="card" width="300" height="300"/>
-    <image href="wallpaper.png" x="45" y="45" width="210" height="160" preserveAspectRatio="xMidYMid slice"/>
+    <image href="front/wallpaper-front.svg" x="45" y="45" width="210" height="160" preserveAspectRatio="xMidYMid slice"/>
     <text x="150" y="270" text-anchor="middle" class="label">Paw Wallpaper</text>
     <text x="150" y="292" text-anchor="middle" class="meta">layer: background · no collision / no cat anchor</text>
   </g>
