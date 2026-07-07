@@ -136,12 +136,12 @@ const furniture = [
     id: "windowseat", name: "Window Throne", icon: "▣", price: 140, color: 0x78aec9,
     asset: "assets/furniture/front/windowseat-front.svg",
     room: {
-      x: 1015, y: 430, scale: 0.36,
+      x: 1110, y: 448, scale: 0.32,
       anchors: [
-        { type: "sleep", x: 1015, y: 370 },
-        { type: "watch", x: 955, y: 540 }
+        { type: "sleep", x: 1110, y: 394 },
+        { type: "watch", x: 1050, y: 545 }
       ],
-      perches: [{ x: 1015, y: 370, path: [[980, 585], [1015, 470], [1015, 370]] }]
+      perches: [{ x: 1110, y: 394, path: [[1050, 585], [1085, 485], [1110, 394]] }]
     }
   },
   {
@@ -209,14 +209,14 @@ const furniture = [
     asset: "assets/furniture/front/bookcaseperch-front.svg",
     detail: "Shelves and paths",
     room: {
-      x: 875, y: 470, scale: 0.45,
+      x: 875, y: 500, scale: 0.42,
       anchors: [
-        { type: "watch", x: 835, y: 500 },
+        { type: "watch", x: 835, y: 525 },
         { type: "social", x: 900, y: 585 }
       ],
       perches: [
-        { x: 835, y: 390, path: [[900, 585], [870, 500], [835, 390]] },
-        { x: 910, y: 305, path: [[900, 585], [870, 500], [835, 390], [910, 305]] }
+        { x: 835, y: 418, path: [[900, 585], [870, 520], [835, 418]] },
+        { x: 910, y: 338, path: [[900, 585], [870, 520], [835, 418], [910, 338]] }
       ]
     }
   },
@@ -225,12 +225,12 @@ const furniture = [
     asset: "assets/furniture/front/fishcondo-front.svg",
     detail: "Hide and play",
     room: {
-      x: 940, y: 555, scale: 0.37,
+      x: 940, y: 575, scale: 0.36,
       anchors: [
-        { type: "play", x: 910, y: 570 },
-        { type: "sleep", x: 960, y: 520 }
+        { type: "play", x: 910, y: 590 },
+        { type: "sleep", x: 960, y: 540 }
       ],
-      perches: [{ x: 960, y: 520, path: [[920, 590], [940, 555], [960, 520]] }]
+      perches: [{ x: 960, y: 540, path: [[920, 598], [940, 575], [960, 540]] }]
     }
   },
   {

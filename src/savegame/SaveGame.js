@@ -11,6 +11,7 @@ const MANUAL_BACKUP_TIME_KEY = `${MANUAL_BACKUP_KEY}-time`;
 const SAVE_VERSION = 2;
 const STARTING_COINS = 150;
 const MAX_CAT_NAME_LENGTH = 18;
+const MAX_ACCESSORY_OFFSET = 60;
 
 const defaults = {
   version: SAVE_VERSION,
@@ -25,6 +26,7 @@ const defaults = {
   selectedCat: null,
   catNames: {},
   hatAssignments: {},
+  catAccessoryAdjustments: {},
   activeDecor: [],
   decorPositions: {},
   worldTrophies: [],
@@ -55,6 +57,7 @@ function clean(data) {
     levels: data?.levels && typeof data.levels === "object" ? data.levels : {},
     catNames: data?.catNames && typeof data.catNames === "object" ? data.catNames : {},
     hatAssignments: data?.hatAssignments && typeof data.hatAssignments === "object" ? data.hatAssignments : {},
+    catAccessoryAdjustments: data?.catAccessoryAdjustments && typeof data.catAccessoryAdjustments === "object" ? data.catAccessoryAdjustments : {},
     activeDecor: Array.isArray(data?.activeDecor) ? data.activeDecor : [],
     decorPositions: data?.decorPositions && typeof data.decorPositions === "object"
       ? Object.fromEntries(HOME_ITEM_IDS.flatMap((id) => {
@@ -84,6 +87,10 @@ function clean(data) {
     .filter(([id]) => typeof id === "string")
     .map(([id, name]) => [id, sanitizeCatName(name)])
     .filter(([, name]) => name));
+  result.catAccessoryAdjustments = Object.fromEntries(Object.entries(result.catAccessoryAdjustments)
+    .filter(([key]) => typeof key === "string")
+    .map(([key, value]) => [key, cleanAccessoryAdjustment(value)])
+    .filter(([, value]) => value));
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
   result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
   result.catBoxesOpened = result.catBoxesOpened.map(Number).filter((id) => id >= 1 && id <= getWorldCount());
@@ -148,6 +155,7 @@ function pack(data) {
       selectedCat: save.selectedCat,
       catNames: save.catNames,
       hatAssignments: save.hatAssignments,
+      catAccessoryAdjustments: save.catAccessoryAdjustments,
       selectedCharacter: save.selectedCharacter
     },
     layout: {
@@ -163,6 +171,19 @@ function pack(data) {
       updatedAt: save.updatedAt
     }
   };
+}
+
+function accessoryKey(catId, hatId) {
+  return `${catId}::${hatId}`;
+}
+
+function cleanAccessoryAdjustment(value = {}) {
+  const x = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.x) || 0)));
+  const y = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.y) || 0)));
+  const scale = Math.max(0.65, Math.min(1.45, Number(value.scale) || 1));
+  const angle = Math.max(-35, Math.min(35, Math.round(Number(value.angle) || 0)));
+  if (!x && !y && Number(scale.toFixed(2)) === 1 && !angle) return null;
+  return { x, y, scale: Number(scale.toFixed(2)), angle };
 }
 
 function progressScore(save) {
@@ -353,15 +374,22 @@ export const SaveGame = {
     return true;
   },
 
-  assignHat(hatId, catId) {
+  assignHat(hatId, catId, adjustment = null) {
     const save = this.load();
     if (!save.owned.includes(hatId) || !save.rescuedCats.includes(catId)) return false;
     const wasSameAssignment = save.hatAssignments[hatId] === catId;
     Object.keys(save.hatAssignments).forEach((ownedHat) => {
       if (save.hatAssignments[ownedHat] === catId) delete save.hatAssignments[ownedHat];
     });
-    if (wasSameAssignment) delete save.hatAssignments[hatId];
-    else save.hatAssignments[hatId] = catId;
+    if (wasSameAssignment && !adjustment) {
+      delete save.hatAssignments[hatId];
+      delete save.catAccessoryAdjustments[accessoryKey(catId, hatId)];
+    } else {
+      save.hatAssignments[hatId] = catId;
+      const cleanAdjustment = cleanAccessoryAdjustment(adjustment);
+      if (cleanAdjustment) save.catAccessoryAdjustments[accessoryKey(catId, hatId)] = cleanAdjustment;
+      else delete save.catAccessoryAdjustments[accessoryKey(catId, hatId)];
+    }
     save.selectedCat = catId;
     save.equippedHat = "none";
     this.write(save);
@@ -376,9 +404,17 @@ export const SaveGame = {
   clearCatHat(catId) {
     const save = this.load();
     Object.keys(save.hatAssignments).forEach((hatId) => {
-      if (save.hatAssignments[hatId] === catId) delete save.hatAssignments[hatId];
+      if (save.hatAssignments[hatId] === catId) {
+        delete save.hatAssignments[hatId];
+        delete save.catAccessoryAdjustments[accessoryKey(catId, hatId)];
+      }
     });
     this.write(save);
+  },
+
+  hatAdjustment(catId, hatId) {
+    const save = this.load();
+    return save.catAccessoryAdjustments[accessoryKey(catId, hatId)] || { x: 0, y: 0, scale: 1, angle: 0 };
   },
 
   equipGear(id) {

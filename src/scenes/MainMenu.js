@@ -83,7 +83,8 @@ export class MainMenu extends Phaser.Scene {
       const cat = createCat(this, positions[i][0], positions[i][1], level.id - 1, i > 1 ? 0.19 : 0.22);
       if (i % 2) cat.setFlipX(true);
       animateCat(this, cat, { duration: 750 + i * 90, bob: 6 });
-      const hat = attachCatAccessory(this, cat, SaveGame.hatForCat(level.cat.id), 9);
+      const hatId = SaveGame.hatForCat(level.cat.id);
+      const hat = attachCatAccessory(this, cat, hatId, 9, SaveGame.hatAdjustment(level.cat.id, hatId));
       if (hat) this.events.on("update", () => syncCatAccessory(cat, hat));
     }
   }

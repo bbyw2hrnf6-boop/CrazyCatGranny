@@ -20,14 +20,15 @@ export function catHeadAnchor(frame = 0) {
   return catVisual(frame).anchors.head;
 }
 
-export function attachCatAccessory(scene, cat, itemId, depth = cat.depth + 1) {
+export function attachCatAccessory(scene, cat, itemId, depth = cat.depth + 1, adjustment = null) {
   const look = visualItem(itemId);
   if (!look || look.kind !== "hat") return null;
   const accessory = scene.add.image(cat.x, cat.y, look.texture, look.frame)
     .setOrigin(0.5, look.originY)
     .setDepth(depth)
     .setData("visualKind", "cat-accessory")
-    .setData("itemId", itemId);
+    .setData("itemId", itemId)
+    .setData("adjustment", normalizeAccessoryAdjustment(adjustment));
   syncCatAccessory(cat, accessory);
   return accessory;
 }
@@ -41,8 +42,9 @@ export function syncCatAccessory(cat, accessory) {
   const direction = cat.flipX ? -1 : 1;
   const scaleX = Math.abs(cat.scaleX);
   const scaleY = Math.abs(cat.scaleY);
-  const localX = (anchor.x + (look.offsetX || 0)) * scaleX * direction;
-  const localY = (anchor.y + (look.offsetY || 0)) * scaleY;
+  const adjustment = normalizeAccessoryAdjustment(accessory.getData("adjustment"));
+  const localX = (anchor.x + (look.offsetX || 0) + adjustment.x) * scaleX * direction;
+  const localY = (anchor.y + (look.offsetY || 0) + adjustment.y) * scaleY;
   const angle = Phaser.Math.DegToRad(cat.angle || 0);
   const cosine = Math.cos(angle);
   const sine = Math.sin(angle);
@@ -50,13 +52,27 @@ export function syncCatAccessory(cat, accessory) {
     cat.x + localX * cosine - localY * sine,
     cat.y + localX * sine + localY * cosine
   );
-  accessory.setScale(scaleX * look.attachScale, scaleY * look.attachScale);
+  accessory.setScale(scaleX * look.attachScale * adjustment.scale, scaleY * look.attachScale * adjustment.scale);
   accessory.setFlipX(cat.flipX);
-  accessory.setAngle(cat.angle + (look.angle || 0) * direction);
+  accessory.setAngle(cat.angle + ((look.angle || 0) + adjustment.angle) * direction);
   accessory.setAlpha(cat.alpha);
   accessory.setVisible(cat.visible);
   accessory.setDepth(cat.depth + (look.depthOffset ?? 1));
   accessory.setScrollFactor(cat.scrollFactorX, cat.scrollFactorY);
+}
+
+export function setCatAccessoryAdjustment(accessory, adjustment = null) {
+  if (!accessory?.active) return;
+  accessory.setData("adjustment", normalizeAccessoryAdjustment(adjustment));
+}
+
+function normalizeAccessoryAdjustment(adjustment = {}) {
+  return {
+    x: Math.round(Number(adjustment?.x) || 0),
+    y: Math.round(Number(adjustment?.y) || 0),
+    scale: Math.max(0.65, Math.min(1.45, Number(adjustment?.scale) || 1)),
+    angle: Math.round(Number(adjustment?.angle) || 0)
+  };
 }
 
 export function animateCat(scene, cat, options = {}) {

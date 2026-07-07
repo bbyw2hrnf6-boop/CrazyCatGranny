@@ -11,8 +11,14 @@ export class BootScene extends Phaser.Scene {
     VISUAL_ASSETS.sheets.forEach(([key, path, frameWidth, frameHeight]) => {
       this.load.spritesheet(key, path, { frameWidth, frameHeight });
     });
-    this.load.audio("cat-meow-real", "assets/audio/cat-meow-pleading.oga");
-    this.load.audio("cat-purr-real", "assets/audio/cat-purr.oga");
+    this.load.audio("cat-meow-real", [
+      "assets/audio/cat-meow-pleading.mp3",
+      "assets/audio/cat-meow-pleading.oga"
+    ]);
+    this.load.audio("cat-purr-real", [
+      "assets/audio/cat-purr.mp3",
+      "assets/audio/cat-purr.oga"
+    ]);
   }
 
   create() {

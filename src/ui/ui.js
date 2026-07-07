@@ -103,6 +103,7 @@ export function addPaperTexture(scene) {
 export function sound(scene, kind = "coin") {
   if (!scene.registry.get("save")?.sound) return;
   if (playRecordedCatSound(scene, kind)) return;
+  if (playSoftCatFallback(scene, kind)) return;
   const context = scene.sound?.context;
   if (!context) return;
   if (context.state === "suspended") context.resume();
@@ -160,9 +161,13 @@ function playRecordedCatSound(scene, kind) {
     purr: "cat-purr-real"
   }[kind];
   if (!audioKey || !scene.cache?.audio?.exists(audioKey)) return false;
+  const now = scene.time?.now || 0;
+  const nextAllowedAt = scene.registry.get(`audio-cooldown-${audioKey}`) || 0;
+  if (now < nextAllowedAt) return true;
   try {
+    scene.registry.set(`audio-cooldown-${audioKey}`, now + (kind === "purr" ? 900 : 260));
     scene.sound.play(audioKey, {
-      volume: kind === "purr" ? 0.22 : 0.34,
+      volume: kind === "purr" ? 0.16 : 0.42,
       rate: kind === "meow2" ? Phaser.Math.FloatBetween(1.08, 1.22) : Phaser.Math.FloatBetween(0.92, 1.08),
       detune: Phaser.Math.Between(-90, 90)
     });
@@ -170,4 +175,77 @@ function playRecordedCatSound(scene, kind) {
   } catch {
     return false;
   }
+}
+
+function playSoftCatFallback(scene, kind) {
+  if (!["meow", "meow2", "purr"].includes(kind)) return false;
+  const context = scene.sound?.context;
+  if (!context) return true;
+  if (context.state === "suspended") context.resume();
+  if (kind === "purr") {
+    softPurr(context);
+  } else {
+    softMeow(context, kind === "meow2");
+  }
+  return true;
+}
+
+function softMeow(context, bright = false) {
+  const now = context.currentTime;
+  const duration = bright ? 0.42 : 0.5;
+  const gain = context.createGain();
+  const filter = context.createBiquadFilter();
+  filter.type = "bandpass";
+  filter.frequency.setValueAtTime(bright ? 1150 : 920, now);
+  filter.Q.setValueAtTime(2.4, now);
+  gain.gain.setValueAtTime(0.0001, now);
+  gain.gain.exponentialRampToValueAtTime(0.042, now + 0.035);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  filter.connect(gain);
+  gain.connect(context.destination);
+
+  [0, 1].forEach((voice) => {
+    const oscillator = context.createOscillator();
+    oscillator.type = voice ? "triangle" : "sine";
+    const start = bright ? 620 + voice * 110 : 520 + voice * 90;
+    const peak = bright ? 1030 + voice * 160 : 880 + voice * 130;
+    const end = bright ? 430 + voice * 45 : 360 + voice * 35;
+    oscillator.frequency.setValueAtTime(start, now);
+    oscillator.frequency.linearRampToValueAtTime(peak, now + duration * 0.36);
+    oscillator.frequency.exponentialRampToValueAtTime(end, now + duration);
+    oscillator.detune.setValueAtTime(voice ? 11 : -7, now);
+    oscillator.connect(filter);
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+  });
+}
+
+function softPurr(context) {
+  const now = context.currentTime;
+  const duration = 0.75;
+  const carrier = context.createOscillator();
+  const pulse = context.createOscillator();
+  const carrierGain = context.createGain();
+  const pulseGain = context.createGain();
+  const filter = context.createBiquadFilter();
+  carrier.type = "triangle";
+  pulse.type = "sine";
+  carrier.frequency.setValueAtTime(74, now);
+  carrier.frequency.linearRampToValueAtTime(82, now + duration);
+  pulse.frequency.setValueAtTime(23, now);
+  pulseGain.gain.setValueAtTime(0.016, now);
+  carrierGain.gain.setValueAtTime(0.0001, now);
+  carrierGain.gain.exponentialRampToValueAtTime(0.022, now + 0.05);
+  carrierGain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+  filter.type = "lowpass";
+  filter.frequency.setValueAtTime(240, now);
+  pulse.connect(pulseGain);
+  pulseGain.connect(carrierGain.gain);
+  carrier.connect(filter);
+  filter.connect(carrierGain);
+  carrierGain.connect(context.destination);
+  carrier.start(now);
+  pulse.start(now);
+  carrier.stop(now + duration);
+  pulse.stop(now + duration);
 }

@@ -7,6 +7,7 @@ import {
   createCat,
   createItemPreview,
   createRoomDecor,
+  setCatAccessoryAdjustment,
   syncCatAccessory
 } from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
@@ -178,7 +179,7 @@ export class CatHouse extends Phaser.Scene {
         .setInteractive({ useHandCursor: true })
         .setDepth(this.catDepth(y));
       if (order % 2) cat.setFlipX(true);
-      const hat = this.addHat(cat, SaveGame.hatForCat(level.cat.id));
+      const hat = this.addHat(cat, SaveGame.hatForCat(level.cat.id), level.cat.id);
       const agent = {
         sprite: cat,
         hat,
@@ -742,8 +743,9 @@ export class CatHouse extends Phaser.Scene {
     );
   }
 
-  addHat(cat, hat) {
-    return attachCatAccessory(this, cat, hat);
+  addHat(cat, hat, catId = null, adjustment = null) {
+    const savedAdjustment = catId && hat !== "none" ? SaveGame.hatAdjustment(catId, hat) : null;
+    return attachCatAccessory(this, cat, hat, cat.depth + 1, adjustment || savedAdjustment);
   }
 
   syncCatHat(agent) {
@@ -754,32 +756,32 @@ export class CatHouse extends Phaser.Scene {
     this.card?.forEach((item) => item.destroy());
     const displayName = this.catDisplayName(level);
     const depth = CAT_MODAL_DEPTH;
-    const shade = this.add.rectangle(790, 370, 650, 460, COLORS.ink, 0.95).setDepth(depth);
+    const shade = this.add.rectangle(820, 370, 590, 405, COLORS.ink, 0.95).setDepth(depth);
     shade.setStrokeStyle(6, COLORS.cream);
-    const portrait = createCat(this, 625, 350, level.id - 1, 0.35).setDepth(depth + 1);
+    const portrait = createCat(this, 660, 350, level.id - 1, 0.29).setDepth(depth + 1);
     const currentHat = SaveGame.hatForCat(level.cat.id);
-    const portraitHat = this.addHat(portrait, currentHat);
+    const portraitHat = this.addHat(portrait, currentHat, level.cat.id);
     if (portraitHat) this.syncCatHat({ sprite: portrait, hat: portraitHat });
     const title = this.add.text(
-      865,
-      235,
+      915,
+      240,
       displayName.toUpperCase(),
-      textStyle(32, "#ffcc4d", { wordWrap: { width: 360 }, align: "center" })
+      textStyle(30, "#ffcc4d", { wordWrap: { width: 300 }, align: "center" })
     ).setOrigin(0.5).setDepth(depth + 1);
     const rarity = this.add.text(
-      865,
-      280,
+      915,
+      282,
       `${level.cat.rarity}${level.cat.limited ? " · LIMITED" : ""}`,
       textStyle(17, level.cat.limited ? "#d69cff" : "#cabacf")
     ).setOrigin(0.5).setDepth(depth + 1);
-    const trait = this.add.text(865, 340, `“${level.cat.trait}”`, textStyle(20, "#fff7df", { wordWrap: { width: 300 }, align: "center" })).setOrigin(0.5).setDepth(depth + 1);
+    const trait = this.add.text(915, 338, `“${level.cat.trait}”`, textStyle(19, "#fff7df", { wordWrap: { width: 290 }, align: "center" })).setOrigin(0.5).setDepth(depth + 1);
     const drop = this.save.dropHistory.find((entry) => entry.catId === level.cat.id);
     const rescueSource = drop?.type === "catbox" ? "Surprise CatBox pull" : `Two-level rescue · Level ${drop?.levelId || level.id}`;
-    const rescue = this.add.text(865, 400, rescueSource, textStyle(16, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
-    const outfit = this.add.text(865, 435, currentHat === "none" ? "Outfit: natural fur" : `Outfit: ${currentHat}`, textStyle(15, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
-    const customize = pill(this, 705, 535, 200, 58, "✦  CUSTOMIZE", { fill: COLORS.yellow, size: 17 }).setDepth(depth + 2);
-    const rename = pill(this, 910, 535, 150, 58, "RENAME", { fill: COLORS.cream, size: 17 }).setDepth(depth + 2);
-    const close = pill(this, 1070, 535, 125, 58, "CLOSE", { fill: COLORS.cream, size: 17 }).setDepth(depth + 2);
+    const rescue = this.add.text(915, 400, rescueSource, textStyle(15, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
+    const outfit = this.add.text(915, 430, currentHat === "none" ? "Outfit: natural fur" : `Outfit: ${currentHat}`, textStyle(14, "#d9c9d8")).setOrigin(0.5).setDepth(depth + 1);
+    const customize = pill(this, 680, 532, 180, 54, "✦ CUSTOMIZE", { fill: COLORS.yellow, size: 15 }).setDepth(depth + 2);
+    const rename = pill(this, 870, 532, 150, 54, "RENAME", { fill: COLORS.cream, size: 15 }).setDepth(depth + 2);
+    const close = pill(this, 1035, 532, 130, 54, "CLOSE", { fill: COLORS.cream, size: 15 }).setDepth(depth + 2);
     this.card = [shade, portrait, portraitHat, title, rarity, trait, rescue, outfit, customize, rename, close].filter(Boolean);
     customize.on("pointerup", () => this.openCatCustomizer(level));
     rename.on("pointerup", () => this.renameCat(level));
@@ -810,43 +812,136 @@ export class CatHouse extends Phaser.Scene {
     const panel = this.add.rectangle(640, 360, 920, 610, COLORS.cream).setDepth(depth + 1);
     panel.setStrokeStyle(7, COLORS.ink);
     const title = this.add.text(640, 88, `CUSTOMIZE ${this.catDisplayName(level).toUpperCase()}`, textStyle(31, "#ec5966")).setOrigin(0.5).setDepth(depth + 2);
-    const portrait = createCat(this, 330, 335, level.id - 1, 0.42).setDepth(depth + 2);
-    parts.push(shade, panel, title, portrait);
     const current = SaveGame.hatForCat(level.cat.id);
-    const portraitHat = this.addHat(portrait, current);
-    if (portraitHat) {
-      this.syncCatHat({ sprite: portrait, hat: portraitHat });
-      portraitHat.setDepth(depth + 3);
-      parts.push(portraitHat);
-    }
+    const portrait = createCat(this, 330, 315, level.id - 1, 0.46).setDepth(depth + 2);
+    const previewLabel = this.add.text(330, 545, "PREVIEW ONLY", textStyle(15, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
+    const adjustmentLabel = this.add.text(330, 575, "", textStyle(13, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
+    const selectedLabel = this.add.text(330, 118, "", textStyle(20, "#2f2335")).setOrigin(0.5).setDepth(depth + 2);
+    parts.push(shade, panel, title, portrait, previewLabel, adjustmentLabel, selectedLabel);
+    this.catCustomizer = {
+      level,
+      depth,
+      parts,
+      portrait,
+      previewHat: null,
+      selectedHat: current,
+      draft: { ...SaveGame.hatAdjustment(level.cat.id, current) },
+      cards: {},
+      adjustmentLabel,
+      selectedLabel
+    };
     [NATURAL_FUR, ...HAT_ITEMS].forEach(({ id, name, icon, color }, index) => {
       const owned = id === "none" || this.save.owned.includes(id);
-      const col = index % 3;
-      const row = Math.floor(index / 3);
-      const x = 585 + col * 170;
-      const y = 205 + row * 135;
-      const card = this.add.rectangle(x, y, 145, 105, current === id ? COLORS.yellow : owned ? 0xffffff : 0xb9afb7).setDepth(depth + 2);
-      card.setStrokeStyle(4, current === id ? COLORS.coral : COLORS.ink);
+      const col = index % 4;
+      const row = Math.floor(index / 4);
+      const x = 548 + col * 128;
+      const y = 168 + row * 98;
+      const card = this.add.rectangle(x, y, 112, 78, owned ? 0xffffff : 0xb9afb7).setDepth(depth + 2);
+      card.setStrokeStyle(4, COLORS.ink);
       const symbol = owned && id !== "none"
-        ? createItemPreview(this, id, x, y - 20, { scale: 0.62, depth: depth + 3 })
-        : this.add.text(x, y - 17, owned ? icon : "🔒", textStyle(31, color)).setOrigin(0.5).setDepth(depth + 3);
-      const label = this.add.text(x, y + 27, name, textStyle(13, owned ? "#2f2335" : "#7d717c")).setOrigin(0.5).setDepth(depth + 3);
+        ? createItemPreview(this, id, x, y - 16, { scale: 0.46, depth: depth + 3 })
+        : this.add.text(x, y - 13, owned ? icon : "🔒", textStyle(26, color)).setOrigin(0.5).setDepth(depth + 3);
+      const label = this.add.text(x, y + 22, name, textStyle(10, owned ? "#2f2335" : "#7d717c"), { wordWrap: { width: 96 }, align: "center" }).setOrigin(0.5).setDepth(depth + 3);
       parts.push(card, symbol, label);
+      this.catCustomizer.cards[id] = card;
       if (owned) {
-        const hit = this.add.rectangle(x, y, 145, 105, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(depth + 4);
-        hit.on("pointerup", () => {
-          if (id === "none") SaveGame.clearCatHat(level.cat.id);
-          else SaveGame.assignHat(id, level.cat.id);
-          sound(this, "buy");
-          this.scene.restart({ page: level.world });
-        });
+        const hit = this.add.rectangle(x, y, 112, 78, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(depth + 4);
+        hit.on("pointerup", () => this.selectCustomizerHat(id));
         parts.push(hit);
       }
     });
-    const close = pill(this, 1040, 630, 145, 48, "CLOSE", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
-    close.on("pointerup", () => this.closeOverlay());
-    parts.push(close);
+
+    [
+      ["←", 220, 630, () => this.nudgeDraftAccessory(-2, 0)],
+      ["→", 285, 630, () => this.nudgeDraftAccessory(2, 0)],
+      ["↑", 350, 630, () => this.nudgeDraftAccessory(0, -2)],
+      ["↓", 415, 630, () => this.nudgeDraftAccessory(0, 2)],
+      ["−", 480, 630, () => this.scaleDraftAccessory(-0.03)],
+      ["+", 545, 630, () => this.scaleDraftAccessory(0.03)],
+      ["↺", 610, 630, () => this.rotateDraftAccessory(-2)],
+      ["↻", 675, 630, () => this.rotateDraftAccessory(2)]
+    ].forEach(([label, x, y, action]) => {
+      const button = pill(this, x, y, 52, 46, label, { fill: COLORS.cream, size: 20 }).setDepth(depth + 4);
+      button.on("pointerup", action);
+      parts.push(button);
+    });
+    const reset = pill(this, 755, 630, 120, 46, "RESET", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
+    const cancel = pill(this, 895, 630, 125, 46, "CANCEL", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
+    const apply = pill(this, 1045, 630, 145, 46, "APPLY", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
+    reset.on("pointerup", () => this.resetDraftAccessory());
+    cancel.on("pointerup", () => this.closeOverlay());
+    apply.on("pointerup", () => this.applyCatCustomization());
+    parts.push(reset, cancel, apply);
     this.overlayParts = parts;
+    this.selectCustomizerHat(current);
+  }
+
+  selectCustomizerHat(hatId) {
+    if (!this.catCustomizer) return;
+    this.catCustomizer.selectedHat = hatId;
+    this.catCustomizer.draft = hatId === "none"
+      ? { x: 0, y: 0, scale: 1, angle: 0 }
+      : { ...SaveGame.hatAdjustment(this.catCustomizer.level.cat.id, hatId) };
+    Object.entries(this.catCustomizer.cards).forEach(([id, card]) => {
+      card.setFillStyle(id === hatId ? COLORS.yellow : 0xffffff);
+      card.setStrokeStyle(4, id === hatId ? COLORS.coral : COLORS.ink);
+    });
+    this.updateCustomizerPreview();
+  }
+
+  updateCustomizerPreview() {
+    const customizer = this.catCustomizer;
+    if (!customizer) return;
+    customizer.previewHat?.destroy();
+    customizer.previewHat = null;
+    const hatId = customizer.selectedHat;
+    const selectedItem = HAT_ITEMS.find((item) => item.id === hatId);
+    customizer.selectedLabel.setText(hatId === "none" ? "Natural Fur" : selectedItem?.name || "Outfit");
+    customizer.adjustmentLabel.setText(hatId === "none"
+      ? "No accessory selected"
+      : `X ${customizer.draft.x} · Y ${customizer.draft.y} · SIZE ${customizer.draft.scale.toFixed(2)} · ROT ${customizer.draft.angle}`);
+    if (hatId === "none") return;
+    customizer.previewHat = this.addHat(customizer.portrait, hatId, customizer.level.cat.id, customizer.draft);
+    if (!customizer.previewHat) return;
+    customizer.previewHat.setDepth(customizer.depth + 3);
+    this.overlayParts.push(customizer.previewHat);
+    this.syncCatHat({ sprite: customizer.portrait, hat: customizer.previewHat });
+  }
+
+  nudgeDraftAccessory(dx, dy) {
+    if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
+    this.catCustomizer.draft.x = Phaser.Math.Clamp(this.catCustomizer.draft.x + dx, -60, 60);
+    this.catCustomizer.draft.y = Phaser.Math.Clamp(this.catCustomizer.draft.y + dy, -60, 60);
+    setCatAccessoryAdjustment(this.catCustomizer.previewHat, this.catCustomizer.draft);
+    this.syncCatHat({ sprite: this.catCustomizer.portrait, hat: this.catCustomizer.previewHat });
+    this.updateCustomizerPreview();
+  }
+
+  scaleDraftAccessory(delta) {
+    if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
+    this.catCustomizer.draft.scale = Phaser.Math.Clamp(Number((this.catCustomizer.draft.scale + delta).toFixed(2)), 0.65, 1.45);
+    this.updateCustomizerPreview();
+  }
+
+  rotateDraftAccessory(delta) {
+    if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
+    this.catCustomizer.draft.angle = Phaser.Math.Clamp(this.catCustomizer.draft.angle + delta, -35, 35);
+    this.updateCustomizerPreview();
+  }
+
+  resetDraftAccessory() {
+    if (!this.catCustomizer) return;
+    this.catCustomizer.draft = { x: 0, y: 0, scale: 1, angle: 0 };
+    this.updateCustomizerPreview();
+  }
+
+  applyCatCustomization() {
+    const customizer = this.catCustomizer;
+    if (!customizer) return;
+    if (customizer.selectedHat === "none") SaveGame.clearCatHat(customizer.level.cat.id);
+    else SaveGame.assignHat(customizer.selectedHat, customizer.level.cat.id, customizer.draft);
+    sound(this, "buy");
+    this.scene.restart({ page: customizer.level.world });
   }
 
   openRoomCustomizer() {
@@ -1230,6 +1325,7 @@ export class CatHouse extends Phaser.Scene {
   closeOverlay() {
     this.overlayParts?.forEach((item) => item.destroy());
     this.overlayParts = null;
+    this.catCustomizer = null;
     this.referenceParts?.forEach((item) => item.destroy());
     this.referenceParts = null;
   }
