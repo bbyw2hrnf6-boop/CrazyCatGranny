@@ -1,6 +1,7 @@
 import { rollCatBoxReward } from "../content/rewards/RewardCatalog.js";
 import { getBossLevelWorldPairs, getTotalLevelCount, getWorldCount } from "../content/GameContentStats.js";
 import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
+import { cloudSaveStatus, scheduleCloudSave, startCloudSaveSync } from "./CloudSaveBridge.js";
 
 const KEY = "crazy-cat-granny-save-v1";
 const BACKUP_KEY = `${KEY}-backup`;
@@ -28,7 +29,8 @@ const defaults = {
   dropHistory: [],
   selectedCharacter: "granny",
   sound: true,
-  performanceMode: "auto"
+  performanceMode: "auto",
+  updatedAt: 0
 };
 
 function clean(data) {
@@ -64,6 +66,7 @@ function clean(data) {
   result.performanceMode = ["auto", "high", "balanced"].includes(result.performanceMode)
     ? result.performanceMode
     : "auto";
+  result.updatedAt = Math.max(0, Math.floor(Number(result.updatedAt) || 0));
   if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEM_IDS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
   if (result.equippedHat !== "none" && !Object.keys(result.hatAssignments).length && result.rescuedCats.length) {
@@ -85,7 +88,8 @@ function unpack(data = {}) {
     ...data.progression,
     ...data.inventory,
     ...data.layout,
-    ...data.settings
+    ...data.settings,
+    ...data.meta
   };
 }
 
@@ -118,8 +122,31 @@ function pack(data) {
     settings: {
       sound: save.sound,
       performanceMode: save.performanceMode
+    },
+    meta: {
+      updatedAt: save.updatedAt
     }
   };
+}
+
+function progressScore(save) {
+  const completed = Object.values(save.levels || {}).filter((level) => level?.completed).length;
+  return completed * 100000
+    + save.unlockedLevel * 1000
+    + save.worldTrophies.length * 500
+    + save.rescuedCats.length * 250
+    + save.owned.length * 40
+    + save.totalCoins
+    + save.coins;
+}
+
+function shouldUseCloudPayload(cloudPayload, localPayload) {
+  const cloudSave = clean(cloudPayload);
+  const localSave = clean(localPayload);
+  const cloudScore = progressScore(cloudSave);
+  const localScore = progressScore(localSave);
+  if (cloudScore !== localScore) return cloudScore > localScore;
+  return cloudSave.updatedAt > localSave.updatedAt;
 }
 
 function parseStored(value) {
@@ -142,7 +169,7 @@ export const SaveGame = {
     }
   },
 
-  write(data) {
+  write(data, options = {}) {
     const current = localStorage.getItem(KEY);
     try {
       if (parseStored(current)) {
@@ -152,9 +179,30 @@ export const SaveGame = {
     } catch {
       // Never replace a good backup with corrupt primary data.
     }
-    const cleaned = clean(data);
-    localStorage.setItem(KEY, JSON.stringify(pack(cleaned)));
+    const cleaned = clean({
+      ...data,
+      updatedAt: options.preserveUpdatedAt ? data.updatedAt : Date.now()
+    });
+    const payload = pack(cleaned);
+    localStorage.setItem(KEY, JSON.stringify(payload));
+    if (options.syncCloud !== false) scheduleCloudSave(payload);
     return cleaned;
+  },
+
+  startCloudSync(onApplied) {
+    return startCloudSaveSync({
+      loadLocalPayload: () => pack(this.load()),
+      applyCloudPayload: (payload) => {
+        const cloudSave = this.write(clean(payload), { preserveUpdatedAt: true, syncCloud: false });
+        onApplied?.(cloudSave);
+        return cloudSave;
+      },
+      shouldUseCloudPayload
+    });
+  },
+
+  cloudStatus() {
+    return cloudSaveStatus();
   },
 
   completeLevel(level, result) {
@@ -317,7 +365,8 @@ export const SaveGame = {
     localStorage.removeItem(KEY);
     localStorage.removeItem(BACKUP_KEY);
     localStorage.removeItem(BACKUP_TIME_KEY);
-    return this.load();
+    const fresh = this.write({});
+    return fresh;
   },
 
   exportBackup() {
@@ -327,8 +376,7 @@ export const SaveGame = {
   restoreBackup(serialized = localStorage.getItem(BACKUP_KEY)) {
     try {
       const restored = clean(parseStored(serialized));
-      localStorage.setItem(KEY, JSON.stringify(pack(restored)));
-      return restored;
+      return this.write(restored);
     } catch {
       return false;
     }

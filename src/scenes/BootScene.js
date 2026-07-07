@@ -17,7 +17,17 @@ export class BootScene extends Phaser.Scene {
     this.makeTextures();
     this.makeAnimations();
     this.registry.set("save", SaveGame.load());
+    SaveGame.startCloudSync((save) => this.applyCloudSave(save));
     this.scene.start("MainMenu");
+  }
+
+  applyCloudSave(save) {
+    this.registry.set("save", save);
+    const active = this.scene.manager.getScenes(true)
+      .find((scene) => scene.scene.key !== "BootScene");
+    if (active && active.scene.key !== "GameScene") {
+      active.scene.restart(active.scene.settings.data || {});
+    }
   }
 
   makeAnimations() {
