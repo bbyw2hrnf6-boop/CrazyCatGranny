@@ -1,4 +1,5 @@
 const LANDSCAPE_REQUIRED_CLASS = "ccg-landscape-required";
+const MOBILE_FULLSCREEN_CLASS = "ccg-mobile-fullscreen";
 
 function gameShell() {
   return document.querySelector("#game-shell") || document.documentElement;
@@ -21,6 +22,10 @@ function setLandscapeRequired(required) {
   updateOrientationHint();
 }
 
+function setMobileFullscreen(active) {
+  document.body.classList.toggle(MOBILE_FULLSCREEN_CLASS, Boolean(active));
+}
+
 export function updateOrientationHint() {
   const shouldShow = document.body.classList.contains(LANDSCAPE_REQUIRED_CLASS)
     && isMobileDevice()
@@ -40,6 +45,17 @@ async function requestFullscreenElement() {
     return true;
   }
   return false;
+}
+
+function nudgeBrowserChrome() {
+  if (!isMobileDevice()) return;
+  requestAnimationFrame(() => {
+    try {
+      window.scrollTo(0, 1);
+    } catch {
+      // Browser chrome hiding is best-effort and not supported everywhere.
+    }
+  });
 }
 
 async function exitFullscreenElement() {
@@ -70,18 +86,24 @@ async function lockLandscapeIfPossible() {
 export async function enterFullscreen(scene, options = {}) {
   const preferLandscape = options.landscape ?? isMobileDevice();
   setLandscapeRequired(preferLandscape);
+  setMobileFullscreen(isMobileDevice());
   try {
     await requestFullscreenElement();
     if (preferLandscape) await lockLandscapeIfPossible();
   } finally {
+    nudgeBrowserChrome();
     updateOrientationHint();
     scene?.scale?.refresh();
-    setTimeout(() => scene?.scale?.refresh(), 250);
+    setTimeout(() => {
+      nudgeBrowserChrome();
+      scene?.scale?.refresh();
+    }, 250);
   }
 }
 
 export async function leaveFullscreen(scene) {
   setLandscapeRequired(false);
+  setMobileFullscreen(false);
   try {
     if (screen.orientation?.unlock) screen.orientation.unlock();
   } catch {
@@ -99,6 +121,7 @@ export async function toggleFullscreen(scene) {
 
 export function installFullscreenWatchers(game) {
   const refresh = () => {
+    if (document.body.classList.contains(MOBILE_FULLSCREEN_CLASS)) nudgeBrowserChrome();
     updateOrientationHint();
     game?.scale?.refresh();
   };

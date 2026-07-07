@@ -32,6 +32,7 @@ const defaults = {
   selectedCharacter: "granny",
   sound: true,
   performanceMode: "auto",
+  starterWalletGranted: false,
   updatedAt: 0
 };
 
@@ -58,8 +59,14 @@ function clean(data) {
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
   result.version = SAVE_VERSION;
-  result.coins = Math.max(STARTING_COINS, Math.floor(Number(result.coins) || 0));
-  result.totalCoins = Math.max(result.coins, STARTING_COINS, Math.floor(Number(result.totalCoins) || 0));
+  result.coins = Math.max(0, Math.floor(Number(result.coins) || 0));
+  result.totalCoins = Math.max(result.coins, Math.floor(Number(result.totalCoins) || 0));
+  if (result.starterWalletGranted !== true) {
+    const starterTopUp = Math.max(0, STARTING_COINS - result.totalCoins);
+    result.coins += starterTopUp;
+    result.totalCoins += starterTopUp;
+    result.starterWalletGranted = true;
+  }
   result.unlockedLevel = Math.min(getTotalLevelCount(), Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
   result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
   result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
@@ -137,6 +144,7 @@ function pack(data) {
       performanceMode: save.performanceMode
     },
     meta: {
+      starterWalletGranted: save.starterWalletGranted,
       updatedAt: save.updatedAt
     }
   };
@@ -451,6 +459,7 @@ export const SaveGame = {
       Object.assign(save, {
         coins: STARTING_COINS,
         totalCoins: STARTING_COINS,
+        starterWalletGranted: true,
         unlockedLevel: 1,
         rescuedCats: [],
         levels: {},

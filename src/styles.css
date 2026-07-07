@@ -19,6 +19,7 @@ body {
     radial-gradient(circle at 20% 15%, #5f365f 0, transparent 32%),
     radial-gradient(circle at 80% 85%, #3b315e 0, transparent 36%),
     #20152a;
+  overscroll-behavior: none;
 }
 
 body {
@@ -29,6 +30,10 @@ body {
     env(safe-area-inset-right)
     env(safe-area-inset-bottom)
     env(safe-area-inset-left);
+}
+
+body.ccg-mobile-fullscreen {
+  padding: 0;
 }
 
 #game-shell {
@@ -43,8 +48,16 @@ body {
 
 #game-shell:fullscreen,
 #game-shell:-webkit-full-screen {
-  width: 100vw;
-  height: 100vh;
+  width: 100dvw;
+  height: 100dvh;
+  max-width: none;
+  aspect-ratio: auto;
+  box-shadow: none;
+}
+
+body.ccg-mobile-fullscreen #game-shell {
+  width: 100dvw;
+  height: 100dvh;
   max-width: none;
   aspect-ratio: auto;
   box-shadow: none;
