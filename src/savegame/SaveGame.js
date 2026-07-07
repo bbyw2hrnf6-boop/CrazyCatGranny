@@ -9,11 +9,12 @@ const BACKUP_TIME_KEY = `${BACKUP_KEY}-time`;
 const MANUAL_BACKUP_KEY = `${KEY}-manual-backup`;
 const MANUAL_BACKUP_TIME_KEY = `${MANUAL_BACKUP_KEY}-time`;
 const SAVE_VERSION = 2;
+const STARTING_COINS = 500;
 
 const defaults = {
   version: SAVE_VERSION,
-  coins: 0,
-  totalCoins: 0,
+  coins: STARTING_COINS,
+  totalCoins: STARTING_COINS,
   unlockedLevel: 1,
   rescuedCats: [],
   levels: {},
@@ -57,8 +58,8 @@ function clean(data) {
     dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
   };
   result.version = SAVE_VERSION;
-  result.coins = Math.max(0, Math.floor(Number(result.coins) || 0));
-  result.totalCoins = Math.max(result.coins, Math.floor(Number(result.totalCoins) || 0));
+  result.coins = Math.max(STARTING_COINS, Math.floor(Number(result.coins) || 0));
+  result.totalCoins = Math.max(result.coins, STARTING_COINS, Math.floor(Number(result.totalCoins) || 0));
   result.unlockedLevel = Math.min(getTotalLevelCount(), Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
   result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
   result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
@@ -448,8 +449,8 @@ export const SaveGame = {
     const save = this.load();
     if (section === "progression") {
       Object.assign(save, {
-        coins: 0,
-        totalCoins: 0,
+        coins: STARTING_COINS,
+        totalCoins: STARTING_COINS,
         unlockedLevel: 1,
         rescuedCats: [],
         levels: {},
