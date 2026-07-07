@@ -8,6 +8,8 @@ const BACKUP_KEY = `${KEY}-backup`;
 const BACKUP_TIME_KEY = `${BACKUP_KEY}-time`;
 const MANUAL_BACKUP_KEY = `${KEY}-manual-backup`;
 const MANUAL_BACKUP_TIME_KEY = `${MANUAL_BACKUP_KEY}-time`;
+const TEST_SAVE_KEY = `${KEY}-session-test`;
+const TEST_SAVE_ACTIVE_KEY = `${TEST_SAVE_KEY}-active`;
 const SAVE_VERSION = 2;
 const STARTING_COINS = 150;
 const MAX_CAT_NAME_LENGTH = 18;
@@ -224,6 +226,13 @@ function createPendingCatBox(level) {
 
 export const SaveGame = {
   load() {
+    if (sessionStorage.getItem(TEST_SAVE_ACTIVE_KEY) === "yes") {
+      try {
+        return clean(parseStored(sessionStorage.getItem(TEST_SAVE_KEY)) || {});
+      } catch {
+        return clean({});
+      }
+    }
     try {
       return clean(parseStored(localStorage.getItem(KEY)) || {});
     } catch {
@@ -236,6 +245,14 @@ export const SaveGame = {
   },
 
   write(data, options = {}) {
+    if (sessionStorage.getItem(TEST_SAVE_ACTIVE_KEY) === "yes") {
+      const cleaned = clean({
+        ...data,
+        updatedAt: options.preserveUpdatedAt ? data.updatedAt : Date.now()
+      });
+      sessionStorage.setItem(TEST_SAVE_KEY, JSON.stringify(pack(cleaned)));
+      return cleaned;
+    }
     const current = localStorage.getItem(KEY);
     try {
       if (parseStored(current)) {
@@ -256,6 +273,7 @@ export const SaveGame = {
   },
 
   startCloudSync(onApplied) {
+    if (sessionStorage.getItem(TEST_SAVE_ACTIVE_KEY) === "yes") return Promise.resolve(this.cloudStatus());
     return startCloudSaveSync({
       loadLocalPayload: () => pack(this.load()),
       applyCloudPayload: (payload) => {
@@ -269,6 +287,23 @@ export const SaveGame = {
 
   cloudStatus() {
     return cloudSaveStatus();
+  },
+
+  activateTestSave(data = {}) {
+    const cleaned = clean({ ...defaults, ...data, starterWalletGranted: true });
+    sessionStorage.setItem(TEST_SAVE_KEY, JSON.stringify(pack(cleaned)));
+    sessionStorage.setItem(TEST_SAVE_ACTIVE_KEY, "yes");
+    return cleaned;
+  },
+
+  deactivateTestSave() {
+    sessionStorage.removeItem(TEST_SAVE_ACTIVE_KEY);
+    sessionStorage.removeItem(TEST_SAVE_KEY);
+    return true;
+  },
+
+  usingTestSave() {
+    return sessionStorage.getItem(TEST_SAVE_ACTIVE_KEY) === "yes";
   },
 
   completeLevel(level, result) {

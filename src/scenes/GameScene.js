@@ -49,6 +49,9 @@ export class GameScene extends Phaser.Scene {
     this.adminTest = Boolean(data?.adminTest);
     this.adminTimeScale = Phaser.Math.Clamp(Number(data?.adminTimeScale) || 1, 0.1, 1);
     this.adminHitboxes = Boolean(data?.adminHitboxes);
+    this.adminDebugFlags = data?.adminDebugFlags || {};
+    this.adminGodMode = Boolean(data?.adminGodMode);
+    this.adminDisableFallDeath = Boolean(data?.adminDisableFallDeath);
     this.skipIntro = Boolean(data?.skipIntro);
   }
 
@@ -108,6 +111,7 @@ export class GameScene extends Phaser.Scene {
     this.createIntro();
     this.bindKeys();
     this.devTools = new DevTools(this);
+    this.devTools.setFlags(this.adminDebugFlags);
     if (this.adminTest) {
       this.devTools.setTimeScale(this.adminTimeScale);
       if (this.adminHitboxes) this.devTools.toggleHitboxes();
@@ -984,6 +988,13 @@ export class GameScene extends Phaser.Scene {
 
   fall() {
     if (this.finished) return;
+    if (this.adminGodMode || this.adminDisableFallDeath) {
+      const checkpoint = Math.max(140, this.respawnX);
+      this.releaseCane();
+      this.granny.setPosition(checkpoint, 450);
+      this.granny.setVelocity(this.granny.runSpeed, 0);
+      return;
+    }
     this.falls += 1;
     if (this.falls >= this.maxFalls) {
       this.lose("falls");
@@ -1021,6 +1032,10 @@ export class GameScene extends Phaser.Scene {
 
   lose(reason = "thief") {
     if (this.finished) return;
+    if (this.adminGodMode) {
+      this.granny.setVelocity(this.granny.runSpeed, -220);
+      return;
+    }
     this.finished = true;
     this.lost = true;
     this.running = false;

@@ -71,7 +71,8 @@ export class LevelSelect extends Phaser.Scene {
     WORLDS.forEach((world, index) => {
       const firstLevel = getFirstLevelIdForWorld(world.id);
       const released = isWorldReleased(world.id);
-      const unlocked = released && (save.unlockedLevel >= firstLevel || RELEASE_CONFIG.mode === "full-campaign");
+      const adminUnlock = sessionStorage.getItem("ccg-admin-unlock-all") === "yes";
+      const unlocked = released && (adminUnlock || save.unlockedLevel >= firstLevel || RELEASE_CONFIG.mode === "full-campaign");
       const current = world.id === this.worldId;
       const button = pill(this, 465 + index * 145, 137, 128, 48, unlocked ? String(world.id).padStart(2, "0") : released ? "🔒" : "SOON", {
         fill: current ? world.accent : unlocked ? COLORS.cream : 0xa69ca5,
@@ -91,7 +92,7 @@ export class LevelSelect extends Phaser.Scene {
     levels.forEach((level, index) => {
       const [x, y] = positions[index];
       const released = isLevelReleased(level);
-      const unlocked = isLevelUnlocked(level, save);
+      const unlocked = sessionStorage.getItem("ccg-admin-unlock-all") === "yes" || isLevelUnlocked(level, save);
       const record = save.levels[level.id];
       const color = level.boss ? 0xec5966 : this.world.accent;
       const shadow = this.add.circle(x, y + 6, level.boss ? 47 : 42, 0x2f2335, 0.24);

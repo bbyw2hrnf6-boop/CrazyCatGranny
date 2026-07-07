@@ -396,6 +396,7 @@ export class BossEncounter {
     const scene = this.scene;
     if (!projectile.active) return;
     projectile.destroy();
+    if (scene.adminGodMode) return;
     scene.falls += 1;
     if (scene.falls >= scene.maxFalls) {
       scene.lose("falls");
