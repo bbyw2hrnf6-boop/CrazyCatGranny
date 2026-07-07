@@ -102,6 +102,7 @@ export function addPaperTexture(scene) {
 
 export function sound(scene, kind = "coin") {
   if (!scene.registry.get("save")?.sound) return;
+  if (playRecordedCatSound(scene, kind)) return;
   const context = scene.sound?.context;
   if (!context) return;
   if (context.state === "suspended") context.resume();
@@ -150,4 +151,23 @@ export function sound(scene, kind = "coin") {
   gain.connect(context.destination);
   oscillator.start(now);
   oscillator.stop(now + duration);
+}
+
+function playRecordedCatSound(scene, kind) {
+  const audioKey = {
+    meow: "cat-meow-real",
+    meow2: "cat-meow-real",
+    purr: "cat-purr-real"
+  }[kind];
+  if (!audioKey || !scene.cache?.audio?.exists(audioKey)) return false;
+  try {
+    scene.sound.play(audioKey, {
+      volume: kind === "purr" ? 0.22 : 0.34,
+      rate: kind === "meow2" ? Phaser.Math.FloatBetween(1.08, 1.22) : Phaser.Math.FloatBetween(0.92, 1.08),
+      detune: Phaser.Math.Between(-90, 90)
+    });
+    return true;
+  } catch {
+    return false;
+  }
 }
