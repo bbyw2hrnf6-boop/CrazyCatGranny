@@ -1,3 +1,5 @@
+import { getLevelsPerWorld } from "../content/GameContentStats.js";
+
 const WORLD_TEXTURES = Object.freeze({
   1: ["crate", "glass"],
   2: ["bicycle", "tulip-cart", "crate"],
@@ -19,7 +21,7 @@ export function planCourse(level) {
 function planGaps(level) {
   if (level.id === 1) return [[1520, 1650, false], [3300, 3440, false]];
   const gaps = [];
-  const chapter = (level.id - 1) % 9;
+  const chapter = (level.id - 1) % getLevelsPerWorld();
   const stride = 1210 - level.world * 35 - Math.min(120, chapter * 15);
   for (let x = 1050, index = 0; x < level.length - 850; x += stride, index += 1) {
     const hookEvery = level.world >= 3 ? 2 : 3;

@@ -1,5 +1,6 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
+import { getTotalCatCount, getWorldCount } from "../content/GameContentStats.js";
 import {
   animateCat,
   attachCatAccessory,
@@ -49,10 +50,10 @@ export class MainMenu extends Phaser.Scene {
     settings.on("pointerup", () => this.scene.start("SettingsScene"));
     const fullscreen = pill(this, 955, 50, 66, 54, "⛶", { fill: COLORS.yellow, size: 25 });
     fullscreen.on("pointerup", () => toggleFullscreen(this));
-    this.add.text(72, 638, `CATS HOME  ${save.rescuedCats.length}/45   ·   WORLD CUPS ${save.worldTrophies.length}/5`, textStyle(20, "#fff7df")).setOrigin(0, 0.5);
+    this.add.text(72, 638, `CATS HOME  ${save.rescuedCats.length}/${getTotalCatCount()}   ·   WORLD CUPS ${save.worldTrophies.length}/${getWorldCount()}`, textStyle(20, "#fff7df")).setOrigin(0, 0.5);
     const progressBg = this.add.rectangle(72, 675, 390, 14, 0x2f2335, 0.35).setOrigin(0, 0.5);
     progressBg.setStrokeStyle(2, COLORS.cream, 0.7);
-    this.add.rectangle(72, 675, 390 * (save.rescuedCats.length / 45), 10, COLORS.coral).setOrigin(0, 0.5);
+    this.add.rectangle(72, 675, 390 * (save.rescuedCats.length / getTotalCatCount()), 10, COLORS.coral).setOrigin(0, 0.5);
     this.input.keyboard?.on("keydown-ENTER", () => this.scene.start("LevelSelect"));
   }
 

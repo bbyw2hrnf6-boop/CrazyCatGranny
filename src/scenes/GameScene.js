@@ -6,15 +6,18 @@ import {
   createGrannyGear,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
-import { LEVELS, levelById, worldById } from "../levels/levels.js";
+import { levelById, worldById } from "../levels/levels.js";
+import { getLevelCountForWorld } from "../content/GameContentStats.js";
 import { planCourse } from "../levels/CoursePlanner.js";
-import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
 import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
 import { performanceProfile } from "../systems/PerformanceProfile.js";
 import { DevTools } from "../systems/DevTools.js";
-import { toggleFullscreen } from "../systems/FullscreenManager.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
+import { BossEncounter } from "./game/BossEncounter.js";
+import { ResultsPanel } from "./game/ResultsPanel.js";
+import { RunHud } from "./game/RunHud.js";
+import { WorldMechanics } from "./game/WorldMechanics.js";
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -25,7 +28,7 @@ export class GameScene extends Phaser.Scene {
     this.level = levelById(data.levelId);
     this.worldData = worldById(this.level.world);
     this.chapterStep = ((this.level.id - 1) % 3) + 1;
-    const chapterReward = levelById(Math.min(this.level.world * 9, Math.ceil(this.level.id / 3) * 3));
+    const chapterReward = levelById(Math.min(this.level.world * getLevelCountForWorld(this.level.world), Math.ceil(this.level.id / 3) * 3));
     this.chapterCatLevel = !this.level.boss && !chapterReward.boss ? chapterReward : null;
     this.coinsCollected = 0;
     this.treatsCollected = 0;
@@ -63,6 +66,7 @@ export class GameScene extends Phaser.Scene {
     this.treats = this.physics.add.group({ allowGravity: false, immovable: true });
     this.worldZones = [];
     this.mechanicCooldown = 0;
+    this.worldMechanics = new WorldMechanics(this);
     this.makeCourse();
     this.createWorldMechanics();
 
@@ -93,6 +97,8 @@ export class GameScene extends Phaser.Scene {
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.events.off("granny-land", this.onGrannyLand, this));
     this.createThief();
     this.createFinish();
+    this.runHud = new RunHud(this);
+    this.resultsPanel = new ResultsPanel(this);
     this.createHUD();
     this.createControls();
     this.createReactiveProps();
@@ -428,78 +434,15 @@ export class GameScene extends Phaser.Scene {
   }
 
   createWorldMechanics() {
-    if (this.level.world === 1) return;
-    const labels = {
-      2: ["WIND", 0x58b5c9, "»"],
-      3: ["BAMBOO", 0xe8b84d, "↑"],
-      4: ["TURBO", 0xe95e63, "»"],
-      5: ["MOON LIFT", 0x9c75da, "✦"]
-    };
-    const [label, color, icon] = labels[this.level.world];
-    const spacing = this.level.boss ? 1150 : 1750;
-    for (let x = 1650; x < this.level.length - 600; x += spacing) {
-      const width = this.level.world === 3 ? 180 : 300;
-      this.worldZones.push({ x, width, type: this.level.world });
-      const zone = this.add.rectangle(x, 553, width, 60, color, 0.2).setDepth(4);
-      zone.setStrokeStyle(3, color, 0.65);
-      this.add.text(x, 550, `${icon} ${label}`, textStyle(14, "#fff7df")).setOrigin(0.5).setDepth(5);
-      this.tweens.add({ targets: zone, alpha: 0.38, duration: 600, yoyo: true, repeat: -1 });
-    }
+    this.worldMechanics.createWorldMechanics();
   }
 
   applyLevelGimmick() {
-    const gimmick = this.level.gimmick;
-    if (["rain", "monsoon", "dike"].includes(gimmick)) {
-      for (let i = 0; i < this.performance.rainDrops; i += 1) {
-        const drop = this.add.rectangle(
-          Phaser.Math.Between(0, 1280),
-          Phaser.Math.Between(95, 700),
-          3,
-          Phaser.Math.Between(20, 42),
-          0xd9f5ff,
-          0.48
-        ).setScrollFactor(0).setDepth(45).setAngle(14);
-        this.tweens.add({
-          targets: drop,
-          x: drop.x - 140,
-          y: 760,
-          duration: Phaser.Math.Between(650, 1100),
-          delay: Phaser.Math.Between(0, 900),
-          repeat: -1
-        });
-      }
-      this.granny.runSpeed += 18;
-    }
-    if (["desert", "space", "fireworks"].includes(gimmick)) this.granny.body.setGravityY(-320);
-    if (["freeway", "coaster", "boss-liberty", "boss-maestro"].includes(gimmick)) this.granny.runSpeed += 45;
-    if (["neon", "ghostlights", "mirrors"].includes(gimmick)) {
-      for (let i = 0; i < 16; i += 1) {
-        const light = this.add.image(
-          Phaser.Math.Between(50, 1230),
-          Phaser.Math.Between(120, 510),
-          "sparkle"
-        ).setScrollFactor(0).setDepth(7).setAlpha(0.28).setScale(Phaser.Math.FloatBetween(0.35, 0.8));
-        this.tweens.add({ targets: light, alpha: 0.85, angle: 180, duration: 900 + i * 45, yoyo: true, repeat: -1 });
-      }
-    }
+    this.worldMechanics.applyLevelGimmick();
   }
 
   applyWorldMechanics() {
-    const now = this.time.now;
-    const zone = this.worldZones.find((candidate) => Math.abs(this.granny.x - candidate.x) < candidate.width / 2);
-    if (!zone) return;
-    if (zone.type === 2 && !this.granny.body.blocked.down) {
-      this.granny.setVelocityX(Math.max(this.granny.body.velocity.x, this.granny.runSpeed + 55));
-      this.granny.setAccelerationY(-220);
-    } else if (zone.type === 3 && this.granny.body.blocked.down && now > this.mechanicCooldown) {
-      this.mechanicCooldown = now + 900;
-      this.granny.setVelocityY(-510);
-      sound(this, "jump");
-    } else if (zone.type === 4) {
-      this.granny.setVelocityX(this.granny.runSpeed + 145);
-    } else if (zone.type === 5 && !this.granny.body.blocked.down) {
-      this.granny.setAccelerationY(-520);
-    }
+    this.worldMechanics.applyWorldMechanics();
   }
 
   addPlatform(x, y, width, height, color = this.worldData.ground) {
@@ -564,34 +507,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   createHUD() {
-    const bar = this.add.rectangle(20, 20, 1240, 74, COLORS.ink, 0.9).setOrigin(0).setScrollFactor(0).setDepth(50);
-    bar.setStrokeStyle(3, COLORS.cream, 0.9);
-    this.add.text(48, 56, `${this.level.id}  ${this.level.title}`, textStyle(25, "#fff7df"))
-      .setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
-    this.coinIcon = this.add.image(790, 56, "coin").setScale(0.55).setScrollFactor(0).setDepth(51);
-    this.coinText = this.add.text(825, 58, "0", textStyle(24, "#fff7df")).setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
-    this.treatIcon = this.add.image(900, 56, "treat").setScale(0.48).setScrollFactor(0).setDepth(51);
-    this.treatText = this.add.text(937, 58, "0/3", textStyle(24, "#fff7df")).setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
-    this.timeText = this.add.text(1050, 57, "0:00.0", textStyle(24, "#ffdc61")).setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
-    this.progressBg = this.add.rectangle(20, 94, 1240, 8, 0x2f2335, 0.35).setOrigin(0).setScrollFactor(0).setDepth(50);
-    this.progress = this.add.rectangle(20, 94, 0, 8, COLORS.coral).setOrigin(0).setScrollFactor(0).setDepth(51);
-    this.thiefMarker = this.add.triangle(20, 103, 0, 0, 12, 0, 6, 13, COLORS.yellow)
-      .setOrigin(0.5, 0).setScrollFactor(0).setDepth(52);
-    this.escapeText = this.add.text(650, 58, "THIEF  0:00", textStyle(17, "#ffdc61"))
-      .setOrigin(0.5).setScrollFactor(0).setDepth(52);
-    this.boostText = this.add.text(640, 158, "⚡ HOOK BOOST", textStyle(18, "#fff7df"))
-      .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#41b9ad").setPadding(14, 6).setVisible(false);
-    const fullscreen = pill(this, 1128, 140, 76, 55, "⛶", { fill: COLORS.yellow, size: 22 });
-    fullscreen.setScrollFactor(0).setDepth(55).on("pointerup", () => toggleFullscreen(this));
-    const pause = pill(this, 1210, 140, 76, 55, "Ⅱ", { fill: COLORS.cream, size: 24 });
-    pause.setScrollFactor(0).setDepth(55).on("pointerup", () => this.togglePause());
-    if (this.level.boss) {
-      const boss = this.add.text(640, 120, "★  BOSS RUN · WORLD TROPHY  ★", textStyle(18, "#fff7df"))
-        .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#ec5966").setPadding(16, 6);
-      this.tweens.add({ targets: boss, scale: 1.045, duration: 600, yoyo: true, repeat: -1 });
-      this.bossHealthText = this.add.text(640, 198, "BOSS  ♥ ♥ ♥", textStyle(18, "#fff7df"))
-        .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#4a354e").setPadding(14, 5);
-    }
+    this.runHud.create();
   }
 
   createControls() {
@@ -891,17 +807,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   updateHUD() {
-    this.coinText.setText(String(this.coinsCollected));
-    this.treatText.setText(`${this.treatsCollected}/3`);
-    const minutes = Math.floor(this.elapsed / 60);
-    const seconds = (this.elapsed % 60).toFixed(1).padStart(4, "0");
-    this.timeText.setText(`${minutes}:${seconds}`);
-    this.progress.width = 1240 * Phaser.Math.Clamp(this.granny.x / (this.level.length - 250), 0, 1);
-    const thiefRatio = Phaser.Math.Clamp(this.thiefProgress / (this.level.length - 250), 0, 1);
-    this.thiefMarker.x = 20 + 1240 * thiefRatio;
-    const remaining = Math.max(0, this.escapeLimit - this.elapsed);
-    this.escapeText.setText(`THIEF  ${Math.floor(remaining / 60)}:${Math.ceil(remaining % 60).toString().padStart(2, "0")}`);
-    this.escapeText.setColor(remaining < 8 ? "#ff7180" : "#ffdc61");
+    this.runHud.update();
   }
 
   parallax() {
@@ -1002,142 +908,28 @@ export class GameScene extends Phaser.Scene {
   }
 
   createBossEncounter() {
-    this.bossHealth = 3;
-    this.bossPhase = 0;
-    this.nextBossAttack = this.time.now + 1800;
-    this.bossWeakPoints = this.physics.add.group({ allowGravity: false, immovable: true });
-    this.bossProjectiles = this.physics.add.group({ allowGravity: false });
-    this.physics.add.overlap(this.granny, this.bossWeakPoints, this.hitBoss, undefined, this);
-    this.physics.add.overlap(this.granny, this.bossProjectiles, this.hitByBoss, undefined, this);
-    this.bossPhasePositions = [0.32, 0.59, 0.83].map((ratio) => Math.round(this.level.length * ratio));
-    const colors = [0x6d9b54, 0x53a6b6, 0xd55b68, 0xd06749, 0x8f5ab1];
-    const bossColor = colors[this.level.world - 1];
-    const parts = [
-      this.add.ellipse(0, 15, 190, 125, bossColor).setStrokeStyle(8, COLORS.ink),
-      this.add.circle(-42, -5, 20, 0xfff3d0).setStrokeStyle(5, COLORS.ink),
-      this.add.circle(42, -5, 20, 0xfff3d0).setStrokeStyle(5, COLORS.ink),
-      this.add.circle(-42, -5, 7, 0x2f2335),
-      this.add.circle(42, -5, 7, 0x2f2335),
-      this.add.rectangle(0, 48, 88, 18, 0x34293a).setStrokeStyle(3, 0xffd45f)
-    ];
-    if (this.level.world === 2) {
-      const bladeA = this.add.rectangle(0, -80, 14, 170, 0xfff1d3);
-      const bladeB = this.add.rectangle(0, -80, 14, 170, 0xfff1d3).setAngle(90);
-      const hub = this.add.circle(0, -80, 20, 0xf0b944).setStrokeStyle(5, COLORS.ink);
-      this.tweens.add({ targets: [bladeA, bladeB], angle: "+=360", duration: 1800, repeat: -1 });
-      parts.unshift(bladeA, bladeB, hub);
-    } else if (this.level.world === 3) {
-      parts.push(this.add.triangle(-88, 0, 0, 20, 45, -45, 70, 35, 0xe9c24e));
-      parts.push(this.add.triangle(88, 0, 0, 20, -45, -45, -70, 35, 0xe9c24e));
-    } else if (this.level.world === 4) {
-      parts.push(this.add.triangle(0, -95, -45, 20, 0, -65, 45, 20, 0xe9eef0));
-      parts.push(this.add.triangle(0, 95, -30, -15, 0, 50, 30, -15, 0xffc84e));
-    } else if (this.level.world === 5) {
-      parts.push(this.add.rectangle(0, -82, 100, 30, 0x33243d));
-      parts.push(this.add.rectangle(0, -120, 70, 75, 0x33243d));
-      parts.push(this.add.text(0, 82, "♫", textStyle(36, "#ffdc63")).setOrigin(0.5));
-    }
-    this.bossVisual = this.add.container(this.bossPhasePositions[0] + 250, 320, parts).setDepth(20);
-    this.tweens.add({ targets: this.bossVisual, y: 300, angle: 2.5, duration: 620, yoyo: true, repeat: -1, ease: "Sine.inOut" });
-    this.bossName = this.add.text(this.bossVisual.x, 205, this.bossTitle(), textStyle(18, "#fff7df"))
-      .setOrigin(0.5).setDepth(22).setBackgroundColor("#3b2c40").setPadding(12, 5);
-    this.spawnBossWeakPoint();
+    this.bossEncounter = new BossEncounter(this);
+    this.bossEncounter.create();
   }
 
   bossTitle() {
-    return ["THE HEDGE CRUSHER", "STORMMILL MAX", "NEON DRAGON", "ROCKET BANDIT", "MAESTRO MECH"][this.level.world - 1];
+    return this.bossEncounter?.title() || new BossEncounter(this).title();
   }
 
   spawnBossWeakPoint() {
-    const x = this.bossPhasePositions[this.bossPhase] || this.level.length - 250;
-    const y = [430, 355, 405][this.bossPhase] || 460;
-    const weak = this.bossWeakPoints.create(x, y, "sparkle").setScale(1.8);
-    weak.body.setAllowGravity(false);
-    weak.body.setImmovable(true);
-    weak.setData("phase", this.bossPhase);
-    this.activeWeakPoint = weak;
-    this.tweens.add({ targets: weak, scale: 2.35, angle: 180, duration: 520, yoyo: true, repeat: -1 });
+    this.bossEncounter?.spawnWeakPoint();
   }
 
-  hitBoss(_granny, weak) {
-    if (!weak.active || this.finished) return;
-    weak.disableBody(true, true);
-    this.bossHealth -= 1;
-    this.bossPhase += 1;
-    this.bossHealthText?.setText(`BOSS  ${"♥ ".repeat(this.bossHealth)}${"· ".repeat(3 - this.bossHealth)}`);
-    this.cameras.main.shake(260, 0.013);
-    sound(this, "boss");
-    this.tweens.add({
-      targets: this.bossVisual,
-      x: this.bossVisual.x + 80,
-      angle: 14,
-      scale: 0.82,
-      duration: 110,
-      yoyo: true,
-      ease: "Back.out"
-    });
-    for (let i = 0; i < this.performance.bossSparks; i += 1) {
-      const spark = this.add.image(weak.x, weak.y, "sparkle").setScale(Phaser.Math.FloatBetween(0.2, 0.55)).setDepth(25);
-      this.tweens.add({
-        targets: spark,
-        x: spark.x + Phaser.Math.Between(-120, 120),
-        y: spark.y + Phaser.Math.Between(-100, 80),
-        alpha: 0,
-        angle: Phaser.Math.Between(-180, 180),
-        duration: Phaser.Math.Between(350, 700),
-        onComplete: () => spark.destroy()
-      });
-    }
-    if (this.bossHealth > 0) this.spawnBossWeakPoint();
-    else {
-      this.bossHealthText?.setText("BOSS  DEFEATED!");
-      this.tweens.add({
-        targets: [this.bossVisual, this.bossName],
-        y: 780,
-        angle: 35,
-        alpha: 0,
-        duration: 1100,
-        ease: "Quad.in"
-      });
-    }
+  hitBoss(granny, weak) {
+    this.bossEncounter?.hitBoss(granny, weak);
   }
 
   updateBossEncounter() {
-    if (!this.level.boss || !this.bossVisual || this.bossHealth <= 0) return;
-    const weak = this.activeWeakPoint;
-    if (weak?.active && this.granny.x > weak.x + 180) {
-      weak.setPosition(Math.min(this.level.length - 230, this.granny.x + 300), 470 - this.bossHealth * 25);
-    }
-    const targetX = (weak?.active ? weak.x : this.granny.x + 350) + 230;
-    this.bossVisual.x = Phaser.Math.Linear(this.bossVisual.x, targetX, 0.035);
-    this.bossName.x = this.bossVisual.x;
-    if (this.time.now >= this.nextBossAttack && this.bossVisual.x - this.granny.x < 900) {
-      this.nextBossAttack = this.time.now + Math.max(900, 2100 - this.bossPhase * 320);
-      const texture = ["crate", "tulip-cart", "lantern-gate", "road-barrier", "carnival-drum"][this.level.world - 1];
-      const projectile = this.bossProjectiles.create(this.bossVisual.x - 80, 480 - (this.bossPhase % 2) * 105, texture)
-        .setScale(texture === "crate" ? 0.58 : 0.48);
-      projectile.body.setAllowGravity(false);
-      projectile.setVelocityX(-260 - this.bossPhase * 45);
-      projectile.setAngularVelocity(this.bossPhase % 2 ? -210 : 210);
-      this.time.delayedCall(4200, () => projectile?.destroy());
-      const warning = this.add.text(this.granny.x + 430, 250, "!", textStyle(34, "#fff7df"))
-        .setOrigin(0.5).setDepth(28).setBackgroundColor("#ec5966").setPadding(10, 2);
-      this.tweens.add({ targets: warning, y: 230, alpha: 0, duration: 600, onComplete: () => warning.destroy() });
-    }
+    this.bossEncounter?.update();
   }
 
-  hitByBoss(_granny, projectile) {
-    if (!projectile.active) return;
-    projectile.destroy();
-    this.falls += 1;
-    if (this.falls >= this.maxFalls) {
-      this.lose("falls");
-      return;
-    }
-    this.granny.setVelocity(this.granny.runSpeed * 0.55, -330);
-    this.cameras.main.shake(220, 0.011);
-    this.cameras.main.flash(120, 236, 89, 102);
-    sound(this, "crash");
+  hitByBoss(granny, projectile) {
+    this.bossEncounter?.hitByBoss(granny, projectile);
   }
 
   updateReactiveProps() {
@@ -1338,117 +1130,11 @@ export class GameScene extends Phaser.Scene {
   }
 
   resultPanel(result, firstClear, reward = { type: "none" }) {
-    const shade = this.add.rectangle(640, 360, 1280, 720, 0x2f2335, 0.76).setScrollFactor(0).setDepth(100);
-    const panel = this.add.rectangle(640, 354, 760, 590, COLORS.cream).setScrollFactor(0).setDepth(101);
-    panel.setStrokeStyle(8, COLORS.ink);
-    const rewardLevel = reward.catId ? LEVELS.find((entry) => entry.cat.id === reward.catId) : null;
-    let cat = null;
-    if (rewardLevel) {
-      cat = createCat(this, 640, 220, catFrameForLevel(rewardLevel.id), 0.27).setScrollFactor(0).setDepth(102);
-      this.tweens.add({ targets: cat, y: 205, angle: 4, duration: 500, yoyo: true, repeat: -1 });
-    } else if (reward.type === "catbox-coins") {
-      this.add.image(640, 220, "coin").setScale(1.35).setScrollFactor(0).setDepth(102);
-    } else {
-      this.add.text(640, 220, this.level.boss ? "🏆" : "✓", textStyle(80, "#41a989"))
-        .setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    }
-    const resultTitle = this.level.id === 45
-      ? "GRAND CHASE WON!"
-      : reward.type === "catbox"
-        ? "CATBOX DROP!"
-        : reward.type === "rescue"
-          ? "CAT RESCUED!"
-          : this.level.boss
-            ? "WORLD SAVED!"
-            : "LEVEL CLEAR!";
-    this.add.text(640, 105, resultTitle, textStyle(43, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    const levelsUntilCat = this.level.boss ? 0 : 3 - this.chapterStep;
-    const rescueCopy = reward.type === "catbox" && rewardLevel
-      ? `${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} · ${rewardLevel.cat.name} joined the Cat House!`
-      : reward.type === "catbox-coins"
-        ? `Cat collection full · CatBox converted to ${reward.coins} coins!`
-        : reward.type === "rescue" && rewardLevel
-          ? `${rewardLevel.cat.name} is safe after the three-level chase!`
-          : this.level.boss
-            ? `🏆 ${this.worldData.name} trophy earned · CatBox already claimed.`
-            : firstClear
-              ? `${levelsUntilCat} more level${levelsUntilCat === 1 ? "" : "s"} until the next cat rescue.`
-              : "Level replayed · improve paws, treats and time.";
-    const rewardCopy = this.add.text(640, 287, rescueCopy, textStyle(21, reward.limited ? "#a45ad0" : "#5f4b5d"))
-      .setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    if (reward.type === "catbox" && cat) this.createCatBoxReveal(cat, rewardCopy, reward);
-    this.add.text(640, 337, "🐾".repeat(result.paws) + "·".repeat(3 - result.paws), textStyle(41, "#f2a532"))
-      .setOrigin(0.5).setScrollFactor(0).setDepth(102);
-
-    const stats = [
-      ["COINS", `${result.coins}`],
-      ["TREATS", `${result.treats}/3`],
-      ["TIME", `${result.time.toFixed(1)}s`],
-      ["FALLS", `${result.falls}`]
-    ];
-    stats.forEach(([label, value], index) => {
-      const x = 390 + index * 165;
-      this.add.text(x, 405, label, textStyle(15, "#847486")).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-      this.add.text(x, 441, value, textStyle(27)).setOrigin(0.5).setScrollFactor(0).setDepth(102);
-    });
-
-    const retry = pill(this, 410, 550, 210, 62, "↻  RETRY", { fill: COLORS.cream, size: 21 });
-    const nextLevelId = nextReleasedLevelId(this.level, LEVELS);
-    const nextLabel = nextLevelId ? "NEXT  →" : "WORLD MAP";
-    const next = pill(this, 640, 550, 220, 62, nextLabel, { fill: COLORS.yellow, size: 19 });
-    const home = pill(this, 870, 550, 210, 62, "CAT HOUSE", { fill: COLORS.teal, color: "#fff7df", size: 20 });
-    [retry, next, home].forEach((button) => button.setScrollFactor(0).setDepth(103));
-    retry.on("pointerup", () => this.scene.restart({ levelId: this.level.id }));
-    next.on("pointerup", () => nextLevelId
-      ? this.scene.start("GameScene", { levelId: nextLevelId })
-      : this.scene.start("LevelSelect", { worldId: this.level.world }));
-    home.on("pointerup", () => this.scene.start("CatHouse", { page: this.level.world }));
-    shade.setInteractive();
+    this.resultsPanel.show(result, firstClear, reward);
   }
 
   createCatBoxReveal(cat, rewardCopy, reward) {
-    cat.setVisible(false).setScale(0.05);
-    rewardCopy.setText("Mystery CatBox opening…");
-    const rarityColor = {
-      Common: 0x69b9a7,
-      Uncommon: 0x5d8fce,
-      Rare: 0x9467bd,
-      Legendary: 0xf0b83f
-    }[reward.rarity] || 0x69b9a7;
-    const g = this.add.graphics();
-    g.fillStyle(0x241a2a, 0.24).fillEllipse(0, 52, 180, 28);
-    g.fillStyle(rarityColor).fillRoundedRect(-78, -35, 156, 92, 14);
-    g.lineStyle(6, COLORS.ink).strokeRoundedRect(-78, -35, 156, 92, 14);
-    g.fillStyle(0xffe0a1).fillTriangle(-66, -34, -50, -75, -26, -34)
-      .fillTriangle(26, -34, 50, -75, 67, -34);
-    g.fillStyle(0xfff1c5).fillRoundedRect(-86, -48, 172, 28, 10);
-    g.lineStyle(5, COLORS.ink).strokeRoundedRect(-86, -48, 172, 28, 10);
-    g.fillStyle(0x3b2a40).fillCircle(0, 8, 16)
-      .fillCircle(-20, -7, 9).fillCircle(0, -12, 9).fillCircle(20, -7, 9);
-    const label = this.add.text(0, 38, "CATBOX", textStyle(16, "#fff7df")).setOrigin(0.5);
-    const box = this.add.container(640, 220, [g, label]).setScrollFactor(0).setDepth(105);
-    this.tweens.add({ targets: box, angle: { from: -3, to: 3 }, duration: 95, yoyo: true, repeat: 7 });
-    this.time.delayedCall(900, () => {
-      this.cameras.main.flash(220, 255, 226, 125);
-      box.destroy();
-      cat.setVisible(true);
-      this.tweens.add({ targets: cat, scaleX: 0.27, scaleY: 0.27, duration: 360, ease: "Back.out" });
-      rewardCopy.setText(`${reward.limited ? "LIMITED " : ""}${reward.rarity.toUpperCase()} CAT!`);
-      for (let i = 0; i < 10; i += 1) {
-        const sparkle = this.add.image(640, 220, "sparkle").setScale(0.25).setScrollFactor(0).setDepth(106);
-        const angle = i / 10 * Math.PI * 2;
-        this.tweens.add({
-          targets: sparkle,
-          x: 640 + Math.cos(angle) * 130,
-          y: 220 + Math.sin(angle) * 90,
-          alpha: 0,
-          angle: 180,
-          duration: 700,
-          onComplete: () => sparkle.destroy()
-        });
-      }
-      sound(this, "win");
-    });
+    this.resultsPanel.createCatBoxReveal(cat, rewardCopy, reward);
   }
 
   togglePause() {

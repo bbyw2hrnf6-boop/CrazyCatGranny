@@ -1,4 +1,5 @@
 import { SaveGame } from "../savegame/SaveGame.js";
+import { getTotalCatCount } from "../content/GameContentStats.js";
 import { addPaperTexture, COLORS, coinBadge, pill, textStyle, topBar } from "../ui/ui.js";
 
 const TROPHIES = [
@@ -8,7 +9,7 @@ const TROPHIES = [
   { id: "asia", name: "Lantern Legend", text: "Defeat the Neon Dragon", check: (s) => s.worldTrophies.includes(3) },
   { id: "usa", name: "Coast Hero", text: "Defeat the Rocket Bandit", check: (s) => s.worldTrophies.includes(4) },
   { id: "carnival", name: "Moon Maestro", text: "Defeat Maestro Mech", check: (s) => s.worldTrophies.includes(5) },
-  { id: "all", name: "Full House", text: "Rescue all 45 cats", check: (s) => s.rescuedCats.length >= 45 },
+  { id: "all", name: "Full House", text: `Rescue all ${getTotalCatCount()} cats`, check: (s) => s.rescuedCats.length >= getTotalCatCount() },
   { id: "rich", name: "Coin Purse", text: "Collect 500 coins total", check: (s) => s.totalCoins >= 500 },
   { id: "treats", name: "Snack Attack", text: "Get all treats in a level", check: (s) => Object.values(s.levels).some((l) => l.treats === 3) },
   { id: "clean", name: "Still Got It", text: "Finish without falling", check: (s) => Object.values(s.levels).some((l) => l.noFalls) },

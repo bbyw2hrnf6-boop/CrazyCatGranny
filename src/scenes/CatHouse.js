@@ -1,5 +1,6 @@
 import { LEVELS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
+import { getTotalCatCount, getWorldCount } from "../content/GameContentStats.js";
 import { HAT_ITEMS, HOME_ITEMS, roomPosition } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
@@ -18,7 +19,7 @@ export class CatHouse extends Phaser.Scene {
   }
 
   init(data) {
-    this.page = Phaser.Math.Clamp(data?.page || 1, 1, 5);
+    this.page = Phaser.Math.Clamp(data?.page || 1, 1, getWorldCount());
     this.roomEditing = false;
     this.selectedFurnitureId = null;
     this.draftDecorPositions = null;
@@ -35,7 +36,7 @@ export class CatHouse extends Phaser.Scene {
     topBar(this, "GRANNY'S CAT HOUSE", () => this.scene.start("MainMenu"));
     const badge = coinBadge(this);
     badge.setValue(this.save.coins);
-    this.add.text(715, 112, `${this.save.rescuedCats.length}/45 CATS HOME`, textStyle(18, "#6d596d")).setOrigin(0);
+    this.add.text(715, 112, `${this.save.rescuedCats.length}/${getTotalCatCount()} CATS HOME`, textStyle(18, "#6d596d")).setOrigin(0);
 
     if (this.save.rescuedCats.length === 0) {
       this.add.text(785, 320, "So quiet… too quiet.", textStyle(30, "#725e72")).setOrigin(0.5);
@@ -56,8 +57,8 @@ export class CatHouse extends Phaser.Scene {
     const previous = pill(this, 90, 505, 55, 45, "‹", { fill: COLORS.cream, size: 23 });
     const page = this.add.text(154, 505, `WORLD ${this.page}`, textStyle(15, "#725e72")).setOrigin(0.5);
     const next = pill(this, 235, 505, 55, 45, "›", { fill: COLORS.cream, size: 23 });
-    previous.on("pointerup", () => this.scene.restart({ page: this.page === 1 ? 5 : this.page - 1 }));
-    next.on("pointerup", () => this.scene.restart({ page: this.page === 5 ? 1 : this.page + 1 }));
+    previous.on("pointerup", () => this.scene.restart({ page: this.page === 1 ? getWorldCount() : this.page - 1 }));
+    next.on("pointerup", () => this.scene.restart({ page: this.page === getWorldCount() ? 1 : this.page + 1 }));
     const room = pill(this, 845, 654, 230, 58, "✦  EDIT ROOM", { fill: COLORS.cream, size: 18 });
     room.on("pointerup", () => this.openRoomCustomizer());
     const shop = pill(this, 1100, 654, 245, 58, "🛍  OUTFIT SHOP", { fill: COLORS.yellow, size: 18 });

@@ -1,5 +1,9 @@
-import { LEVELS, WORLDS } from "../levels/levels.js";
+import { WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
+import {
+  getFirstLevelIdForWorld,
+  getLevelsForWorld
+} from "../content/GameContentStats.js";
 import {
   isLevelReleased,
   isLevelUnlocked,
@@ -22,7 +26,7 @@ export class LevelSelect extends Phaser.Scene {
     const save = SaveGame.load();
     this.registry.set("save", save);
     const latestWorld = [...RELEASE_CONFIG.playableWorlds].reverse()
-      .find((worldId) => save.unlockedLevel >= (worldId - 1) * 9 + 1) || RELEASE_CONFIG.playableWorlds[0];
+      .find((worldId) => save.unlockedLevel >= getFirstLevelIdForWorld(worldId)) || RELEASE_CONFIG.playableWorlds[0];
     const requestedWorld = Number(this.requestedWorld || latestWorld);
     this.worldId = isWorldReleased(requestedWorld) ? requestedWorld : latestWorld;
     this.world = WORLDS[this.worldId - 1];
@@ -65,7 +69,7 @@ export class LevelSelect extends Phaser.Scene {
 
   makeWorldTabs(save) {
     WORLDS.forEach((world, index) => {
-      const firstLevel = index * 9 + 1;
+      const firstLevel = getFirstLevelIdForWorld(world.id);
       const released = isWorldReleased(world.id);
       const unlocked = released && save.unlockedLevel >= firstLevel;
       const current = world.id === this.worldId;
@@ -83,7 +87,7 @@ export class LevelSelect extends Phaser.Scene {
       [505, 323], [650, 400], [770, 530],
       [915, 540], [1030, 420], [1162, 265]
     ];
-    const levels = LEVELS.filter((level) => level.world === this.worldId);
+    const levels = getLevelsForWorld(this.worldId);
     levels.forEach((level, index) => {
       const [x, y] = positions[index];
       const released = isLevelReleased(level);

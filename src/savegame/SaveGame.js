@@ -1,5 +1,5 @@
-import { LEVELS } from "../levels/levels.js";
-import { isLevelReleased } from "../config/ReleaseConfig.js";
+import { rollCatBoxReward } from "../content/rewards/RewardCatalog.js";
+import { getBossLevelWorldPairs, getTotalLevelCount, getWorldCount } from "../content/GameContentStats.js";
 import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
 
 const KEY = "crazy-cat-granny-save-v1";
@@ -55,11 +55,11 @@ function clean(data) {
   result.version = SAVE_VERSION;
   result.coins = Math.max(0, Math.floor(Number(result.coins) || 0));
   result.totalCoins = Math.max(result.coins, Math.floor(Number(result.totalCoins) || 0));
-  result.unlockedLevel = Math.min(45, Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
+  result.unlockedLevel = Math.min(getTotalLevelCount(), Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
   result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
   result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
-  result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= 5))];
+  result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
   result.sound = result.sound !== false;
   result.performanceMode = ["auto", "high", "balanced"].includes(result.performanceMode)
     ? result.performanceMode
@@ -69,9 +69,9 @@ function clean(data) {
   if (result.equippedHat !== "none" && !Object.keys(result.hatAssignments).length && result.rescuedCats.length) {
     result.hatAssignments[result.equippedHat] = result.rescuedCats[0];
   }
-  [[9, 1], [18, 2], [27, 3], [36, 4], [45, 5]].forEach(([bossLevel, world]) => {
+  getBossLevelWorldPairs().forEach(([bossLevel, world]) => {
     if (result.levels[bossLevel]?.completed) {
-      result.unlockedLevel = Math.max(result.unlockedLevel, Math.min(45, bossLevel + 1));
+      result.unlockedLevel = Math.max(result.unlockedLevel, Math.min(getTotalLevelCount(), bossLevel + 1));
       if (!result.worldTrophies.includes(world)) result.worldTrophies.push(world);
     }
   });
@@ -164,7 +164,7 @@ export const SaveGame = {
     const earned = result.coins;
     save.coins += earned;
     save.totalCoins += earned;
-    save.unlockedLevel = Math.max(save.unlockedLevel, Math.min(45, level.id + 1));
+    save.unlockedLevel = Math.max(save.unlockedLevel, Math.min(getTotalLevelCount(), level.id + 1));
     let reward = { type: "none" };
     if (firstClear && level.grantsCat && !save.rescuedCats.includes(level.cat.id)) {
       save.rescuedCats.push(level.cat.id);
@@ -176,7 +176,7 @@ export const SaveGame = {
       };
       save.dropHistory.push({ ...reward, levelId: level.id });
     } else if (firstClear && level.grantsCatBox) {
-      reward = rollCatBox(save, level.world);
+      reward = rollCatBoxReward(save, level.world);
       save.catBoxesOpened.push(level.world);
       save.dropHistory.push({ ...reward, levelId: level.id });
     }
@@ -194,7 +194,7 @@ export const SaveGame = {
 
   openCatBox(world, random = Math.random) {
     const save = this.load();
-    const reward = rollCatBox(save, world, random);
+    const reward = rollCatBoxReward(save, world, random);
     save.catBoxesOpened.push(Number(world) || 1);
     save.dropHistory.push({ ...reward, levelId: null });
     this.write(save);
@@ -383,37 +383,3 @@ export const SaveGame = {
     return this.write(save);
   }
 };
-
-function rollCatBox(save, world = 1, random = Math.random) {
-  const available = LEVELS.filter((level) => isLevelReleased(level) && !save.rescuedCats.includes(level.cat.id));
-  if (!available.length) {
-    save.coins += 125;
-    return { type: "catbox-coins", coins: 125 };
-  }
-  const rarityWeight = { Common: 54, Uncommon: 28, Rare: 13, Legendary: 5 };
-  const weighted = available.map((level) => {
-    let weight = rarityWeight[level.cat.rarity] || 10;
-    if (level.cat.limited) weight *= 0.24;
-    if (level.cat.rarity === "Rare") weight *= 1 + Math.max(0, world - 1) * 0.08;
-    if (level.cat.rarity === "Legendary") weight *= 1 + Math.max(0, world - 1) * 0.12;
-    return { level, weight };
-  });
-  const total = weighted.reduce((sum, entry) => sum + entry.weight, 0);
-  let cursor = Math.min(0.999999, Math.max(0, Number(random()) || 0)) * total;
-  let selected = weighted[weighted.length - 1].level;
-  for (const entry of weighted) {
-    cursor -= entry.weight;
-    if (cursor <= 0) {
-      selected = entry.level;
-      break;
-    }
-  }
-  save.rescuedCats.push(selected.cat.id);
-  return {
-    type: "catbox",
-    catId: selected.cat.id,
-    rarity: selected.cat.rarity,
-    limited: selected.cat.limited,
-    sourceWorld: Number(world) || 1
-  };
-}

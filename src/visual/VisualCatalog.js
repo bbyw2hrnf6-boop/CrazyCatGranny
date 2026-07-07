@@ -1,3 +1,5 @@
+import { getLevelsPerWorld, getTotalCatCount, getWorldCount } from "../content/GameContentStats.js";
+
 export const VISUAL_RULES = Object.freeze({
   catFrameSize: 418,
   accessoryFrameSize: 418,
@@ -193,12 +195,13 @@ export function roomPosition(itemId, savedPosition = null) {
 }
 
 export function catVisual(frame = 0) {
-  const safeFrame = Math.max(0, Math.min(44, Number(frame) || 0));
-  const world = Math.floor(safeFrame / 9);
-  const [x, y] = HEAD_ANCHORS[world][safeFrame % 9];
+  const levelsPerWorld = getLevelsPerWorld();
+  const safeFrame = Math.max(0, Math.min(getTotalCatCount() - 1, Number(frame) || 0));
+  const world = Math.floor(safeFrame / levelsPerWorld);
+  const [x, y] = HEAD_ANCHORS[world][safeFrame % levelsPerWorld];
   return {
     texture: `cat-real-${world + 1}`,
-    frame: safeFrame % 9,
+    frame: safeFrame % levelsPerWorld,
     globalFrame: safeFrame,
     anchors: { head: { x, y } }
   };
@@ -206,7 +209,7 @@ export function catVisual(frame = 0) {
 
 export const VISUAL_ASSETS = Object.freeze({
   images: [
-    ...Array.from({ length: 5 }, (_, index) => [`world-bg-${index + 1}`, `assets/backgrounds/world-${index + 1}-hd.png`]),
+    ...Array.from({ length: getWorldCount() }, (_, index) => [`world-bg-${index + 1}`, `assets/backgrounds/world-${index + 1}-hd.png`]),
     ["cat-house-bg", "assets/backgrounds/cat-house-hd.png"],
     ["shop-bg", "assets/backgrounds/shop-hd.png"],
     ["room-wallpaper", "assets/backgrounds/paw-wallpaper.png"],
@@ -215,7 +218,7 @@ export const VISUAL_ASSETS = Object.freeze({
   sheets: [
     ["granny-skate", "assets/sprites/granny-skate.png", 512, 512],
     ["thief-run", "assets/sprites/thief-run.png", 512, 512],
-    ...Array.from({ length: 5 }, (_, index) => [
+    ...Array.from({ length: getWorldCount() }, (_, index) => [
       `cat-real-${index + 1}`,
       `assets/sprites/${index === 0 ? "cat-atlas.png" : `cat-atlas-world${index + 1}.png`}`,
       VISUAL_RULES.catFrameSize,
