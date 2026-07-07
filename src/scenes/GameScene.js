@@ -44,6 +44,9 @@ export class GameScene extends Phaser.Scene {
     this.finishX = this.level.length - 260;
     this.performance = performanceProfile(SaveGame.load().performanceMode);
     this.lastPhysicsCullAt = 0;
+    this.adminTest = Boolean(data?.adminTest);
+    this.adminTimeScale = Phaser.Math.Clamp(Number(data?.adminTimeScale) || 1, 0.1, 1);
+    this.adminHitboxes = Boolean(data?.adminHitboxes);
   }
 
   create() {
@@ -98,6 +101,10 @@ export class GameScene extends Phaser.Scene {
     this.createIntro();
     this.bindKeys();
     this.devTools = new DevTools(this);
+    if (this.adminTest) {
+      this.devTools.setTimeScale(this.adminTimeScale);
+      if (this.adminHitboxes) this.devTools.toggleHitboxes();
+    }
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.devTools?.destroy());
   }
 
@@ -615,6 +622,11 @@ export class GameScene extends Phaser.Scene {
 
   createIntro() {
     this.granny.frozen = true;
+    if (this.adminTest) {
+      this.granny.frozen = false;
+      this.running = true;
+      return;
+    }
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x2f2335, 0.55).setScrollFactor(0).setDepth(90);
     const card = this.add.rectangle(640, 350, 640, 330, COLORS.cream).setScrollFactor(0).setDepth(91);
     card.setStrokeStyle(7, COLORS.ink);
@@ -701,7 +713,13 @@ export class GameScene extends Phaser.Scene {
     if (this.granny?.release()) {
       this.rope?.destroy();
       this.rope = null;
-      this.boostText?.setVisible(true).setAlpha(1);
+      const quality = this.granny.lastHookQuality;
+      const boostLabel = quality > 1.25
+        ? "⚡ PERFECT SWING!"
+        : quality > 0.75
+          ? "⚡ GREAT RELEASE!"
+          : "⚡ HOOK BOOST";
+      this.boostText?.setText(boostLabel).setVisible(true).setAlpha(1);
       this.tweens.add({ targets: this.boostText, alpha: 0, delay: 1250, duration: 500, onComplete: () => this.boostText?.setVisible(false) });
       this.cameras.main.zoomTo(1.018, 100, Phaser.Math.Easing.Quadratic.Out, false, (_camera, progress) => {
         if (progress === 1) this.cameras.main.zoomTo(1, 260, Phaser.Math.Easing.Sine.Out);

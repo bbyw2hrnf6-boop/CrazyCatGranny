@@ -2,11 +2,11 @@
 
 A warm, hand-painted two-button Phaser auto-runner. Skate after the cat thief, jump hazards, swing from cane hooks, collect coins and treats, and bring 45 cats home across five worlds.
 
-The current release runs as a focused vertical slice: World 1 levels 1–5 plus its boss are playable. Later World 1 levels and Worlds 2–5 remain visible as locked future content. Change `src/config/ReleaseConfig.js` to release more completed content without deleting or duplicating its code.
+The current release runs as a focused vertical slice: all World 1 levels 1–9 are playable, including the boss. Worlds 2–5 remain visible as locked future content. Change `src/config/ReleaseConfig.js` to release more completed content without deleting or duplicating its code.
 
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
-All 45 cats remain in the project. The focused release exposes six cats; a cat is rescued after the first three-level chase and the boss grants one weighted CatBox on its first clear. Future cats unlock with their parked levels.
+All 45 cats remain in the project. The focused release exposes the World 1 cats; cats are rescued after three-level chase chapters and the boss grants one weighted CatBox on its first clear. Future cats unlock with their parked worlds.
 
 Rescued cats share a living Cat House where they wander, eat, drink, sleep, play, socialize, watch fish, climb real furniture paths, and meow. The room uses an empty 3D-style architectural shell with separately layered interactive furniture, so visible cat trees, bridges, beds, and seats are usable rather than baked into the background.
 
@@ -32,13 +32,15 @@ Then open `http://localhost:8080`. Phaser loads from jsDelivr.
 - Jump / air-kick: `Space` or `↑`, or the on-screen Jump button
 - Cane: hold `Shift` or `A`, or the on-screen Cane button
 - Pause: `Esc`
+- Settings: use the small gear on the main menu.
+- Admin tools: open the Admin tab in Settings and enter PIN `1702`.
 
 Progress, rescued cats, shop purchases, and best ratings save in browser local storage.
 Save data is versioned, migrated from the old flat format, split into progression/inventory/layout/settings sections, and backed up before every write.
 
 Cat hats are assigned to one selected rescued cat. Cat House furniture is shared by the whole collection. Granny can equip one functional gear item at a time.
 
-Animation and game-feel systems include multi-frame skating and thief run cycles, physical cane momentum, post-swing speed lines, camera weight, render-safe landing feedback, reactive flowers, pooled debris, weather, particles, and layered parallax. The thief advances independently, reacts to Granny, avoids course hazards, and can escape.
+Animation and game-feel systems include multi-frame skating and thief run cycles, signed pendulum cane physics, release-timing momentum, post-swing speed lines, camera weight, render-safe landing feedback, reactive flowers, pooled debris, weather, particles, and layered parallax. The thief advances independently, reacts to Granny, avoids course hazards, and can escape.
 
 ## Technical structure
 
@@ -47,6 +49,7 @@ Animation and game-feel systems include multi-frame skating and thief run cycles
 - `src/levels/CoursePlanner.js` creates reusable, data-driven gaps, hooks, routes, obstacles, coins, and bounce platforms.
 - `src/systems/PerformanceProfile.js` selects high or balanced effects. The main menu also offers a manual quality mode.
 - `src/systems/DevTools.js` provides `F1` telemetry, `F2` hitboxes, `F3` slow motion, and `F4` segment skipping.
+- The PIN-protected Admin panel launches normal, slow-motion and hitbox tests, manages backups, and resets progression, room layout, settings, or the full save separately.
 - Physics for distant collectibles is disabled until it is relevant, while frequently used dust and landing debris are pooled.
 
 ## Visual system

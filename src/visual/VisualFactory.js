@@ -1,4 +1,5 @@
 import {
+  GRANNY_GEAR_ANCHORS,
   HOME_ITEMS,
   VISUAL_RULES,
   catVisual,
@@ -198,9 +199,25 @@ export function createGrannyGear(scene, granny, gearId, depth = 14) {
     .setDepth(depth)
     .setData("visualKind", "granny-gear")
     .setData("itemId", gearId)
+    .setData("depthOffset", depth - (granny.depth || depth))
     .setData("hostBaseScale", granny.baseScale || 0.29);
   syncGrannyGear(visual, granny);
   return visual;
+}
+
+function currentGrannyFrame(granny) {
+  const frameName = granny?.frame?.name;
+  const numericFrame = Number(frameName);
+  return Number.isFinite(numericFrame) ? numericFrame : 0;
+}
+
+function grannyGearAnchor(granny, anchorName = "torso") {
+  const frameAnchors = GRANNY_GEAR_ANCHORS[currentGrannyFrame(granny)] || GRANNY_GEAR_ANCHORS.default;
+  const base = GRANNY_GEAR_ANCHORS.default[anchorName] || GRANNY_GEAR_ANCHORS.default.torso;
+  return {
+    ...base,
+    ...(frameAnchors[anchorName] || {})
+  };
 }
 
 export function syncGrannyGear(visual, granny) {
@@ -211,16 +228,19 @@ export function syncGrannyGear(visual, granny) {
   const ratioX = Math.abs(granny.scaleX) / baseScale;
   const ratioY = Math.abs(granny.scaleY) / baseScale;
   const anchorScale = (ratioX + ratioY) * 0.5;
+  const anchor = grannyGearAnchor(granny, look.granny.anchor);
+  const flip = granny.flipX ? -1 : 1;
   const radians = Phaser.Math.DegToRad(granny.angle);
-  const anchorX = look.granny.x * anchorScale;
-  const anchorY = look.granny.y * anchorScale;
+  const anchorX = (anchor.x + look.granny.x) * anchorScale * flip;
+  const anchorY = (anchor.y + look.granny.y) * anchorScale;
   const x = anchorX * Math.cos(radians) - anchorY * Math.sin(radians);
   const y = anchorX * Math.sin(radians) + anchorY * Math.cos(radians);
   visual.setPosition(granny.x + x, granny.y + y);
-  visual.setScale(look.granny.scale * ratioX, look.granny.scale * ratioY);
-  visual.setAngle(granny.angle + look.granny.angle);
+  visual.setScale(look.granny.scale * ratioX * anchor.scale, look.granny.scale * ratioY * anchor.scale);
+  visual.setAngle(granny.angle + (anchor.angle + look.granny.angle) * flip);
   visual.setFlipX(granny.flipX);
   visual.setAlpha(granny.alpha);
   visual.setVisible(granny.visible);
+  visual.setDepth((granny.depth || 0) + (visual.getData("depthOffset") ?? 1));
   visual.setScrollFactor(granny.scrollFactorX, granny.scrollFactorY);
 }

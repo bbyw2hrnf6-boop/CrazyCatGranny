@@ -4,6 +4,9 @@ import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
 
 const KEY = "crazy-cat-granny-save-v1";
 const BACKUP_KEY = `${KEY}-backup`;
+const BACKUP_TIME_KEY = `${BACKUP_KEY}-time`;
+const MANUAL_BACKUP_KEY = `${KEY}-manual-backup`;
+const MANUAL_BACKUP_TIME_KEY = `${MANUAL_BACKUP_KEY}-time`;
 const SAVE_VERSION = 2;
 
 const defaults = {
@@ -142,7 +145,10 @@ export const SaveGame = {
   write(data) {
     const current = localStorage.getItem(KEY);
     try {
-      if (parseStored(current)) localStorage.setItem(BACKUP_KEY, current);
+      if (parseStored(current)) {
+        localStorage.setItem(BACKUP_KEY, current);
+        localStorage.setItem(BACKUP_TIME_KEY, String(Date.now()));
+      }
     } catch {
       // Never replace a good backup with corrupt primary data.
     }
@@ -310,6 +316,7 @@ export const SaveGame = {
   reset() {
     localStorage.removeItem(KEY);
     localStorage.removeItem(BACKUP_KEY);
+    localStorage.removeItem(BACKUP_TIME_KEY);
     return this.load();
   },
 
@@ -325,6 +332,55 @@ export const SaveGame = {
     } catch {
       return false;
     }
+  },
+
+  createManualBackup() {
+    localStorage.setItem(MANUAL_BACKUP_KEY, this.exportBackup());
+    localStorage.setItem(MANUAL_BACKUP_TIME_KEY, String(Date.now()));
+    return this.backupStatus();
+  },
+
+  restoreManualBackup() {
+    return this.restoreBackup(localStorage.getItem(MANUAL_BACKUP_KEY));
+  },
+
+  backupStatus() {
+    const stamp = (key) => {
+      const value = Number(localStorage.getItem(key));
+      return value > 0 ? new Date(value).toISOString() : null;
+    };
+    return {
+      automatic: Boolean(localStorage.getItem(BACKUP_KEY)),
+      automaticAt: stamp(BACKUP_TIME_KEY),
+      manual: Boolean(localStorage.getItem(MANUAL_BACKUP_KEY)),
+      manualAt: stamp(MANUAL_BACKUP_TIME_KEY)
+    };
+  },
+
+  resetSection(section) {
+    const save = this.load();
+    if (section === "progression") {
+      Object.assign(save, {
+        coins: 0,
+        totalCoins: 0,
+        unlockedLevel: 1,
+        rescuedCats: [],
+        levels: {},
+        worldTrophies: [],
+        catBoxesOpened: [],
+        dropHistory: [],
+        selectedCat: null
+      });
+    } else if (section === "layout") {
+      save.activeDecor = save.owned.filter((id) => HOME_ITEM_IDS.includes(id));
+      save.decorPositions = {};
+    } else if (section === "settings") {
+      save.sound = defaults.sound;
+      save.performanceMode = defaults.performanceMode;
+    } else {
+      return false;
+    }
+    return this.write(save);
   }
 };
 

@@ -52,12 +52,16 @@ export class DevTools {
   }
 
   toggleSlowMotion() {
-    this.slowMotion = !this.slowMotion;
-    const scale = this.slowMotion ? 0.35 : 1;
+    this.setTimeScale(this.slowMotion ? 1 : 0.35);
+  }
+
+  setTimeScale(scale = 1) {
+    scale = Phaser.Math.Clamp(Number(scale) || 1, 0.1, 1);
+    this.slowMotion = scale < 1;
     this.scene.time.timeScale = scale;
     this.scene.tweens.timeScale = scale;
     this.scene.anims.globalTimeScale = scale;
-    this.scene.physics.world.timeScale = this.slowMotion ? 2.85 : 1;
+    this.scene.physics.world.timeScale = 1 / scale;
     this.setVisible(true);
   }
 
@@ -81,7 +85,7 @@ export class DevTools {
   }
 
   destroy() {
-    if (this.slowMotion) this.toggleSlowMotion();
+    if (this.slowMotion) this.setTimeScale(1);
     this.overlay.destroy();
     this.help.destroy();
   }

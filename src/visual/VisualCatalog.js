@@ -7,6 +7,32 @@ export const VISUAL_RULES = Object.freeze({
   shadowAlpha: 0.16
 });
 
+export const GRANNY_FRAME_SIZE = 512;
+
+export const GRANNY_GEAR_ANCHORS = Object.freeze({
+  default: {
+    head: { x: 0, y: -186, angle: 0, scale: 1 },
+    torso: { x: 30, y: 18, angle: 0, scale: 1 },
+    hand: { x: 56, y: -10, angle: 0, scale: 1 }
+  },
+  0: {
+    head: { x: -4, y: -188, angle: -3, scale: 1 },
+    torso: { x: 29, y: 18, angle: -1, scale: 1 }
+  },
+  1: {
+    head: { x: 4, y: -194, angle: 3, scale: 1.02 },
+    torso: { x: 32, y: 15, angle: 2, scale: 1.01 }
+  },
+  2: {
+    head: { x: 2, y: -190, angle: 1, scale: 1 },
+    torso: { x: 31, y: 17, angle: 0, scale: 1 }
+  },
+  3: {
+    head: { x: 10, y: -184, angle: 8, scale: 1.01 },
+    torso: { x: 35, y: 22, angle: 6, scale: 1 }
+  }
+});
+
 const HEAD_ANCHORS = [
   [[-76, -137], [-73, -139], [-73, -138], [-79, -139], [-72, -134], [-75, -138], [-76, -136], [-70, -136], [-75, -137]],
   [[-98, -148], [4, -91], [-124, -143], [-76, -139], [-102, -154], [-140, -142], [-103, -148], [-102, -145], [-140, -143]],
@@ -107,19 +133,19 @@ const furniture = [
 const gear = [
   {
     id: "helmetBoost", name: "Crash Helmet", icon: "⛑", price: 45, color: 0xf1b63b, frame: 0,
-    detail: "Faster recovery", granny: { x: 0, y: -54, scale: 0.095, angle: 0 }
+    detail: "Faster recovery", granny: { anchor: "head", x: 0, y: 0, scale: 0.095, angle: 0 }
   },
   {
     id: "bananaBoost", name: "Banana Belt", icon: "⌣", price: 55, color: 0xffd34d, frame: 1,
-    detail: "Slows the thief", granny: { x: 34, y: 12, scale: 0.078, angle: -12 }
+    detail: "Slows the thief", granny: { anchor: "torso", x: 2, y: -6, scale: 0.078, angle: -12 }
   },
   {
     id: "magnetBoost", name: "Coin Magnet", icon: "∩", price: 100, color: 0xeb6067, frame: 2,
-    detail: "Pulls nearby coins", granny: { x: 35, y: 7, scale: 0.09, angle: 10 }
+    detail: "Pulls nearby coins", granny: { anchor: "torso", x: 4, y: -10, scale: 0.09, angle: 10 }
   },
   {
     id: "yarnBoost", name: "Turbo Yarn", icon: "●", price: 80, color: 0x7b4d86, frame: 3,
-    detail: "Faster skates", granny: { x: 35, y: 5, scale: 0.085, angle: 0 }
+    detail: "Faster skates", granny: { anchor: "torso", x: 2, y: -8, scale: 0.085, angle: 0 }
   }
 ].map((item) => ({
   ...item,

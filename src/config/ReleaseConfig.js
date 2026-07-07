@@ -1,7 +1,7 @@
 export const RELEASE_CONFIG = Object.freeze({
   mode: "vertical-slice",
   playableWorlds: Object.freeze([1]),
-  playableLevelIds: Object.freeze([1, 2, 3, 4, 5, 9])
+  playableLevelIds: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9])
 });
 
 export function isWorldReleased(worldId) {

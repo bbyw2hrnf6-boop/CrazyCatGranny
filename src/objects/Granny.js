@@ -25,6 +25,8 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.airKickAvailable = true;
     this.lastGrounded = scene.time.now;
     this.hookBoostUntil = 0;
+    this.hookBoostAmount = tuning.hookBoost;
+    this.lastHookQuality = 0;
     this.baseScale = tuning.scale;
     this.wasGrounded = false;
     this.skateTime = 0;
@@ -43,7 +45,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.skateTime += delta;
     const tuning = PHYSICS_TUNING.player;
     const startBlend = Phaser.Math.Easing.Sine.InOut(Phaser.Math.Clamp(this.skateTime / tuning.startBlendMs, 0, 1));
-    const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + tuning.hookBoost : this.runSpeed;
+    const boostedSpeed = this.scene.time.now < this.hookBoostUntil ? this.runSpeed + this.hookBoostAmount : this.runSpeed;
     const launchSpeed = boostedSpeed * Phaser.Math.Linear(0.72, 1, startBlend);
     this.setVelocityX(Math.max(this.body.velocity.x, launchSpeed));
     const cadence = Phaser.Math.Linear(0.32, 0.82, startBlend);
@@ -98,7 +100,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.swingAngle = Math.atan2(dy, dx);
     const tangentVelocity = this.body.velocity.x * -Math.sin(this.swingAngle)
       + this.body.velocity.y * Math.cos(this.swingAngle);
-    this.swingAngularVelocity = Phaser.Math.Clamp(tangentVelocity / this.swingRadius, 0.9, 4.2);
+    this.swingAngularVelocity = Phaser.Math.Clamp(tangentVelocity / this.swingRadius, -4.4, 4.4);
     this.isSwinging = true;
     this.anims.pause();
     this.setFrame(3);
@@ -109,12 +111,16 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
 
   swing(delta) {
     if (!this.isSwinging || !this.hook) return;
-    const step = Math.min(delta / 1000, 0.035);
-    const gravityTorque = (1080 / this.swingRadius) * Math.cos(this.swingAngle);
-    this.swingAngularVelocity += gravityTorque * step;
-    this.swingAngularVelocity *= 0.997;
-    this.swingAngularVelocity = Phaser.Math.Clamp(this.swingAngularVelocity, -4.4, 4.4);
-    this.swingAngle += this.swingAngularVelocity * step;
+    let remaining = Math.min(delta / 1000, 0.05);
+    while (remaining > 0) {
+      const step = Math.min(remaining, 1 / 120);
+      const gravityTorque = (PHYSICS_TUNING.gravity / this.swingRadius) * Math.cos(this.swingAngle);
+      this.swingAngularVelocity += gravityTorque * step;
+      this.swingAngularVelocity *= Math.pow(0.997, step * 60);
+      this.swingAngularVelocity = Phaser.Math.Clamp(this.swingAngularVelocity, -4.8, 4.8);
+      this.swingAngle += this.swingAngularVelocity * step;
+      remaining -= step;
+    }
     this.x = this.hook.x + Math.cos(this.swingAngle) * this.swingRadius;
     this.y = this.hook.y + Math.sin(this.swingAngle) * this.swingRadius;
     this.setAngle(Phaser.Math.RadToDeg(this.swingAngle) + 10);
@@ -122,16 +128,20 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
 
   release() {
     if (!this.isSwinging) return false;
-    const tangent = Phaser.Math.Clamp(Math.abs(this.swingAngularVelocity * this.swingRadius), this.runSpeed, 720);
-    const direction = Math.sign(this.swingAngularVelocity) || 1;
+    const tangentSpeed = this.swingAngularVelocity * this.swingRadius;
+    const rawVelocityX = -Math.sin(this.swingAngle) * tangentSpeed;
+    const rawVelocityY = Math.cos(this.swingAngle) * tangentSpeed;
+    const quality = Phaser.Math.Clamp(rawVelocityX / this.runSpeed, 0, 1.65);
     this.body.allowGravity = true;
     this.isSwinging = false;
     this.setVelocity(
-      -Math.sin(this.swingAngle) * tangent * direction + 90,
-      Math.cos(this.swingAngle) * tangent * direction
+      Phaser.Math.Clamp(Math.max(this.runSpeed * 0.48, rawVelocityX + 55), 0, 720),
+      Phaser.Math.Clamp(rawVelocityY, -760, 760)
     );
     this.hook = null;
-    this.hookBoostUntil = this.scene.time.now + PHYSICS_TUNING.player.hookBoostMs;
+    this.lastHookQuality = quality;
+    this.hookBoostAmount = 55 + quality * 75;
+    this.hookBoostUntil = this.scene.time.now + 850 + quality * 600;
     this.play("granny-skating", true);
     return true;
   }
