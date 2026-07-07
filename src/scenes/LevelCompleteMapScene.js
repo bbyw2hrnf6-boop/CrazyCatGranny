@@ -171,7 +171,6 @@ export class LevelCompleteMapScene extends Phaser.Scene {
       .setBackgroundColor("#fff7dfdd")
       .setPadding(10, 4)
       .setAlpha(0);
-    sound(this, "meow2");
     this.tweens.add({ targets: popup, scale: 1, duration: 360, ease: "Back.out" });
     this.tweens.add({ targets: glow, scale: 1, duration: 420, ease: "Back.out" });
     this.tweens.add({ targets: rays, alpha: 1, angle: 24, duration: 420, ease: "Sine.out" });

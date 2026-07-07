@@ -427,7 +427,6 @@ export class GameScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         if (!this.running || this.finished || !this.cageCat?.visible) return;
-        sound(this, Math.random() > 0.45 ? "meow2" : "chirp");
         this.tweens.add({
           targets: this.cageCat,
           y: this.cageCat.y - 6,
@@ -517,7 +516,6 @@ export class GameScene extends Phaser.Scene {
       pieces.forEach((piece) => piece.destroy());
       this.granny.frozen = false;
       this.running = true;
-      sound(this, "meow");
       sound(this, "jump");
     });
   }

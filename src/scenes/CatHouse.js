@@ -33,6 +33,7 @@ export class CatHouse extends Phaser.Scene {
     this.editorLabels = null;
     this.editorParts = null;
     this.referenceParts = null;
+    this.nextCatVoiceAt = 0;
   }
 
   create() {
@@ -54,7 +55,7 @@ export class CatHouse extends Phaser.Scene {
     } else {
       this.placeCats();
       this.time.addEvent({
-        delay: 8400,
+        delay: 18000,
         loop: true,
         callback: () => this.ambientCatMoment()
       });
@@ -442,7 +443,7 @@ export class CatHouse extends Phaser.Scene {
     } else {
       this.routeCatToBehavior(agent, time, index, "poop");
     }
-    if (Math.random() > 0.985) this.catSpeaks(agent, "meow!", "meow", 1200);
+    if (Math.random() > 0.995) this.catSpeaks(agent, "meow!", "meow", 1200);
   }
 
   routeCatToBehavior(agent, time, index, behavior) {
@@ -591,12 +592,12 @@ export class CatHouse extends Phaser.Scene {
     const duration = durations[agent.state] || Phaser.Math.Between(10000, 22000);
     agent.nextChange = time + duration;
     this.showActivityProp(agent);
-    if (agent.state === "eat" && Math.random() > 0.35) this.catSpeaks(agent, "yum", "purr", 1700);
+    if (agent.state === "eat" && Math.random() > 0.75) this.catSpeaks(agent, "yum", "purr", 1700);
     if (agent.state === "drink" && Math.random() > 0.55) this.catSpeaks(agent, "sip", null, 1500);
-    if (agent.state === "play" && Math.random() > 0.25) this.catSpeaks(agent, "mrrp!", "meow2", 1600);
-    if (agent.state === "social" && Math.random() > 0.3) this.catSpeaks(agent, "prrr", "purr", 1700);
-    if (agent.state === "watch" && Math.random() > 0.35) this.catSpeaks(agent, "!", "meow", 1400);
-    if (agent.state === "sleep") this.catSpeaks(agent, "Z z z", "purr", duration);
+    if (agent.state === "play" && Math.random() > 0.7) this.catSpeaks(agent, "mrrp!", "meow2", 1600);
+    if (agent.state === "social" && Math.random() > 0.75) this.catSpeaks(agent, "prrr", "purr", 1700);
+    if (agent.state === "watch" && Math.random() > 0.85) this.catSpeaks(agent, "!", "meow", 1400);
+    if (agent.state === "sleep" && Math.random() > 0.85) this.catSpeaks(agent, "Z z z", "purr", duration);
     if (agent.state === "poop") this.dropCatLitter(agent);
   }
 
@@ -717,7 +718,10 @@ export class CatHouse extends Phaser.Scene {
       .setBackgroundColor("#fff7dfdd")
       .setPadding(7, 3);
     agent.bubbleUntil = this.time.now + duration;
-    if (kind) sound(this, kind);
+    if (kind && this.time.now >= this.nextCatVoiceAt) {
+      this.nextCatVoiceAt = this.time.now + Phaser.Math.Between(6500, 11000);
+      sound(this, kind);
+    }
   }
 
   clearCatBubble(agent) {
@@ -738,7 +742,7 @@ export class CatHouse extends Phaser.Scene {
     this.catSpeaks(
       agent,
       Math.random() > 0.28 ? "meow!" : "mrrp",
-      Math.random() > 0.35 ? "meow" : "purr",
+      Math.random() > 0.65 ? "meow" : "purr",
       1500
     );
   }

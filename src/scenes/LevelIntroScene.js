@@ -77,7 +77,6 @@ export class LevelIntroScene extends Phaser.Scene {
       duration: 1400,
       ease: "Sine.inOut",
       onComplete: () => {
-        sound(this, "meow");
         title.setText("He snatches the cat!");
         this.tweens.add({
           targets: cat,

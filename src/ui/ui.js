@@ -155,6 +155,7 @@ export function sound(scene, kind = "coin") {
 }
 
 function playRecordedCatSound(scene, kind) {
+  if (scene.scene?.key !== "CatHouse") return false;
   const audioKey = {
     meow: "cat-meow-real",
     meow2: "cat-meow-real",
@@ -165,9 +166,9 @@ function playRecordedCatSound(scene, kind) {
   const nextAllowedAt = scene.registry.get(`audio-cooldown-${audioKey}`) || 0;
   if (now < nextAllowedAt) return true;
   try {
-    scene.registry.set(`audio-cooldown-${audioKey}`, now + (kind === "purr" ? 900 : 260));
+    scene.registry.set(`audio-cooldown-${audioKey}`, now + (kind === "purr" ? 4200 : 6500));
     scene.sound.play(audioKey, {
-      volume: kind === "purr" ? 0.16 : 0.42,
+      volume: kind === "purr" ? 0.055 : 0.12,
       rate: kind === "meow2" ? Phaser.Math.FloatBetween(1.08, 1.22) : Phaser.Math.FloatBetween(0.92, 1.08),
       detune: Phaser.Math.Between(-90, 90)
     });
@@ -179,6 +180,7 @@ function playRecordedCatSound(scene, kind) {
 
 function playSoftCatFallback(scene, kind) {
   if (!["meow", "meow2", "purr"].includes(kind)) return false;
+  if (scene.scene?.key !== "CatHouse") return true;
   const context = scene.sound?.context;
   if (!context) return true;
   if (context.state === "suspended") context.resume();
