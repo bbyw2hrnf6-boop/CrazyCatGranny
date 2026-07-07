@@ -38,14 +38,28 @@ const GIMMICK_TEXTURES = Object.freeze({
   maze: ["glass", "carnival-drum"]
 });
 
+const HOOK_HEAVY_GIMMICKS = Object.freeze([
+  "cane",
+  "hooks",
+  "windmill",
+  "harbor",
+  "lanterns",
+  "dragon",
+  "canyon",
+  "freeway",
+  "coaster",
+  "maze"
+]);
+
 export function planCourse(level) {
   const gaps = planGaps(level);
-  const raised = planRaised(level, gaps);
-  const hooks = planHooks(level, gaps);
   const obstacles = planObstacles(level, gaps);
+  const hooks = planHooks(level, gaps, obstacles);
+  const swingZones = planSwingZones(gaps, hooks);
+  const raised = planRaised(level, gaps, swingZones);
   const coins = planCoins(level, gaps, raised, obstacles.map((entry) => entry.x));
-  const awnings = planAwnings(level, gaps);
-  return { gaps, raised, hooks, obstacles, coins, awnings };
+  const awnings = planAwnings(level, gaps, swingZones);
+  return { gaps, raised, hooks, obstacles, coins, awnings, swingZones };
 }
 
 function planGaps(level) {
@@ -55,7 +69,7 @@ function planGaps(level) {
   const stride = 1260 - level.world * 34 - Math.min(135, chapter * 14);
   for (let x = 1020, index = 0; x < level.length - 920; x += stride, index += 1) {
     const hookEvery = level.world >= 4 ? 2 : level.world >= 2 ? 3 : 4;
-    const hookGimmick = ["cane", "hooks", "windmill", "harbor", "lanterns", "dragon", "canyon", "maze"].includes(level.gimmick);
+    const hookGimmick = HOOK_HEAVY_GIMMICKS.includes(level.gimmick);
     const required = index > 0 && (hookGimmick || level.world >= 3) && (index + level.id + chapter) % hookEvery === 0;
     const regularWidth = 142 + Math.min(70, level.world * 9 + chapter * 5) + ((index + level.world) % 2) * 18;
     const hookWidth = Math.min(470, 352 + level.world * 20 + chapter * 7);
@@ -64,7 +78,7 @@ function planGaps(level) {
   return gaps;
 }
 
-function planRaised(level, gaps) {
+function planRaised(level, gaps, swingZones = []) {
   const raised = [];
   const chapter = (level.id - 1) % getLevelsPerWorld();
   const stride = 760 + Math.max(0, 3 - level.world) * 25;
@@ -72,34 +86,71 @@ function planRaised(level, gaps) {
     const width = 185 + ((index + level.world) % 3) * 34 + Math.min(38, chapter * 4);
     const y = 482 - ((index + level.world) % 3) * 48;
     const blocksRequiredSwing = gaps.some(([start, end, required]) => required && x < end + 210 && x + width > start - 170);
+    const blocksPurposeHook = overlapsSwingZone(x, x + width, swingZones);
     const crowdsLanding = gaps.some(([start, end]) => x < end + 165 && x + width > end + 25);
     const crowdsTakeoff = gaps.some(([start]) => x < start - 25 && x + width > start - 175);
-    if (!blocksRequiredSwing && !crowdsLanding && !crowdsTakeoff) raised.push([x, y, width]);
+    if (!blocksRequiredSwing && !blocksPurposeHook && !crowdsLanding && !crowdsTakeoff) raised.push([x, y, width]);
   }
   const finish = [level.length - 820, 398, 295];
   const finishBlocked = gaps.some(([start, end, required]) => required
     && finish[0] < end + 190 && finish[0] + finish[2] > start - 150);
-  if (!finishBlocked) raised.push(finish);
+  const finishBlocksHook = overlapsSwingZone(finish[0], finish[0] + finish[2], swingZones);
+  if (!finishBlocked && !finishBlocksHook) raised.push(finish);
   return raised;
 }
 
-function planHooks(level, gaps) {
-  const hooks = level.id === 1 ? [{ x: 3380, y: 265, required: false }] : [];
-  if (level.id > 1) {
-    for (let x = 1180; x < level.length - 760; x += 1600 - level.world * 65) {
-      const crowdsGap = gaps.some(([start, end, required]) => !required && x > start - 130 && x < end + 190);
-      if (!crowdsGap) hooks.push({ x, y: 238 + (hooks.length % 2) * 28, required: false });
-    }
-  }
+function planHooks(level, gaps, obstacles = []) {
+  const hooks = [];
   gaps.forEach(([start, end, required], index) => {
     if (!required) return;
     const x = start + (end - start) * 0.5;
-    const existing = hooks.find((point) => Math.abs(point.x - x) < 170);
-    const patch = { x, y: 292 + (index % 2) * 20, required: true };
-    if (existing) Object.assign(existing, patch);
-    else hooks.push(patch);
+    hooks.push({
+      x,
+      y: 292 + (index % 2) * 20,
+      required: true,
+      reason: "gap",
+      zone: [start - 130, end + 210]
+    });
+  });
+  obstacles.forEach((obstacle, index) => {
+    if (!shouldAddObstacleHook(level, obstacle, hooks, index)) return;
+    hooks.push({
+      x: obstacle.x + (index % 2 ? -18 : 18),
+      y: 238 + ((index + level.world) % 3) * 22,
+      required: false,
+      reason: "obstacle",
+      zone: [obstacle.x - 190, obstacle.x + 235]
+    });
   });
   return hooks.sort((a, b) => a.x - b.x);
+}
+
+function shouldAddObstacleHook(level, obstacle, hooks, index) {
+  if (level.id === 1) return false;
+  const nearGapHook = hooks.some((hook) => obstacle.x > hook.zone[0] - 90 && obstacle.x < hook.zone[1] + 150);
+  if (nearGapHook) return false;
+  const nearHook = hooks.some((hook) => Math.abs(hook.x - obstacle.x) < 520);
+  if (nearHook) return false;
+  const hookHeavy = HOOK_HEAVY_GIMMICKS.includes(level.gimmick);
+  const cadence = level.world >= 3 || hookHeavy ? 1 : 2;
+  const previousHookX = hooks
+    .filter((hook) => hook.x < obstacle.x)
+    .reduce((max, hook) => Math.max(max, hook.x), 0);
+  const hookSpacing = hookHeavy ? 1280 : level.world >= 2 ? 1280 : 1900;
+  const restoresMomentum = obstacle.x - previousHookX > hookSpacing;
+  const startsRouteCleanly = previousHookX === 0 && obstacle.x < 1700;
+  return startsRouteCleanly || restoresMomentum || (index + level.id) % cadence === 0;
+}
+
+function planSwingZones(gaps, hooks) {
+  return hooks.map((hook) => {
+    if (hook.reason === "gap") {
+      const gap = gaps.find(([start, end, required]) => required && hook.x > start && hook.x < end);
+      if (gap) return { start: gap[0] - 185, end: gap[1] + 245, reason: "gap" };
+    }
+    const [start, end] = hook.zone || [hook.x - 190, hook.x + 230];
+    return { start, end, reason: hook.reason || "hook" };
+  });
 }
 
 function planObstacles(level, gaps) {
@@ -136,14 +187,19 @@ function planCoins(level, gaps, raised, obstacleXs) {
   return coins;
 }
 
-function planAwnings(level, gaps) {
+function planAwnings(level, gaps, swingZones = []) {
   if (level.id <= 3) return [];
   const awnings = [];
   for (let x = 1700; x < level.length - 760; x += 2050) {
     const width = 205 + ((x / 50 + level.id) % 2) * 35;
     const blocksHook = gaps.some(([start, end, required]) => required && x < end + 210 && x + width > start - 190);
+    const blocksPurposeHook = overlapsSwingZone(x, x + width, swingZones);
     const crowdsLanding = gaps.some(([, end]) => x < end + 150 && x + width > end + 20);
-    if (!blocksHook && !crowdsLanding) awnings.push({ x, y: 505, width });
+    if (!blocksHook && !blocksPurposeHook && !crowdsLanding) awnings.push({ x, y: 505, width });
   }
   return awnings;
+}
+
+function overlapsSwingZone(start, end, swingZones) {
+  return swingZones.some((zone) => start < zone.end && end > zone.start);
 }

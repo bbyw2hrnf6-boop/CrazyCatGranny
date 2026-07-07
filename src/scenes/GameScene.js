@@ -404,9 +404,13 @@ export class GameScene extends Phaser.Scene {
       const hook = this.add.image(point.x, point.y, "hook").setDepth(8);
       hook.setData("used", false);
       hook.setData("required", point.required);
+      hook.setData("reason", point.reason || "gap");
       if (point.required) {
         hook.setScale(1.12).setTint(0xffe17a);
         this.tweens.add({ targets: hook, scale: 1.22, duration: 650, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      } else if (point.reason === "obstacle") {
+        hook.setScale(1.04).setTint(0x9ff3e6);
+        this.tweens.add({ targets: hook, y: hook.y - 5, duration: 820, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       }
       this.hooks.add(hook);
     });

@@ -7,6 +7,7 @@ import {
 } from "../src/content/GameContentStats.js";
 import { LEVELS, WORLDS } from "../src/content/levels/levelRegistry.js";
 import { RELEASE_CONFIG } from "../src/config/ReleaseConfig.js";
+import { planCourse } from "../src/levels/CoursePlanner.js";
 
 const errors = [];
 const unique = (values) => new Set(values).size === values.length;
@@ -34,9 +35,50 @@ LEVELS.filter((level) => level.boss).forEach((level) => {
   }
 });
 
+LEVELS.forEach((level) => {
+  const course = planCourse(level);
+  course.gaps.filter(([, , required]) => required).forEach(([start, end]) => {
+    const hook = course.hooks.find((point) => point.reason === "gap" && point.required && point.x > start && point.x < end);
+    if (!hook) errors.push(`Level ${level.id} has a required grapple gap without a matching hook.`);
+  });
+
+  course.hooks.forEach((hook) => {
+    if (hook.reason === "gap") {
+      const matchingGap = course.gaps.find(([start, end, required]) => required && hook.x > start && hook.x < end);
+      if (!matchingGap) errors.push(`Level ${level.id} has a gap hook that is not inside a required gap.`);
+      return;
+    }
+
+    if (hook.reason === "obstacle") {
+      const matchingObstacle = course.obstacles.find((obstacle) => Math.abs(obstacle.x - hook.x) <= 36);
+      if (!matchingObstacle) errors.push(`Level ${level.id} has an obstacle hook without a nearby obstacle.`);
+      return;
+    }
+
+    errors.push(`Level ${level.id} has a hook without a gameplay reason.`);
+  });
+
+  course.swingZones.forEach((zone) => {
+    course.raised.forEach(([x, , width]) => {
+      if (overlaps(x, x + width, zone.start, zone.end)) {
+        errors.push(`Level ${level.id} has a raised platform blocking a ${zone.reason} swing zone.`);
+      }
+    });
+    course.awnings.forEach(({ x, width }) => {
+      if (overlaps(x, x + width, zone.start, zone.end)) {
+        errors.push(`Level ${level.id} has an awning blocking a ${zone.reason} swing zone.`);
+      }
+    });
+  });
+});
+
 if (errors.length) {
   console.error(errors.map((error) => `- ${error}`).join("\n"));
   process.exit(1);
 }
 
 console.log(`Content validation passed: ${LEVELS.length} levels, ${CAT_CATALOG.length} cats, ${BOSS_DEFINITIONS.length} bosses.`);
+
+function overlaps(startA, endA, startB, endB) {
+  return startA < endB && endA > startB;
+}
