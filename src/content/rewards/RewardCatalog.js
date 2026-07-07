@@ -3,6 +3,7 @@ import { isLevelReleased } from "../../config/ReleaseConfig.js";
 
 export const CATBOX_COIN_FALLBACK = 125;
 export const CATBOX_COIN_CHANCE = 0.24;
+export const CATBOX_PITY_LIMIT = 2;
 export const CATBOX_RARITY_WEIGHT = Object.freeze({
   Common: 54,
   Uncommon: 28,
@@ -26,7 +27,9 @@ export function rollCatBoxReward(save, world = 1, random = Math.random) {
   if (!available.length) {
     return grantCatBoxCoins(save, world, true);
   }
-  if ((Number(random()) || 0) < CATBOX_COIN_CHANCE) {
+  const pity = Math.max(0, Number(save.catBoxPity) || 0);
+  if (pity < CATBOX_PITY_LIMIT && (Number(random()) || 0) < CATBOX_COIN_CHANCE) {
+    save.catBoxPity = pity + 1;
     return grantCatBoxCoins(save, world);
   }
   const weighted = available.map((level) => {
@@ -47,6 +50,7 @@ export function rollCatBoxReward(save, world = 1, random = Math.random) {
     }
   }
   save.rescuedCats.push(selected.cat.id);
+  save.catBoxPity = 0;
   return {
     type: "catbox",
     catId: selected.cat.id,

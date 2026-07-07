@@ -32,6 +32,7 @@ const defaults = {
   worldTrophies: [],
   catBoxesOpened: [],
   pendingCatBoxes: [],
+  catBoxPity: 0,
   dropHistory: [],
   selectedCharacter: "granny",
   sound: true,
@@ -93,6 +94,7 @@ function clean(data) {
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
   result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
   result.catBoxesOpened = result.catBoxesOpened.map(Number).filter((id) => id >= 1 && id <= getWorldCount());
+  result.catBoxPity = Math.max(0, Math.min(2, Math.floor(Number(result.catBoxPity) || 0)));
   result.pendingCatBoxes = result.pendingCatBoxes
     .map((box, index) => ({
       id: typeof box?.id === "string" ? box.id : `legacy-box-${index + 1}`,
@@ -141,6 +143,7 @@ function pack(data) {
       worldTrophies: save.worldTrophies,
       catBoxesOpened: save.catBoxesOpened,
       pendingCatBoxes: save.pendingCatBoxes,
+      catBoxPity: save.catBoxPity,
       dropHistory: save.dropHistory
     },
     inventory: {
@@ -527,6 +530,7 @@ export const SaveGame = {
         worldTrophies: [],
         catBoxesOpened: [],
         pendingCatBoxes: [],
+        catBoxPity: 0,
         dropHistory: [],
         selectedCat: null,
         catNames: {}

@@ -55,7 +55,7 @@ export class CatHouse extends Phaser.Scene {
     } else {
       this.placeCats();
       this.time.addEvent({
-        delay: 18000,
+        delay: this.save.rescuedCats.length <= 3 ? 6500 : 18000,
         loop: true,
         callback: () => this.ambientCatMoment()
       });
@@ -404,9 +404,12 @@ export class CatHouse extends Phaser.Scene {
 
   chooseCatBehavior(agent, time, index) {
     let roll = Phaser.Math.Between(0, 99);
+    const smallRoom = this.roomCats.length <= 3;
     const doing = (activity) => this.roomCats.filter((cat) => (
       cat.state === activity || cat.state === `travel-${activity}`
     )).length;
+    if (smallRoom && roll < 38) roll += 28;
+    if (smallRoom && roll >= 88 && roll < 96) roll = Phaser.Math.Between(60, 84);
     if (roll >= 48 && roll < 58 && doing("eat") >= 3) roll = 0;
     if (roll >= 58 && roll < 66 && doing("drink") >= 2) roll = 0;
     if (roll >= 66 && roll < 79 && doing("play") >= 3) roll = 0;
@@ -462,7 +465,7 @@ export class CatHouse extends Phaser.Scene {
       const targetX = Phaser.Math.Clamp(agent.x + Phaser.Math.Between(-230, 230), 350, 1210);
       const targetY = Phaser.Math.Clamp(agent.y + Phaser.Math.Between(-48, 48), 520, 610);
       this.startCatPath(agent, this.floorPath(agent, targetX, targetY), time);
-      agent.nextChange = time + Phaser.Math.Between(4200, 8200);
+      agent.nextChange = time + Phaser.Math.Between(this.roomCats.length <= 3 ? 1800 : 4200, this.roomCats.length <= 3 ? 4200 : 8200);
       return;
     }
 
@@ -507,7 +510,10 @@ export class CatHouse extends Phaser.Scene {
 
     if (behavior === "play") {
       agent.state = "travel-play";
-      const playAnchor = this.anchorFor("play", agent.level.id + doing("play"));
+      const scratcherBias = this.roomCats.length <= 3 && this.roomFurniture.scratcher && index % 2 === 0
+        ? this.catAnchors.find((anchor) => anchor.furniture === "scratcher" && anchor.type === "play")
+        : null;
+      const playAnchor = scratcherBias || this.anchorFor("play", agent.level.id + doing("play"));
       this.startCatPath(agent, this.floorPath(
         agent,
         playAnchor ? playAnchor.x : this.catStations.toy.x + Phaser.Math.Between(-95, 95),
@@ -580,13 +586,13 @@ export class CatHouse extends Phaser.Scene {
       agent.destinationFurniture = null;
     }
     const durations = {
-      eat: Phaser.Math.Between(8000, 14000),
-      drink: Phaser.Math.Between(6500, 11000),
-      play: Phaser.Math.Between(7000, 12000),
-      social: Phaser.Math.Between(6500, 12000),
-      watch: Phaser.Math.Between(12000, 22000),
-      perch: Phaser.Math.Between(14000, 28000),
-      sleep: Phaser.Math.Between(28000, 60000),
+      eat: Phaser.Math.Between(6500, 12000),
+      drink: Phaser.Math.Between(5200, 9500),
+      play: Phaser.Math.Between(this.roomCats.length <= 3 ? 4200 : 7000, this.roomCats.length <= 3 ? 7600 : 12000),
+      social: Phaser.Math.Between(5200, 10500),
+      watch: Phaser.Math.Between(8000, 18000),
+      perch: Phaser.Math.Between(this.roomCats.length <= 3 ? 6500 : 14000, this.roomCats.length <= 3 ? 13000 : 28000),
+      sleep: Phaser.Math.Between(22000, 52000),
       poop: Phaser.Math.Between(2200, 3800)
     };
     const duration = durations[agent.state] || Phaser.Math.Between(10000, 22000);
@@ -620,11 +626,27 @@ export class CatHouse extends Phaser.Scene {
       ]);
       this.tweens.add({ targets: prop, y: agent.y - 2, duration: 420, yoyo: true, repeat: -1 });
     } else if (agent.state === "play") {
-      prop.add([
-        this.add.circle(0, 18, 13, 0x7b4d86).setStrokeStyle(3, COLORS.ink),
-        this.add.line(0, 0, 0, 18, 28, 8, 0x2f2335, 0.5).setLineWidth(2)
-      ]);
-      this.tweens.add({ targets: prop, x: agent.x + 24, angle: 28, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      if (agent.destinationFurniture === "scratcher") {
+        prop.add([
+          this.add.rectangle(0, 4, 20, 62, 0xc88755, 0.88).setStrokeStyle(3, COLORS.ink),
+          this.add.line(0, 0, -9, -18, 9, -22, 0xfff7df, 0.65).setLineWidth(2),
+          this.add.line(0, 0, -9, 2, 9, -2, 0xfff7df, 0.65).setLineWidth(2)
+        ]);
+        this.tweens.add({ targets: prop, angle: 4, y: agent.y - 7, duration: 120, yoyo: true, repeat: -1 });
+      } else if (agent.destinationFurniture === "yarnbasket") {
+        prop.add([
+          this.add.circle(0, 18, 13, 0x7b4d86).setStrokeStyle(3, COLORS.ink),
+          this.add.circle(21, 16, 8, 0xffcc4d).setStrokeStyle(2, COLORS.ink),
+          this.add.line(0, 0, 0, 18, 32, 8, 0x2f2335, 0.5).setLineWidth(2)
+        ]);
+        this.tweens.add({ targets: prop, x: agent.x + 32, angle: 34, duration: 360, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      } else {
+        prop.add([
+          this.add.circle(0, 18, 13, 0x7b4d86).setStrokeStyle(3, COLORS.ink),
+          this.add.line(0, 0, 0, 18, 28, 8, 0x2f2335, 0.5).setLineWidth(2)
+        ]);
+        this.tweens.add({ targets: prop, x: agent.x + 24, angle: 28, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      }
     } else if (agent.state === "social") {
       prop.add([
         this.add.text(-16, -38, "♥", textStyle(24, "#ec5966")).setOrigin(0.5),
@@ -634,9 +656,9 @@ export class CatHouse extends Phaser.Scene {
     } else if (agent.state === "watch") {
       prop.add([
         this.add.circle(0, -34, 16, 0xbdefff, 0.88).setStrokeStyle(2, COLORS.ink),
-        this.add.text(0, -35, "!", textStyle(17, "#2f2335")).setOrigin(0.5)
+        this.add.text(0, -35, agent.destinationFurniture === "aquarium" ? "◦" : "!", textStyle(17, "#2f2335")).setOrigin(0.5)
       ]);
-      this.tweens.add({ targets: prop, scale: 1.08, duration: 520, yoyo: true, repeat: -1 });
+      this.tweens.add({ targets: prop, x: agent.x + 12, scale: 1.08, duration: 520, yoyo: true, repeat: -1 });
     } else if (agent.state === "sleep") {
       prop.add(this.add.text(18, -42, "Z z", textStyle(18, "#76508a")).setOrigin(0.5));
       this.tweens.add({ targets: prop, y: agent.y - 16, alpha: 0.45, duration: 1300, yoyo: true, repeat: -1 });
@@ -661,7 +683,7 @@ export class CatHouse extends Phaser.Scene {
 
     if (agent.state === "sleep") {
       y = agent.y + 7 - Math.abs(breath) * 0.5;
-      scaleX = agent.baseScale * 1.12;
+      scaleX = agent.baseScale * (agent.destinationFurniture === "velvetsofa" ? 1.18 + Math.max(0, breath) * 0.05 : 1.12);
       scaleY = agent.baseScale * (0.72 + breath * 0.012);
       angle = agent.sprite.flipX ? -4 : 4;
       if (agent.bubble) agent.bubble.setAlpha(0.58 + Math.sin(time * 0.002) * 0.25);
@@ -671,10 +693,15 @@ export class CatHouse extends Phaser.Scene {
       angle = agent.sprite.flipX ? dip * 2.5 : -dip * 2.5;
       scaleY *= 1 - dip * 0.025;
     } else if (agent.state === "play") {
-      const pounce = Math.max(0, Math.sin(time * 0.0065 + agent.phase));
-      y = agent.y - pounce * 8;
-      x = agent.x + Math.sin(time * 0.004 + agent.phase) * 5;
-      angle = Math.sin(time * 0.0065 + agent.phase) * 3;
+      const pounce = Math.max(0, Math.sin(time * (agent.destinationFurniture === "scratcher" ? 0.011 : 0.0065) + agent.phase));
+      y = agent.y - pounce * (agent.destinationFurniture === "scratcher" ? 4 : 8);
+      x = agent.x + Math.sin(time * 0.004 + agent.phase) * (agent.destinationFurniture === "scratcher" ? 2 : 5);
+      angle = Math.sin(time * 0.0065 + agent.phase) * (agent.destinationFurniture === "scratcher" ? 1.2 : 3);
+      if (agent.destinationFurniture === "scratcher") scaleY *= 1 + pounce * 0.08;
+    } else if (agent.state === "watch" && agent.destinationFurniture === "aquarium") {
+      x = agent.x + Math.sin(time * 0.003 + agent.phase) * 2;
+      angle = agent.sprite.flipX ? -3 - breath : 3 + breath;
+      scaleX *= 1.04;
     } else if (agent.state === "social") {
       x = agent.x + Math.sin(time * 0.0028 + agent.phase) * 3;
       angle = Math.sin(time * 0.003 + agent.phase) * 1.4;

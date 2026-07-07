@@ -57,12 +57,16 @@ const OBSTACLE_GAP_LANDING_BUFFER = 300;
 export function planCourse(level) {
   const gaps = planGaps(level);
   const obstacles = planObstacles(level, gaps);
-  const hooks = planHooks(level, gaps, obstacles);
+  const authoredMoments = planAuthoredMoments(level, gaps, obstacles);
+  const hooks = [
+    ...planHooks(level, gaps, obstacles),
+    ...authoredMoments.flatMap((moment) => moment.hooks || [])
+  ].sort((a, b) => a.x - b.x);
   const swingZones = planSwingZones(gaps, hooks);
   const raised = planRaised(level, gaps, swingZones);
   const coins = planCoins(level, gaps, raised, obstacles.map((entry) => entry.x));
   const awnings = planAwnings(level, gaps, swingZones);
-  return { gaps, raised, hooks, obstacles, coins, awnings, swingZones };
+  return { gaps, raised, hooks, obstacles, coins, awnings, swingZones, authoredMoments };
 }
 
 function planGaps(level) {
@@ -154,6 +158,52 @@ function planSwingZones(gaps, hooks) {
     const [start, end] = hook.zone || [hook.x - 190, hook.x + 230];
     return { start, end, reason: hook.reason || "hook" };
   });
+}
+
+function planAuthoredMoments(level, gaps, obstacles) {
+  const momentTypes = {
+    canyon: "bridge-swing",
+    dragon: "dragon-bridge",
+    freeway: "freeway-chain",
+    coaster: "coaster-drop",
+    circus: "carnival-cannon",
+    fireworks: "firework-boost",
+    maze: "hook-maze",
+    "boss-maestro": "finale-stage"
+  };
+  const type = momentTypes[level.gimmick];
+  if (!type) return [];
+  const base = safeMomentX(level, gaps, obstacles);
+  const hookYs = type === "coaster-drop" ? [238, 292, 252] : type === "hook-maze" ? [268, 226, 306] : [248, 288];
+  const hooks = hookYs.map((y, index) => {
+    const x = base - 170 + index * 185;
+    return {
+      x,
+      y,
+      required: false,
+      reason: "setpiece",
+      setPiece: type,
+      zone: [x - 170, x + 230]
+    };
+  });
+  return [{ type, x: base, width: 520, hooks }];
+}
+
+function safeMomentX(level, gaps, obstacles) {
+  const ideal = Math.round(level.length * 0.48);
+  for (let offset = 0; offset < 1200; offset += 160) {
+    for (const candidate of [ideal + offset, ideal - offset]) {
+      if (candidate < 1450 || candidate > level.length - 1300) continue;
+      const nearGap = gaps.some(([start, end]) => candidate > start - 280 && candidate < end + 420);
+      const nearObstacle = obstacles.some((obstacle) => Math.abs(obstacle.x - candidate) < 360);
+      if (!nearGap && !nearObstacle) return candidate;
+    }
+  }
+  return PhaserSafeClamp(ideal, 1450, level.length - 1300);
+}
+
+function PhaserSafeClamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
 function planObstacles(level, gaps) {

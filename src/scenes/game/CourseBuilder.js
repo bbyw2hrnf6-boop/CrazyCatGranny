@@ -1,5 +1,6 @@
 import { addCoin, addTreat } from "../../objects/Collectibles.js";
 import { planCourse } from "../../levels/CoursePlanner.js";
+import { COLORS } from "../../ui/ui.js";
 
 export class CourseBuilder {
   constructor(scene) {
@@ -10,7 +11,7 @@ export class CourseBuilder {
     const scene = this.scene;
     const length = scene.level.length;
     const course = planCourse(scene.level);
-    const { gaps, raised, hooks, obstacles, coins, awnings } = course;
+    const { gaps, raised, hooks, obstacles, coins, awnings, authoredMoments } = course;
     let cursor = 0;
     for (const [start, end] of gaps) {
       this.addPlatform(cursor, 590, start - cursor, 160);
@@ -22,6 +23,8 @@ export class CourseBuilder {
       if (x < length - 300) this.addPlatform(x, y, width, 34, index % 2 ? 0xc97b54 : 0xf2c56e);
     });
 
+    authoredMoments.forEach((moment) => this.createSetPiece(moment));
+
     hooks.forEach((point) => {
       const hook = scene.add.image(point.x, point.y, "hook").setDepth(8);
       hook.setData("used", false);
@@ -30,6 +33,9 @@ export class CourseBuilder {
       if (point.required) {
         hook.setScale(1.12).setTint(0xffe17a);
         scene.tweens.add({ targets: hook, scale: 1.22, duration: 650, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      } else if (point.reason === "setpiece") {
+        hook.setScale(1.1).setTint(0xff9bd9);
+        scene.tweens.add({ targets: hook, scale: 1.2, angle: 8, duration: 520, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       } else if (point.reason === "obstacle") {
         hook.setScale(1.04).setTint(0x9ff3e6);
         scene.tweens.add({ targets: hook, y: hook.y - 5, duration: 820, yoyo: true, repeat: -1, ease: "Sine.inOut" });
@@ -42,6 +48,7 @@ export class CourseBuilder {
       const obstacle = scene.breakables.create(x, config.y, texture);
       obstacle.setScale(config.scale).refreshBody();
       obstacle.setData("type", texture);
+      obstacle.setData("decor", this.decorateObstacle(obstacle, texture, config));
     });
 
     coins.forEach(({ x, y }) => addCoin(scene, x, y, scene.coins));
@@ -59,6 +66,74 @@ export class CourseBuilder {
       const awning = this.addPlatform(x, y, width, 24, 0xe85e68);
       awning.setData("bounce", true);
     });
+  }
+
+  createSetPiece(moment) {
+    const scene = this.scene;
+    const x = moment.x;
+    const color = {
+      "bridge-swing": 0xc88a58,
+      "dragon-bridge": 0xff6e9f,
+      "freeway-chain": 0xf7df65,
+      "coaster-drop": 0xff6e9f,
+      "carnival-cannon": 0xffcc4d,
+      "firework-boost": 0xffdc63,
+      "hook-maze": 0xbdefff,
+      "finale-stage": 0xff6e9f
+    }[moment.type] || scene.worldData.accent;
+    const rail = scene.add.rectangle(x, 372, moment.width, 10, color, 0.36)
+      .setStrokeStyle(3, COLORS.ink, 0.45)
+      .setDepth(6);
+    const posts = [-230, 230].map((offset) => scene.add.rectangle(x + offset, 435, 14, 145, COLORS.ink, 0.38).setDepth(5));
+    if (moment.type === "carnival-cannon") {
+      const cannon = scene.add.container(x - 265, 532, [
+        scene.add.ellipse(0, 28, 86, 18, 0x2f2335, 0.18),
+        scene.add.rectangle(0, 0, 88, 42, 0x635080).setStrokeStyle(4, COLORS.ink),
+        scene.add.circle(43, 0, 21, 0xffcc4d).setStrokeStyle(4, COLORS.ink)
+      ]).setDepth(8);
+      scene.tweens.add({ targets: cannon, angle: -8, duration: 520, yoyo: true, repeat: -1 });
+    } else if (moment.type.includes("dragon")) {
+      for (let i = 0; i < 4; i += 1) {
+        const orb = scene.add.image(x - 210 + i * 140, 333, "sparkle").setTint(color).setScale(0.45).setDepth(7);
+        scene.tweens.add({ targets: orb, y: orb.y - 18, angle: 180, duration: 620 + i * 80, yoyo: true, repeat: -1 });
+      }
+    } else if (moment.type === "freeway-chain") {
+      [-150, 0, 150].forEach((offset, index) => {
+        const sign = scene.add.rectangle(x + offset, 408, 86, 38, index % 2 ? 0xe86255 : 0xf7df65)
+          .setStrokeStyle(4, COLORS.ink)
+          .setDepth(7);
+        scene.tweens.add({ targets: sign, y: sign.y - 8, duration: 360 + index * 80, yoyo: true, repeat: -1 });
+      });
+    }
+    scene.tweens.add({ targets: [rail, ...posts], alpha: 0.62, duration: 760, yoyo: true, repeat: -1 });
+  }
+
+  decorateObstacle(obstacle, texture, config) {
+    const scene = this.scene;
+    const y = obstacle.y;
+    const shadow = scene.add.ellipse(obstacle.x, 589, config.height * config.scale * 0.86, 15, 0x201727, 0.18).setDepth(6);
+    const shine = scene.add.rectangle(
+      obstacle.x - config.height * config.scale * 0.16,
+      y - config.height * config.scale * 0.2,
+      Math.max(18, config.height * config.scale * 0.32),
+      5,
+      0xffffff,
+      0.28
+    ).setDepth(10).setAngle(-10);
+    const accentColor = {
+      crate: 0xf0b36b,
+      glass: 0xc7f5ff,
+      bicycle: 0xffcc4d,
+      "tulip-cart": 0xf06a72,
+      "lantern-gate": 0xffdc63,
+      "road-barrier": 0xf7df65,
+      "carnival-drum": 0xff6e9f
+    }[texture] || scene.worldData.accent;
+    const accent = scene.add.circle(obstacle.x + config.height * config.scale * 0.24, y - config.height * config.scale * 0.18, 7, accentColor, 0.72)
+      .setStrokeStyle(2, COLORS.ink, 0.35)
+      .setDepth(10);
+    scene.tweens.add({ targets: [shine, accent], y: "-=5", alpha: 0.62, duration: 720, yoyo: true, repeat: -1 });
+    return [shadow, shine, accent];
   }
 
   addPlatform(x, y, width, height, color = this.scene.worldData.ground) {

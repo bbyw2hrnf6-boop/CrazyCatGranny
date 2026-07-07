@@ -28,6 +28,11 @@ BOSS_DEFINITIONS.forEach((boss) => {
   ["id", "worldId", "title", "color", "projectileTexture", "phasePositions", "weakPointY", "health"].forEach((field) => {
     if (boss[field] === undefined) errors.push(`Boss ${boss.id || "(missing id)"} missing ${field}.`);
   });
+  ["bodyParts", "idleAnimation", "attackPattern", "telegraph", "phaseSetPiece"].forEach((field) => {
+    if (boss[field] === undefined) errors.push(`Boss ${boss.id || "(missing id)"} missing ${field}.`);
+  });
+  if (!Array.isArray(boss.bodyParts) || boss.bodyParts.length < 5) errors.push(`Boss ${boss.id} needs richer body parts.`);
+  if (!Array.isArray(boss.attackPattern) || boss.attackPattern.length < 2) errors.push(`Boss ${boss.id} needs at least two attacks.`);
   if (!WORLDS.some((world) => world.id === boss.worldId)) errors.push(`Boss ${boss.id} references unknown world ${boss.worldId}.`);
 });
 
@@ -72,6 +77,12 @@ LEVELS.forEach((level) => {
     if (hook.reason === "obstacle") {
       const matchingObstacle = course.obstacles.find((obstacle) => Math.abs(obstacle.x - hook.x) <= 36);
       if (!matchingObstacle) errors.push(`Level ${level.id} has an obstacle hook without a nearby obstacle.`);
+      return;
+    }
+
+    if (hook.reason === "setpiece") {
+      const matchingMoment = course.authoredMoments?.find((moment) => hook.x > moment.x - moment.width / 2 - 80 && hook.x < moment.x + moment.width / 2 + 80);
+      if (!matchingMoment) errors.push(`Level ${level.id} has a set-piece hook without an authored moment.`);
       return;
     }
 

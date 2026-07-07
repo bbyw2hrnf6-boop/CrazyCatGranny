@@ -611,12 +611,22 @@ export class GameScene extends Phaser.Scene {
 
   smashBreakable(granny, object) {
     if (!object.active) return;
+    object.getData("decor")?.forEach((item) => item?.destroy());
     object.disableBody(true, true);
     sound(this, "crash");
     this.cameras.main.shake(130, 0.007);
     granny.setVelocityX(Math.max(granny.body.velocity.x, granny.runSpeed + 35));
+    const shardColors = {
+      crate: 0xb36e43,
+      glass: 0xc7f5ff,
+      bicycle: 0xffcc4d,
+      "tulip-cart": 0xf06a72,
+      "lantern-gate": 0xffdc63,
+      "road-barrier": 0xf7df65,
+      "carnival-drum": 0xff6e9f
+    };
     for (let i = 0; i < 8; i += 1) {
-      const shard = this.add.rectangle(object.x, object.y, 14, 8, object.getData("type") === "glass" ? 0xc7f5ff : 0xb36e43)
+      const shard = this.add.rectangle(object.x, object.y, 14, 8, shardColors[object.getData("type")] || 0xb36e43)
         .setDepth(15);
       this.physics.add.existing(shard);
       shard.body.setVelocity(Phaser.Math.Between(-180, 220), Phaser.Math.Between(-330, -80));
