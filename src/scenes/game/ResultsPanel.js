@@ -72,9 +72,9 @@ export class ResultsPanel {
     const next = pill(scene, 640, 550, 220, 62, nextLabel, { fill: COLORS.yellow, size: 19 });
     const home = pill(scene, 870, 550, 210, 62, "CAT HOUSE", { fill: COLORS.teal, color: "#fff7df", size: 20 });
     [retry, next, home].forEach((button) => button.setScrollFactor(0).setDepth(103));
-    retry.on("pointerup", () => scene.scene.restart({ levelId: scene.level.id }));
+    retry.on("pointerup", () => scene.scene.start("LevelIntroScene", { levelId: scene.level.id }));
     next.on("pointerup", () => nextLevelId
-      ? scene.scene.start("GameScene", { levelId: nextLevelId })
+      ? scene.scene.start("LevelIntroScene", { levelId: nextLevelId })
       : scene.scene.start("LevelSelect", { worldId: scene.level.world }));
     home.on("pointerup", () => scene.scene.start("CatHouse", { page: scene.level.world }));
     shade.setInteractive();

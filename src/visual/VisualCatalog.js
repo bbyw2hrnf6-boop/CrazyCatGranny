@@ -139,15 +139,15 @@ const gear = [
   },
   {
     id: "bananaBoost", name: "Banana Belt", icon: "⌣", price: 55, color: 0xffd34d, frame: 1,
-    detail: "Slows the thief", granny: { anchor: "torso", x: 2, y: -6, scale: 0.078, angle: -12 }
+    detail: "Slows the thief", granny: { anchor: "torso", x: 8, y: 42, scale: 0.078, angle: -8 }
   },
   {
     id: "magnetBoost", name: "Coin Magnet", icon: "∩", price: 100, color: 0xeb6067, frame: 2,
-    detail: "Pulls nearby coins", granny: { anchor: "torso", x: 4, y: -10, scale: 0.09, angle: 10 }
+    detail: "Pulls nearby coins", granny: { anchor: "torso", x: -18, y: 22, scale: 0.082, angle: 8 }
   },
   {
     id: "yarnBoost", name: "Turbo Yarn", icon: "●", price: 80, color: 0x7b4d86, frame: 3,
-    detail: "Faster skates", granny: { anchor: "torso", x: 2, y: -8, scale: 0.085, angle: 0 }
+    detail: "Faster skates", granny: { anchor: "torso", x: 20, y: 30, scale: 0.078, angle: 0 }
   }
 ].map((item) => ({
   ...item,

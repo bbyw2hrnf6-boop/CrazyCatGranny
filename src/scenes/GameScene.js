@@ -51,6 +51,7 @@ export class GameScene extends Phaser.Scene {
     this.adminTest = Boolean(data?.adminTest);
     this.adminTimeScale = Phaser.Math.Clamp(Number(data?.adminTimeScale) || 1, 0.1, 1);
     this.adminHitboxes = Boolean(data?.adminHitboxes);
+    this.skipIntro = Boolean(data?.skipIntro);
   }
 
   create() {
@@ -559,7 +560,7 @@ export class GameScene extends Phaser.Scene {
 
   createIntro() {
     this.granny.frozen = true;
-    if (this.adminTest) {
+    if (this.adminTest || this.skipIntro) {
       this.granny.frozen = false;
       this.running = true;
       return;
@@ -1114,7 +1115,7 @@ export class GameScene extends Phaser.Scene {
     const map = pill(this, 760, 440, 210, 62, "BACK TO MAP", { fill: COLORS.cream, size: 19 }).setScrollFactor(0).setDepth(123);
     retry.on("pointerup", () => {
       this.physics.resume();
-      this.scene.restart({ levelId: this.level.id });
+      this.scene.start("LevelIntroScene", { levelId: this.level.id });
     });
     map.on("pointerup", () => {
       this.physics.resume();
@@ -1144,7 +1145,14 @@ export class GameScene extends Phaser.Scene {
     };
     const { firstClear, reward } = SaveGame.completeLevel(this.level, result);
     this.registry.set("save", SaveGame.load());
-    this.time.delayedCall(350, () => this.resultPanel(result, firstClear, reward));
+    this.time.delayedCall(350, () => {
+      this.scene.start("LevelCompleteMapScene", {
+        levelId: this.level.id,
+        result,
+        firstClear,
+        reward
+      });
+    });
   }
 
   resultPanel(result, firstClear, reward = { type: "none" }) {

@@ -30,6 +30,9 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.baseScale = tuning.scale;
     this.wasGrounded = false;
     this.skateTime = 0;
+    this.airTrickChosen = false;
+    this.airTrickActive = false;
+    this.airLean = 0;
   }
 
   stabilizeSkateFrame() {
@@ -59,8 +62,19 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
         this.setFrame(3);
         this.stabilizeSkateFrame();
       }
-      this.airSpin += delta * 0.42;
-      this.setAngle(this.airSpin);
+      if (!this.airTrickChosen) {
+        this.airTrickChosen = true;
+        this.airTrickActive = Phaser.Math.Between(0, 99) < 28;
+        this.airLean = Phaser.Math.Between(-7, 8);
+        this.airSpin = this.angle;
+      }
+      if (this.airTrickActive) {
+        this.airSpin += delta * 0.42;
+        this.setAngle(this.airSpin);
+      } else {
+        const targetLean = this.airLean + (this.body.velocity.y < 0 ? -4 : 5);
+        this.setAngle(Phaser.Math.Linear(this.angle, targetLean, 0.12));
+      }
       if (jumpHeld && this.body.velocity.y < 40) this.setAccelerationY(tuning.jumpHoldAcceleration);
       else this.setAccelerationY(0);
     } else {
@@ -69,6 +83,8 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
       this.lastGrounded = this.scene.time.now;
       this.airKickAvailable = true;
       this.airSpin = 0;
+      this.airTrickChosen = false;
+      this.airTrickActive = false;
       this.setAngle(0);
       this.setAccelerationY(0);
     }

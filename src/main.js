@@ -1,7 +1,9 @@
 import { BootScene } from "./scenes/BootScene.js";
 import { MainMenu } from "./scenes/MainMenu.js";
 import { LevelSelect } from "./scenes/LevelSelect.js";
+import { LevelIntroScene } from "./scenes/LevelIntroScene.js";
 import { GameScene } from "./scenes/GameScene.js";
+import { LevelCompleteMapScene } from "./scenes/LevelCompleteMapScene.js";
 import { CatHouse } from "./scenes/CatHouse.js";
 import { Shop } from "./scenes/Shop.js";
 import { TrophyRoom } from "./scenes/TrophyRoom.js";
@@ -32,7 +34,7 @@ const config = {
   input: {
     activePointers: 4
   },
-  scene: [BootScene, MainMenu, LevelSelect, GameScene, CatHouse, Shop, TrophyRoom, SettingsScene]
+  scene: [BootScene, MainMenu, LevelSelect, LevelIntroScene, GameScene, LevelCompleteMapScene, CatHouse, Shop, TrophyRoom, SettingsScene]
 };
 
 const game = new Phaser.Game(config);
