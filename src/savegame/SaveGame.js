@@ -35,7 +35,6 @@ const defaults = {
   dropHistory: [],
   selectedCharacter: "granny",
   sound: true,
-  performanceMode: "auto",
   starterWalletGranted: false,
   updatedAt: 0
 };
@@ -103,9 +102,6 @@ function clean(data) {
     }))
     .filter((box) => box.id);
   result.sound = result.sound !== false;
-  result.performanceMode = ["auto", "high", "balanced"].includes(result.performanceMode)
-    ? result.performanceMode
-    : "auto";
   result.updatedAt = Math.max(0, Math.floor(Number(result.updatedAt) || 0));
   if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEM_IDS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
@@ -163,8 +159,7 @@ function pack(data) {
       decorPositions: save.decorPositions
     },
     settings: {
-      sound: save.sound,
-      performanceMode: save.performanceMode
+      sound: save.sound
     },
     meta: {
       starterWalletGranted: save.starterWalletGranted,
@@ -541,7 +536,6 @@ export const SaveGame = {
       save.decorPositions = {};
     } else if (section === "settings") {
       save.sound = defaults.sound;
-      save.performanceMode = defaults.performanceMode;
     } else {
       return false;
     }

@@ -1,11 +1,11 @@
-export function performanceProfile(savedMode = "auto") {
+export function performanceProfile() {
   const params = new URLSearchParams(globalThis.location?.search || "");
   const forced = params.get("quality");
   const reducedMotion = globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   const weakDevice = (navigator.hardwareConcurrency || 8) <= 4 || (navigator.deviceMemory || 8) <= 4;
-  const mode = savedMode === "high"
+  const mode = forced === "high"
     ? "high"
-    : savedMode === "balanced" || forced === "low" || reducedMotion || weakDevice
+    : forced === "low" || reducedMotion || weakDevice
       ? "balanced"
       : "high";
   return Object.freeze({

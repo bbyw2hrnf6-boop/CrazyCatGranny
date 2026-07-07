@@ -71,46 +71,36 @@ export class SettingsScene extends Phaser.Scene {
     this.mainTab = "settings";
     this.clearContent();
     const save = SaveGame.load();
-    this.heading("PLAYER SETTINGS", "Safe controls for sound and performance.");
-    const sound = pill(this, 500, 350, 300, 70, save.sound ? "🔊  SOUND ON" : "🔇  SOUND OFF", {
+    this.heading("PLAYER SETTINGS", "Safe controls for sound and fullscreen.");
+    const sound = pill(this, 500, 365, 300, 70, save.sound ? "🔊  SOUND ON" : "🔇  SOUND OFF", {
       fill: save.sound ? COLORS.teal : COLORS.cream,
       color: save.sound ? "#fff7df" : "#2f2335",
       size: 21
     });
-    const quality = pill(this, 820, 350, 300, 70, `QUALITY · ${save.performanceMode.toUpperCase()}`, {
-      fill: COLORS.yellow,
-      size: 19
-    });
-    const fullscreen = pill(this, 640, 435, 360, 62, "⛶  FULLSCREEN / LANDSCAPE", {
+    const fullscreen = pill(this, 820, 365, 360, 70, "⛶  FULLSCREEN", {
       fill: COLORS.blue,
       color: "#fff7df",
       size: 18
     });
     const layoutInfo = this.add.text(
       640,
-      505,
+      485,
       "Save sections:  PROGRESSION  ·  INVENTORY  ·  ROOM LAYOUT  ·  SETTINGS",
       textStyle(17, "#5d4c60")
     ).setOrigin(0.5);
     const note = this.add.text(
       640,
-      555,
+      535,
       "Admin tools are PIN protected. Normal players cannot trigger test or reset controls.",
       textStyle(16, "#8a7285")
     ).setOrigin(0.5);
-    this.keep(sound, quality, fullscreen, layoutInfo, note);
+    this.keep(sound, fullscreen, layoutInfo, note);
     sound.on("pointerup", () => {
       save.sound = !save.sound;
       SaveGame.write(save);
       this.showSettings();
     });
     fullscreen.on("pointerup", () => toggleFullscreen(this));
-    quality.on("pointerup", () => {
-      const modes = ["auto", "high", "balanced"];
-      save.performanceMode = modes[(modes.indexOf(save.performanceMode) + 1) % modes.length];
-      SaveGame.write(save);
-      this.showSettings();
-    });
   }
 
   showAdmin() {
@@ -263,7 +253,7 @@ export class SettingsScene extends Phaser.Scene {
     [
       ["RESET PROGRESSION", "progression", 390, "Keeps items and room"],
       ["RESET ROOM LAYOUT", "layout", 640, "Keeps owned furniture"],
-      ["RESET SETTINGS", "settings", 890, "Sound and quality only"]
+      ["RESET SETTINGS", "settings", 890, "Sound only"]
     ].forEach(([label, section, x, note]) => {
       const button = pill(this, x, 415, 220, 66, label, { fill: COLORS.cream, size: 15 });
       this.keep(

@@ -2,11 +2,11 @@
 
 A warm, hand-painted two-button Phaser auto-runner. Skate after the cat thief, jump hazards, swing from cane hooks, collect coins and treats, and bring 45 cats home across five worlds.
 
-The current release runs as a focused vertical slice: all World 1 levels 1–9 are playable, including the boss. Worlds 2–5 remain visible as locked future content. Change `src/config/ReleaseConfig.js` to release more completed content without deleting or duplicating its code.
+The current release runs as a full campaign: all five worlds and all 45 levels are playable. `src/config/ReleaseConfig.js` is still the single release gate if a smaller build is needed later.
 
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
-All 45 cats remain in the project. The focused release exposes the World 1 cats; cats are rescued after three-level chase chapters and the boss grants one weighted CatBox on its first clear. Future cats unlock with their parked worlds.
+All 45 cats are in the campaign. Cats are rescued after two-level chase chapters and each boss grants one weighted CatBox on its first clear.
 
 Rescued cats share a living Cat House where they wander, eat, drink, sleep, play, socialize, watch fish, climb real furniture paths, and meow. The room uses an empty 3D-style architectural shell with separately layered interactive furniture, so visible cat trees, bridges, beds, and seats are usable rather than baked into the background.
 
@@ -45,10 +45,10 @@ Animation and game-feel systems include multi-frame skating and thief run cycles
 
 ## Technical structure
 
-- `src/config/ReleaseConfig.js` controls the small public slice without deleting future content.
+- `src/config/ReleaseConfig.js` controls which worlds and levels are playable in a given build.
 - `src/config/PhysicsTuning.js` is the single movement and camera tuning source.
 - `src/levels/CoursePlanner.js` creates reusable, data-driven gaps, hooks, routes, obstacles, coins, and bounce platforms.
-- `src/systems/PerformanceProfile.js` selects high or balanced effects. The main menu also offers a manual quality mode.
+- `src/systems/PerformanceProfile.js` selects high or balanced effects automatically from device capability, reduced-motion preferences, and the optional `?quality=high|low` debug flag.
 - `src/systems/DevTools.js` provides `F1` telemetry, `F2` hitboxes, `F3` slow motion, and `F4` segment skipping.
 - The PIN-protected Admin panel launches normal, slow-motion and hitbox tests, manages backups, and resets progression, room layout, settings, or the full save separately.
 - Physics for distant collectibles is disabled until it is relevant, while frequently used dust and landing debris are pooled.

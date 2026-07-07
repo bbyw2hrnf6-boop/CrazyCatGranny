@@ -50,6 +50,13 @@ WORLDS.forEach((world) => {
 
 LEVELS.forEach((level) => {
   const course = planCourse(level);
+  course.obstacles.forEach((obstacle) => {
+    const gap = course.gaps.find(([start, end]) => obstacle.x > start - 220 && obstacle.x < end + 300);
+    if (gap) {
+      errors.push(`Level ${level.id} has obstacle ${Math.round(obstacle.x)} too close to gap ${Math.round(gap[0])}-${Math.round(gap[1])}.`);
+    }
+  });
+
   course.gaps.filter(([, , required]) => required).forEach(([start, end]) => {
     const hook = course.hooks.find((point) => point.reason === "gap" && point.required && point.x > start && point.x < end);
     if (!hook) errors.push(`Level ${level.id} has a required grapple gap without a matching hook.`);

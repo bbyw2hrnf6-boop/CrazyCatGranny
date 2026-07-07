@@ -51,6 +51,9 @@ const HOOK_HEAVY_GIMMICKS = Object.freeze([
   "maze"
 ]);
 
+const OBSTACLE_GAP_TAKEOFF_BUFFER = 220;
+const OBSTACLE_GAP_LANDING_BUFFER = 300;
+
 export function planCourse(level) {
   const gaps = planGaps(level);
   const obstacles = planObstacles(level, gaps);
@@ -159,10 +162,10 @@ function planObstacles(level, gaps) {
   const chapter = (level.id - 1) % getLevelsPerWorld();
   const stride = level.boss ? 950 : Math.max(1040, 1360 - level.world * 32 - chapter * 10);
   for (let x = 1340, index = 0; x < level.length - 560; x += stride, index += 1) {
-    const blockingGap = gaps.find(([start, end]) => x > start - 170 && x < end + 230);
-    let safeX = blockingGap ? blockingGap[1] + 190 : x;
-    const nextGap = gaps.find(([start]) => start > safeX && start - safeX < 260);
-    if (nextGap) safeX = nextGap[1] + 175;
+    const blockingGap = gaps.find(([start, end]) => x > start - OBSTACLE_GAP_TAKEOFF_BUFFER && x < end + OBSTACLE_GAP_LANDING_BUFFER);
+    let safeX = blockingGap ? blockingGap[1] + OBSTACLE_GAP_LANDING_BUFFER : x;
+    const nextGap = gaps.find(([start]) => start > safeX && start - safeX < OBSTACLE_GAP_TAKEOFF_BUFFER);
+    if (nextGap) safeX = nextGap[1] + OBSTACLE_GAP_LANDING_BUFFER;
     const nearRequiredHook = gaps.some(([start, end, required]) => required && safeX > start - 250 && safeX < end + 330);
     const tooCloseToLast = obstacles.some((entry) => Math.abs(entry.x - safeX) < 520);
     if (safeX < level.length - 560 && !nearRequiredHook && !tooCloseToLast) {
