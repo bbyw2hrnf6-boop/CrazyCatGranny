@@ -32,6 +32,7 @@ Then open `http://localhost:8080`. Phaser loads from jsDelivr.
 - Jump / air-kick: `Space` or `↑`, or the on-screen Jump button
 - Cane: hold `Shift` or `A`, or the on-screen Cane button
 - Pause: `Esc`
+- Fullscreen: press `⛶` in the main menu, settings, or in-game HUD. Mobile fullscreen requests landscape mode and shows a rotate prompt if the browser cannot lock orientation.
 - Settings: use the small gear on the main menu.
 - Admin tools: open the Admin tab in Settings and enter PIN `1702`.
 

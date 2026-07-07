@@ -1,4 +1,5 @@
 import { SaveGame } from "../savegame/SaveGame.js";
+import { toggleFullscreen } from "../systems/FullscreenManager.js";
 import { addPaperTexture, COLORS, pill, textStyle, topBar } from "../ui/ui.js";
 
 const ADMIN_PIN = "1702";
@@ -80,24 +81,30 @@ export class SettingsScene extends Phaser.Scene {
       fill: COLORS.yellow,
       size: 19
     });
+    const fullscreen = pill(this, 640, 435, 360, 62, "⛶  FULLSCREEN / LANDSCAPE", {
+      fill: COLORS.blue,
+      color: "#fff7df",
+      size: 18
+    });
     const layoutInfo = this.add.text(
       640,
-      455,
+      505,
       "Save sections:  PROGRESSION  ·  INVENTORY  ·  ROOM LAYOUT  ·  SETTINGS",
       textStyle(17, "#5d4c60")
     ).setOrigin(0.5);
     const note = this.add.text(
       640,
-      505,
+      555,
       "Admin tools are PIN protected. Normal players cannot trigger test or reset controls.",
       textStyle(16, "#8a7285")
     ).setOrigin(0.5);
-    this.keep(sound, quality, layoutInfo, note);
+    this.keep(sound, quality, fullscreen, layoutInfo, note);
     sound.on("pointerup", () => {
       save.sound = !save.sound;
       SaveGame.write(save);
       this.showSettings();
     });
+    fullscreen.on("pointerup", () => toggleFullscreen(this));
     quality.on("pointerup", () => {
       const modes = ["auto", "high", "balanced"];
       save.performanceMode = modes[(modes.indexOf(save.performanceMode) + 1) % modes.length];

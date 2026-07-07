@@ -12,6 +12,7 @@ import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
 import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
 import { performanceProfile } from "../systems/PerformanceProfile.js";
 import { DevTools } from "../systems/DevTools.js";
+import { toggleFullscreen } from "../systems/FullscreenManager.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 
@@ -580,6 +581,8 @@ export class GameScene extends Phaser.Scene {
       .setOrigin(0.5).setScrollFactor(0).setDepth(52);
     this.boostText = this.add.text(640, 158, "⚡ HOOK BOOST", textStyle(18, "#fff7df"))
       .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#41b9ad").setPadding(14, 6).setVisible(false);
+    const fullscreen = pill(this, 1128, 140, 76, 55, "⛶", { fill: COLORS.yellow, size: 22 });
+    fullscreen.setScrollFactor(0).setDepth(55).on("pointerup", () => toggleFullscreen(this));
     const pause = pill(this, 1210, 140, 76, 55, "Ⅱ", { fill: COLORS.cream, size: 24 });
     pause.setScrollFactor(0).setDepth(55).on("pointerup", () => this.togglePause());
     if (this.level.boss) {
