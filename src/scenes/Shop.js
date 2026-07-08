@@ -1,6 +1,6 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
-import { SHOP_ITEMS } from "../visual/VisualCatalog.js";
+import { GRANNY_GEAR_ANCHORS, SHOP_ITEMS } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
   createCat,
@@ -265,9 +265,10 @@ export class Shop extends Phaser.Scene {
     const gear = createGrannyGear(this, granny, item.id, 75, draft);
     gear?.setInteractive({ useHandCursor: true });
     if (gear) this.input.setDraggable(gear);
+    const anchorMarkers = this.createGrannyAnchorMarkers(granny, 74);
     const stat = this.add.text(705, 188, "", textStyle(15, "#2f2335")).setOrigin(0.5).setDepth(74);
-    parts.push(shade, panel, title, hint, granny, gear, stat);
-    this.grannyEditor = { item, draft, granny, gear, stat, dragStart: null, pinchStart: null };
+    parts.push(shade, panel, title, hint, granny, gear, ...anchorMarkers.flatMap((entry) => [entry.dot, entry.label]), stat);
+    this.grannyEditor = { item, draft, granny, gear, stat, anchorMarkers, dragStart: null, pinchStart: null };
 
     gear?.on("dragstart", (pointer) => {
       this.grannyEditor.dragStart = { x: pointer.x, y: pointer.y, draft: { ...this.grannyEditor.draft } };
@@ -305,7 +306,7 @@ export class Shop extends Phaser.Scene {
       parts.push(button);
     });
     const equip = pill(this, 610, 535, 150, 54, "EQUIP", { fill: COLORS.yellow, size: 17 }).setDepth(74);
-    const reset = pill(this, 775, 535, 130, 54, "RESET", { fill: COLORS.cream, size: 15 }).setDepth(74);
+    const reset = pill(this, 775, 535, 130, 54, "FIT", { fill: COLORS.cream, size: 15 }).setDepth(74);
     const close = pill(this, 930, 535, 130, 54, "CLOSE", { fill: COLORS.cream, size: 15 }).setDepth(74);
     equip.on("pointerup", () => {
       SaveGame.setGearAdjustment(item.id, this.grannyEditor.draft);
@@ -327,11 +328,31 @@ export class Shop extends Phaser.Scene {
     this.refreshGrannyEditor();
   }
 
+  createGrannyAnchorMarkers(granny, depth) {
+    const colors = { head: COLORS.yellow, torso: COLORS.teal, hand: COLORS.coral };
+    return ["head", "torso", "hand"].map((anchorName) => {
+      const anchor = GRANNY_GEAR_ANCHORS.default[anchorName];
+      const x = granny.x + anchor.x * granny.scaleX;
+      const y = granny.y + anchor.y * granny.scaleY;
+      const dot = this.add.circle(x, y, anchorName === "head" ? 9 : 7, colors[anchorName], 0.78)
+        .setStrokeStyle(2, COLORS.ink, 0.7)
+        .setDepth(depth);
+      const label = this.add.text(x, y + 18, anchorName.toUpperCase(), textStyle(9, "#2f2335"))
+        .setOrigin(0.5)
+        .setDepth(depth);
+      return { anchorName, dot, label };
+    });
+  }
+
   refreshGrannyEditor() {
     const editor = this.grannyEditor;
     if (!editor) return;
     setGrannyGearAdjustment(editor.gear, editor.draft);
     syncGrannyGear(editor.gear, editor.granny);
+    editor.anchorMarkers?.forEach(({ anchorName, dot }) => {
+      dot.setFillStyle(anchorName === editor.draft.anchor ? COLORS.yellow : 0xffffff, anchorName === editor.draft.anchor ? 0.95 : 0.55);
+      dot.setScale(anchorName === editor.draft.anchor ? 1.22 : 1);
+    });
     editor.stat.setText(`ANCHOR ${editor.draft.anchor.toUpperCase()} · X ${editor.draft.x} · Y ${editor.draft.y} · SIZE ${editor.draft.scale.toFixed(2)} · ROT ${editor.draft.angle}`);
   }
 

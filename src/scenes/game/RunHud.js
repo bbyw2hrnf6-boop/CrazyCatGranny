@@ -8,9 +8,14 @@ export class RunHud {
 
   create() {
     const scene = this.scene;
+    const compact = this.compact();
+    const titleWidth = compact ? 470 : 560;
     const bar = scene.add.rectangle(20, 20, 1240, 74, COLORS.ink, 0.9).setOrigin(0).setScrollFactor(0).setDepth(50);
     bar.setStrokeStyle(3, COLORS.cream, 0.9);
-    scene.add.text(48, 56, `${scene.level.id}  ${scene.level.title}`, textStyle(25, "#fff7df"))
+    scene.add.text(48, 56, `${scene.level.id}  ${scene.level.title}`, textStyle(compact ? 20 : 25, "#fff7df", {
+      wordWrap: { width: titleWidth },
+      align: "left"
+    }))
       .setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
     scene.coinIcon = scene.add.image(790, 56, "coin").setScale(0.55).setScrollFactor(0).setDepth(51);
     scene.coinText = scene.add.text(825, 58, "0", textStyle(24, "#fff7df")).setOrigin(0, 0.5).setScrollFactor(0).setDepth(51);
@@ -40,6 +45,11 @@ export class RunHud {
       scene.bossHealthText = scene.add.text(640, 198, "BOSS  ♥ ♥ ♥", textStyle(18, "#fff7df"))
         .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#4a354e").setPadding(14, 5);
     }
+  }
+
+  compact() {
+    const display = this.scene.scale?.displaySize;
+    return Boolean(display && (display.width < 780 || display.height < 460));
   }
 
   update() {

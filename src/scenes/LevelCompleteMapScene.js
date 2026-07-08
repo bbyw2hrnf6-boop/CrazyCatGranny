@@ -113,7 +113,7 @@ export class LevelCompleteMapScene extends Phaser.Scene {
     const retry = pill(this, 410, 625, 200, 58, "↻ RETRY", { fill: COLORS.cream, size: 19 }).setDepth(32);
     const next = pill(this, 640, 625, 220, 58, nextLevelId ? "NEXT →" : "WORLD MAP", { fill: COLORS.yellow, size: 19 }).setDepth(32);
     const home = pill(this, 875, 625, 220, 58, "CAT HOUSE", { fill: COLORS.teal, color: "#fff7df", size: 19 }).setDepth(32);
-    retry.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: this.level.id }));
+    retry.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: this.level.id, quickIntro: true }));
     next.on("pointerup", () => nextLevelId
       ? this.scene.start("LevelIntroScene", { levelId: nextLevelId })
       : this.scene.start("LevelSelect", { worldId: this.level.world }));

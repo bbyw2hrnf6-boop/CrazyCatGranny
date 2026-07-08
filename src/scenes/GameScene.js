@@ -13,7 +13,6 @@ import { SaveGame } from "../savegame/SaveGame.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 import { BossEncounter } from "./game/BossEncounter.js";
 import { CourseBuilder } from "./game/CourseBuilder.js";
-import { ResultsPanel } from "./game/ResultsPanel.js";
 import { RunHud } from "./game/RunHud.js";
 import { WorldMechanics } from "./game/WorldMechanics.js";
 
@@ -101,7 +100,6 @@ export class GameScene extends Phaser.Scene {
     this.createCatSoundMoments();
     this.createFinish();
     this.runHud = new RunHud(this);
-    this.resultsPanel = new ResultsPanel(this);
     this.createHUD();
     this.createControls();
     this.createReactiveProps();
@@ -1050,25 +1048,48 @@ export class GameScene extends Phaser.Scene {
       time: ["TIME RAN OUT!", "The thief reached the getaway route first."],
       falls: ["GRANNY WIPED OUT!", `Only ${this.maxFalls - 1} falls allowed in this world.`]
     }[reason] || ["CAT-NAPPED!", "Try the chase again."];
+    const markerX = Phaser.Math.Clamp(this.granny.x - this.cameras.main.scrollX, 90, 1190);
+    const failMarker = this.add.container(markerX, 570, [
+      this.add.rectangle(0, -170, 5, 315, COLORS.coral, 0.72),
+      this.add.text(0, -330, "LAST TRY", textStyle(16, "#fff7df")).setOrigin(0.5).setBackgroundColor("#ec5966dd").setPadding(8, 3)
+    ]).setScrollFactor(0).setDepth(119);
+    this.tweens.add({ targets: failMarker, alpha: 0.42, duration: 360, yoyo: true, repeat: -1 });
     const shade = this.add.rectangle(640, 360, 1280, 720, 0x241827, 0.78).setScrollFactor(0).setDepth(120).setInteractive();
-    const panel = this.add.rectangle(640, 350, 620, 390, COLORS.cream).setScrollFactor(0).setDepth(121);
+    const panel = this.add.rectangle(640, 350, 720, this.adminTest ? 450 : 420, COLORS.cream).setScrollFactor(0).setDepth(121);
     panel.setStrokeStyle(8, COLORS.ink);
-    const title = this.add.text(640, 235, copy[0], textStyle(40, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(122);
-    const message = this.add.text(640, 295, copy[1], textStyle(20, "#6f596d")).setOrigin(0.5).setScrollFactor(0).setDepth(122);
+    const title = this.add.text(640, 210, copy[0], textStyle(40, "#ec5966")).setOrigin(0.5).setScrollFactor(0).setDepth(122);
+    const message = this.add.text(640, 268, copy[1], textStyle(20, "#6f596d", { wordWrap: { width: 620 }, align: "center" })).setOrigin(0.5).setScrollFactor(0).setDepth(122);
     const gap = Math.max(0, Math.round(this.thiefProgress - this.granny.x));
-    const stats = this.add.text(640, 345, `THIEF LEAD  ${gap}m   ·   FALLS  ${this.falls}/${this.maxFalls}`, textStyle(17))
+    const stats = this.add.text(640, 328, `THIEF LEAD  ${gap}m   ·   FALLS  ${this.falls}/${this.maxFalls}`, textStyle(17))
       .setOrigin(0.5).setScrollFactor(0).setDepth(122);
-    const retry = pill(this, 520, 440, 210, 62, "↻  RETRY", { fill: COLORS.yellow, size: 21 }).setScrollFactor(0).setDepth(123);
-    const map = pill(this, 760, 440, 210, 62, "BACK TO MAP", { fill: COLORS.cream, size: 19 }).setScrollFactor(0).setDepth(123);
+    const tip = this.add.text(640, 374, this.lossTip(reason, gap), textStyle(17, "#2f2335", { wordWrap: { width: 610 }, align: "center" }))
+      .setOrigin(0.5).setScrollFactor(0).setDepth(122).setBackgroundColor("#ffdc6144").setPadding(12, 5);
+    const retry = pill(this, 500, 465, 210, 62, "↻  RETRY", { fill: COLORS.yellow, size: 21 }).setScrollFactor(0).setDepth(123);
+    const map = pill(this, 740, 465, 210, 62, "BACK TO MAP", { fill: COLORS.cream, size: 19 }).setScrollFactor(0).setDepth(123);
     retry.on("pointerup", () => {
       this.physics.resume();
-      this.scene.start("LevelIntroScene", { levelId: this.level.id });
+      this.scene.start("LevelIntroScene", { levelId: this.level.id, quickIntro: true });
     });
     map.on("pointerup", () => {
       this.physics.resume();
       this.scene.start("LevelSelect", { worldId: this.level.world });
     });
-    this.lossPanel = [shade, panel, title, message, stats, retry, map];
+    this.lossPanel = [failMarker, shade, panel, title, message, stats, tip, retry, map];
+    if (this.adminTest) {
+      const admin = pill(this, 640, 545, 250, 54, "← ADMIN", { fill: COLORS.coral, color: "#fff7df", size: 18 }).setScrollFactor(0).setDepth(123);
+      admin.on("pointerup", () => {
+        this.physics.resume();
+        this.scene.start("SettingsScene", { tab: "admin" });
+      });
+      this.lossPanel.push(admin);
+    }
+  }
+
+  lossTip(reason, gap) {
+    if (reason === "falls") return "Tip: release the cane as Granny swings forward. If a gap repeats, wait for the gold hook glow.";
+    if (reason === "time") return "Tip: clean swings are faster than safe hops. Follow coin arcs and skip low platforms when the route opens.";
+    if (gap > 300) return "Tip: the thief is far ahead. Use the next hook for a perfect swing boost instead of jumping early.";
+    return "Tip: stay close, then use treats and hooks to keep momentum through the last stretch.";
   }
 
   complete() {
@@ -1100,10 +1121,6 @@ export class GameScene extends Phaser.Scene {
         reward
       });
     });
-  }
-
-  resultPanel(result, firstClear, reward = { type: "none" }) {
-    this.resultsPanel.show(result, firstClear, reward);
   }
 
   togglePause() {

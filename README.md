@@ -19,6 +19,12 @@ npm install
 npm run dev
 ```
 
+Before pushing, run the full local safety check:
+
+```bash
+npm run check
+```
+
 The project also runs without a build step:
 
 ```bash
@@ -51,6 +57,7 @@ Animation and game-feel systems include multi-frame skating and thief run cycles
 - `src/systems/PerformanceProfile.js` selects high or balanced effects automatically from device capability, reduced-motion preferences, and the optional `?quality=high|low` debug flag.
 - `src/systems/DevTools.js` provides `F1` telemetry, `F2` hitboxes, `F3` slow motion, and `F4` segment skipping.
 - The PIN-protected Admin panel launches normal, slow-motion and hitbox tests, manages backups, and resets progression, room layout, settings, or the full save separately.
+- Scene/save flow is documented in [`docs/FLOW.md`](docs/FLOW.md).
 - Physics for distant collectibles is disabled until it is relevant, while frequently used dust and landing debris are pooled.
 
 ## Visual system

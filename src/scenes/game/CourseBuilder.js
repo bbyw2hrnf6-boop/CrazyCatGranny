@@ -26,6 +26,7 @@ export class CourseBuilder {
     authoredMoments.forEach((moment) => this.createSetPiece(moment));
 
     hooks.forEach((point) => {
+      this.decorateHookRoute(point);
       const hook = scene.add.image(point.x, point.y, "hook").setDepth(8);
       hook.setData("used", false);
       hook.setData("required", point.required);
@@ -49,6 +50,14 @@ export class CourseBuilder {
       obstacle.setScale(config.scale).refreshBody();
       obstacle.setData("type", texture);
       obstacle.setData("decor", this.decorateObstacle(obstacle, texture, config));
+      scene.tweens.add({
+        targets: obstacle,
+        angle: texture === "glass" ? 1.6 : 0.9,
+        duration: 620 + Math.round(x % 5) * 60,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.inOut"
+      });
     });
 
     coins.forEach(({ x, y }) => addCoin(scene, x, y, scene.coins));
@@ -66,6 +75,37 @@ export class CourseBuilder {
       const awning = this.addPlatform(x, y, width, 24, 0xe85e68);
       awning.setData("bounce", true);
     });
+  }
+
+  decorateHookRoute(point) {
+    const scene = this.scene;
+    const color = point.required ? 0xffe17a : point.reason === "setpiece" ? 0xff9bd9 : 0x9ff3e6;
+    const alpha = point.required ? 0.34 : 0.22;
+    const cue = scene.add.graphics().setDepth(5);
+    cue.lineStyle(point.required ? 5 : 3, color, alpha);
+    cue.beginPath();
+    cue.moveTo(point.x - 190, point.y + 110);
+    cue.quadraticCurveTo(point.x, point.y - 85, point.x + 210, point.y + 122);
+    cue.strokePath();
+    const dots = [-130, -65, 0, 65, 130].map((offset, index) => {
+      const dot = scene.add.image(point.x + offset, point.y + 70 - Math.abs(offset) * 0.46, "sparkle")
+        .setTint(color)
+        .setAlpha(alpha + 0.12)
+        .setScale(point.required ? 0.28 : 0.2)
+        .setDepth(6);
+      scene.tweens.add({
+        targets: dot,
+        alpha: alpha + 0.34,
+        scale: dot.scale + 0.08,
+        duration: 360 + index * 75,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.inOut"
+      });
+      return dot;
+    });
+    scene.tweens.add({ targets: cue, alpha: alpha + 0.18, duration: 720, yoyo: true, repeat: -1 });
+    return [cue, ...dots];
   }
 
   createSetPiece(moment) {

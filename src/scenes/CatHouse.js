@@ -873,7 +873,8 @@ export class CatHouse extends Phaser.Scene {
     const previewLabel = this.add.text(330, 545, "PREVIEW ONLY", textStyle(15, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
     const adjustmentLabel = this.add.text(330, 575, "", textStyle(13, "#725f72")).setOrigin(0.5).setDepth(depth + 2);
     const selectedLabel = this.add.text(330, 118, "", textStyle(20, "#2f2335")).setOrigin(0.5).setDepth(depth + 2);
-    parts.push(shade, panel, title, portrait, previewLabel, adjustmentLabel, selectedLabel);
+    const anchorMarkers = this.createCatAnchorMarkers(portrait, depth + 4);
+    parts.push(shade, panel, title, portrait, previewLabel, adjustmentLabel, selectedLabel, ...anchorMarkers);
     this.catCustomizer = {
       level,
       depth,
@@ -924,7 +925,7 @@ export class CatHouse extends Phaser.Scene {
       button.on("pointerup", action);
       parts.push(button);
     });
-    const reset = pill(this, 755, 630, 120, 46, "RESET", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
+    const reset = pill(this, 755, 630, 120, 46, "FIT", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
     const cancel = pill(this, 895, 630, 125, 46, "CANCEL", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
     const apply = pill(this, 1045, 630, 145, 46, "APPLY", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
     reset.on("pointerup", () => this.resetDraftAccessory());
@@ -941,6 +942,22 @@ export class CatHouse extends Phaser.Scene {
     };
     this.input.on("wheel", this.customizerWheelHandler);
     this.selectCustomizerHat(current);
+  }
+
+  createCatAnchorMarkers(portrait, depth) {
+    const anchors = portrait.getData("anchors") || {};
+    const colors = { head: COLORS.yellow, face: COLORS.teal, neck: COLORS.coral, back: 0xb994d6 };
+    return Object.entries(anchors).flatMap(([name, anchor]) => {
+      const x = portrait.x + anchor.x * portrait.scaleX;
+      const y = portrait.y + anchor.y * portrait.scaleY;
+      const dot = this.add.circle(x, y, name === "head" ? 8 : 6, colors[name] || COLORS.cream, 0.82)
+        .setStrokeStyle(2, COLORS.ink, 0.7)
+        .setDepth(depth);
+      const label = this.add.text(x, y + 16, name.toUpperCase(), textStyle(9, "#2f2335"))
+        .setOrigin(0.5)
+        .setDepth(depth);
+      return [dot, label];
+    });
   }
 
   selectCustomizerHat(hatId) {

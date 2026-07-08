@@ -17,6 +17,8 @@ export class LevelIntroScene extends Phaser.Scene {
   init(data) {
     this.level = levelById(data?.levelId || 1);
     this.world = WORLDS[this.level.world - 1];
+    this.quickIntro = Boolean(data?.quickIntro);
+    this.started = false;
   }
 
   create() {
@@ -56,6 +58,7 @@ export class LevelIntroScene extends Phaser.Scene {
   playKidnap() {
     const index = Math.max(0, (this.level.id - 1) % MAP_POSITIONS.length);
     const [nodeX, nodeY] = MAP_POSITIONS[index];
+    const speed = this.quickIntro ? 0.45 : 1;
     const thief = this.add.sprite(Math.max(-40, nodeX - 260), nodeY + 5, "thief-run", 0).setScale(0.2).setDepth(8).play("thief-running");
     const cat = createCat(this, nodeX, nodeY - 42, catFrameForLevel(this.level.id), 0.16).setDepth(7);
     const bubble = this.add.text(nodeX + 5, nodeY - 112, "HELP!", textStyle(25, "#ec5966"))
@@ -64,19 +67,29 @@ export class LevelIntroScene extends Phaser.Scene {
       .setBackgroundColor("#fff7dfdd")
       .setPadding(12, 5);
     const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, "granny-skate", 0).setScale(0.25).setDepth(7).play("granny-skating").setAlpha(0);
-    const title = this.add.text(640, 635, "The thief is on the map...", textStyle(28, "#2f2335"))
+    const title = this.add.text(640, 635, this.quickIntro ? "Back on the chase..." : this.storyCopy(), textStyle(28, "#2f2335"))
       .setOrigin(0.5)
       .setDepth(12)
       .setBackgroundColor("#fff7dfdd")
       .setPadding(20, 8);
+    const skip = this.add.text(1115, 640, "SKIP  →", textStyle(20, "#fff7df"))
+      .setOrigin(0.5)
+      .setDepth(13)
+      .setBackgroundColor("#2f2335cc")
+      .setPadding(14, 5)
+      .setInteractive({ useHandCursor: true });
+    skip.on("pointerup", () => this.startRun());
+    this.input.keyboard?.once("keydown-SPACE", () => this.startRun());
+    this.input.keyboard?.once("keydown-ENTER", () => this.startRun());
 
-    this.tweens.add({ targets: bubble, y: bubble.y - 8, duration: 280, yoyo: true, repeat: 5, ease: "Sine.inOut" });
+    this.tweens.add({ targets: bubble, y: bubble.y - 8, duration: 280 * speed, yoyo: true, repeat: this.quickIntro ? 2 : 5, ease: "Sine.inOut" });
     this.tweens.add({
       targets: thief,
       x: nodeX - 30,
-      duration: 1400,
+      duration: 1400 * speed,
       ease: "Sine.inOut",
       onComplete: () => {
+        if (this.started) return;
         title.setText("He snatches the cat!");
         this.tweens.add({
           targets: cat,
@@ -84,24 +97,39 @@ export class LevelIntroScene extends Phaser.Scene {
           y: thief.y - 38,
           scale: 0.045,
           alpha: 0.25,
-          duration: 450,
+          duration: 450 * speed,
           ease: "Back.in",
           onComplete: () => {
+            if (this.started) return;
             cat.setVisible(false);
             bubble.setText("!");
             title.setText("Granny gives chase!");
             granny.setAlpha(1);
-            this.tweens.add({ targets: thief, x: 1380, duration: 1050, ease: "Quad.in" });
+            this.tweens.add({ targets: thief, x: 1380, duration: 1050 * speed, ease: "Quad.in" });
             this.tweens.add({
               targets: granny,
               x: 1320,
-              duration: 1180,
+              duration: 1180 * speed,
               ease: "Sine.in",
-              onComplete: () => this.scene.start("GameScene", { levelId: this.level.id, skipIntro: true })
+              onComplete: () => this.startRun()
             });
           }
         });
       }
     });
+  }
+
+  storyCopy() {
+    if (this.level.id === 1) return "The cats are stolen. Granny starts rolling.";
+    if (this.level.boss) return "The thief hides behind a bigger problem...";
+    return "The thief is on the map...";
+  }
+
+  startRun() {
+    if (this.started) return;
+    this.started = true;
+    this.tweens.killAll();
+    sound(this, "jump");
+    this.scene.start("GameScene", { levelId: this.level.id, skipIntro: true });
   }
 }
