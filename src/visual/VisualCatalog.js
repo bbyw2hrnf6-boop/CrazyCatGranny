@@ -410,6 +410,12 @@ export const VISUAL_ASSETS = Object.freeze({
   sheets: [
     ["granny-skate", "assets/sprites/granny-skate.png", 512, 512],
     ["thief-run", "assets/sprites/thief-run.png", 512, 512],
+    ...grannySkins
+      .filter((skin) => skin.texture !== "granny-skate")
+      .map((skin) => [skin.texture, `assets/sprites/${skin.texture}.png`, 512, 512]),
+    ...thiefSkins
+      .filter((skin) => skin.texture !== "thief-run")
+      .map((skin) => [skin.texture, `assets/sprites/${skin.texture}.png`, 512, 512]),
     ...Array.from({ length: getWorldCount() }, (_, index) => [
       `cat-real-${index + 1}`,
       `assets/sprites/${index === 0 ? "cat-atlas.png" : `cat-atlas-world${index + 1}.png`}`,
