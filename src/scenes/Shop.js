@@ -1,7 +1,14 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
 import { SHOP_ITEMS } from "../visual/VisualCatalog.js";
-import { attachCatAccessory, createCat, createItemPreview } from "../visual/VisualFactory.js";
+import {
+  attachCatAccessory,
+  createCat,
+  createGrannyGear,
+  createItemPreview,
+  setGrannyGearAdjustment,
+  syncGrannyGear
+} from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
 
 export class Shop extends Phaser.Scene {
@@ -12,6 +19,7 @@ export class Shop extends Phaser.Scene {
   create() {
     this.save = SaveGame.load();
     this.registry.set("save", this.save);
+    this.input.addPointer(1);
     this.activeTab = "HATS";
     this.cameras.main.setBackgroundColor("#f4d8ac");
     this.drawShop();
@@ -22,6 +30,10 @@ export class Shop extends Phaser.Scene {
     this.shopHint = this.add.text(54, 122, "BUY CAT ITEMS NOW · CHOOSE A CAT ONLY WHEN YOU EQUIP", textStyle(17, "#80677f")).setOrigin(0);
     this.makeTabs();
     this.renderItems();
+  }
+
+  update() {
+    this.updateGrannyEditorPinch();
   }
 
   drawShop() {
@@ -47,6 +59,7 @@ export class Shop extends Phaser.Scene {
         size: 17
       });
       button.on("pointerup", () => {
+        this.closeGrannyEditor();
         this.activeTab = tab;
         this.tabButtons.forEach((entry) => entry.destroy());
         this.itemObjects.forEach((entry) => entry.destroy());
@@ -129,11 +142,7 @@ export class Shop extends Phaser.Scene {
       return;
     }
     if (owned && item.tab === "GEAR") {
-      SaveGame.equipGear(this.save.equippedGear === item.id ? "none" : item.id);
-      this.save = SaveGame.load();
-      this.registry.set("save", this.save);
-      this.refresh();
-      this.toast(this.save.equippedGear === item.id ? "Granny geared up!" : "Gear unequipped!");
+      this.openGrannyEditor(item);
       return;
     }
     if (owned) {
@@ -154,6 +163,9 @@ export class Shop extends Phaser.Scene {
     if (item.tab === "HATS") {
       this.toast(`${item.name} added to your items!`);
       this.openCatPicker(item);
+    } else if (item.tab === "GEAR") {
+      this.toast(`${item.name} unlocked!`);
+      this.openGrannyEditor(item);
     } else this.toast(`${item.name} unlocked!`);
   }
 
@@ -229,6 +241,158 @@ export class Shop extends Phaser.Scene {
   closeCatPicker() {
     this.pickerParts?.forEach((item) => item.destroy());
     this.pickerParts = null;
+  }
+
+  openGrannyEditor(item) {
+    this.closeCatPicker();
+    this.closeGrannyEditor();
+    const saved = SaveGame.gearAdjustment(item.id);
+    const draft = {
+      anchor: saved.anchor || item.granny.anchor || "torso",
+      x: saved.x || 0,
+      y: saved.y || 0,
+      scale: saved.scale || 1,
+      angle: saved.angle || 0
+    };
+    const parts = [];
+    const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.72).setDepth(70).setInteractive();
+    const panel = this.add.rectangle(640, 360, 930, 610, COLORS.cream).setDepth(71);
+    panel.setStrokeStyle(7, COLORS.ink);
+    const title = this.add.text(640, 90, `EDIT GRANNY · ${item.name.toUpperCase()}`, textStyle(30, "#ec5966")).setOrigin(0.5).setDepth(72);
+    const hint = this.add.text(640, 130, "Drag the item · choose anchor · scale and rotate", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(72);
+    const granny = this.add.sprite(355, 390, "granny-skate", 0).setScale(0.42).setDepth(73).play("granny-skating");
+    granny.baseScale = 0.42;
+    const gear = createGrannyGear(this, granny, item.id, 75, draft);
+    gear?.setInteractive({ useHandCursor: true });
+    if (gear) this.input.setDraggable(gear);
+    const stat = this.add.text(705, 188, "", textStyle(15, "#2f2335")).setOrigin(0.5).setDepth(74);
+    parts.push(shade, panel, title, hint, granny, gear, stat);
+    this.grannyEditor = { item, draft, granny, gear, stat, dragStart: null, pinchStart: null };
+
+    gear?.on("dragstart", (pointer) => {
+      this.grannyEditor.dragStart = { x: pointer.x, y: pointer.y, draft: { ...this.grannyEditor.draft } };
+    });
+    gear?.on("drag", (pointer) => this.dragGrannyGear(pointer));
+    this.editorWheelHandler = (_pointer, _objects, _dx, dy) => {
+      if (!this.grannyEditor) return;
+      this.scaleGrannyGear(dy < 0 ? 0.05 : -0.05);
+    };
+    this.input.on("wheel", this.editorWheelHandler);
+
+    ["head", "torso", "hand"].forEach((anchor, index) => {
+      const button = pill(this, 570 + index * 125, 250, 105, 48, anchor.toUpperCase(), {
+        fill: draft.anchor === anchor ? COLORS.yellow : COLORS.cream,
+        size: 13
+      }).setDepth(74);
+      button.on("pointerup", () => {
+        this.grannyEditor.draft.anchor = anchor;
+        this.refreshGrannyEditor();
+      });
+      parts.push(button);
+    });
+    [
+      ["←", 560, 330, () => this.moveGrannyGear(-4, 0)],
+      ["→", 625, 330, () => this.moveGrannyGear(4, 0)],
+      ["↑", 690, 330, () => this.moveGrannyGear(0, -4)],
+      ["↓", 755, 330, () => this.moveGrannyGear(0, 4)],
+      ["-", 820, 330, () => this.scaleGrannyGear(-0.05)],
+      ["+", 885, 330, () => this.scaleGrannyGear(0.05)],
+      ["↺", 950, 330, () => this.rotateGrannyGear(-3)],
+      ["↻", 1015, 330, () => this.rotateGrannyGear(3)]
+    ].forEach(([label, x, y, action]) => {
+      const button = pill(this, x, y, 52, 46, label, { fill: COLORS.cream, size: 20 }).setDepth(74);
+      button.on("pointerup", action);
+      parts.push(button);
+    });
+    const equip = pill(this, 610, 535, 150, 54, "EQUIP", { fill: COLORS.yellow, size: 17 }).setDepth(74);
+    const reset = pill(this, 775, 535, 130, 54, "RESET", { fill: COLORS.cream, size: 15 }).setDepth(74);
+    const close = pill(this, 930, 535, 130, 54, "CLOSE", { fill: COLORS.cream, size: 15 }).setDepth(74);
+    equip.on("pointerup", () => {
+      SaveGame.setGearAdjustment(item.id, this.grannyEditor.draft);
+      SaveGame.equipGear(item.id);
+      this.save = SaveGame.load();
+      this.registry.set("save", this.save);
+      sound(this, "buy");
+      this.closeGrannyEditor();
+      this.refresh();
+      this.toast(`${item.name} equipped!`);
+    });
+    reset.on("pointerup", () => {
+      this.grannyEditor.draft = { anchor: item.granny.anchor || "torso", x: 0, y: 0, scale: 1, angle: 0 };
+      this.refreshGrannyEditor();
+    });
+    close.on("pointerup", () => this.closeGrannyEditor());
+    parts.push(equip, reset, close);
+    this.grannyEditorParts = parts.filter(Boolean);
+    this.refreshGrannyEditor();
+  }
+
+  refreshGrannyEditor() {
+    const editor = this.grannyEditor;
+    if (!editor) return;
+    setGrannyGearAdjustment(editor.gear, editor.draft);
+    syncGrannyGear(editor.gear, editor.granny);
+    editor.stat.setText(`ANCHOR ${editor.draft.anchor.toUpperCase()} · X ${editor.draft.x} · Y ${editor.draft.y} · SIZE ${editor.draft.scale.toFixed(2)} · ROT ${editor.draft.angle}`);
+  }
+
+  dragGrannyGear(pointer) {
+    const editor = this.grannyEditor;
+    if (!editor?.dragStart) return;
+    editor.draft.x = Phaser.Math.Clamp(Math.round(editor.dragStart.draft.x + (pointer.x - editor.dragStart.x) / Math.abs(editor.granny.scaleX)), -260, 260);
+    editor.draft.y = Phaser.Math.Clamp(Math.round(editor.dragStart.draft.y + (pointer.y - editor.dragStart.y) / Math.abs(editor.granny.scaleY)), -260, 260);
+    this.refreshGrannyEditor();
+  }
+
+  moveGrannyGear(dx, dy) {
+    if (!this.grannyEditor) return;
+    this.grannyEditor.draft.x = Phaser.Math.Clamp(this.grannyEditor.draft.x + dx, -260, 260);
+    this.grannyEditor.draft.y = Phaser.Math.Clamp(this.grannyEditor.draft.y + dy, -260, 260);
+    this.refreshGrannyEditor();
+  }
+
+  scaleGrannyGear(delta) {
+    if (!this.grannyEditor) return;
+    this.grannyEditor.draft.scale = Phaser.Math.Clamp(Number((this.grannyEditor.draft.scale + delta).toFixed(2)), 0.25, 3);
+    this.refreshGrannyEditor();
+  }
+
+  rotateGrannyGear(delta) {
+    if (!this.grannyEditor) return;
+    this.grannyEditor.draft.angle = Phaser.Math.Clamp(this.grannyEditor.draft.angle + delta, -120, 120);
+    this.refreshGrannyEditor();
+  }
+
+  updateGrannyEditorPinch() {
+    const editor = this.grannyEditor;
+    if (!editor) return;
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (!p1?.isDown || !p2?.isDown) {
+      editor.pinchStart = null;
+      return;
+    }
+    const distance = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+    if (!editor.pinchStart) {
+      editor.pinchStart = { distance, scale: editor.draft.scale };
+      return;
+    }
+    if (editor.pinchStart.distance <= 0) return;
+    editor.draft.scale = Phaser.Math.Clamp(
+      Number((editor.pinchStart.scale * (distance / editor.pinchStart.distance)).toFixed(2)),
+      0.25,
+      3
+    );
+    this.refreshGrannyEditor();
+  }
+
+  closeGrannyEditor() {
+    if (this.editorWheelHandler) {
+      this.input.off("wheel", this.editorWheelHandler);
+      this.editorWheelHandler = null;
+    }
+    this.grannyEditorParts?.forEach((item) => item.destroy());
+    this.grannyEditorParts = null;
+    this.grannyEditor = null;
   }
 
   toast(message) {

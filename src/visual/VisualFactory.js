@@ -70,8 +70,8 @@ function normalizeAccessoryAdjustment(adjustment = {}) {
   return {
     x: Math.round(Number(adjustment?.x) || 0),
     y: Math.round(Number(adjustment?.y) || 0),
-    scale: Math.max(0.65, Math.min(1.45, Number(adjustment?.scale) || 1)),
-    angle: Math.round(Number(adjustment?.angle) || 0)
+    scale: Math.max(0.25, Math.min(3, Number(adjustment?.scale) || 1)),
+    angle: Math.max(-90, Math.min(90, Math.round(Number(adjustment?.angle) || 0)))
   };
 }
 
@@ -237,7 +237,7 @@ export function createRoomDecor(scene, activeDecor = [], decorPositions = {}) {
   };
 }
 
-export function createGrannyGear(scene, granny, gearId, depth = 14) {
+export function createGrannyGear(scene, granny, gearId, depth = 14, adjustment = null) {
   const look = visualItem(gearId);
   if (!look || look.kind !== "gear") return null;
   const visual = scene.add.image(granny.x, granny.y, look.texture, look.frame)
@@ -246,10 +246,16 @@ export function createGrannyGear(scene, granny, gearId, depth = 14) {
     .setDepth(depth)
     .setData("visualKind", "granny-gear")
     .setData("itemId", gearId)
+    .setData("adjustment", normalizeGearAdjustment(adjustment))
     .setData("depthOffset", depth - (granny.depth || depth))
     .setData("hostBaseScale", granny.baseScale || 0.29);
   syncGrannyGear(visual, granny);
   return visual;
+}
+
+export function setGrannyGearAdjustment(visual, adjustment = null) {
+  if (!visual?.active) return;
+  visual.setData("adjustment", normalizeGearAdjustment(adjustment));
 }
 
 function currentGrannyFrame(granny) {
@@ -258,9 +264,9 @@ function currentGrannyFrame(granny) {
   return Number.isFinite(numericFrame) ? numericFrame : 0;
 }
 
-function grannyGearAnchor(granny, look) {
+function grannyGearAnchor(granny, look, adjustment) {
   const frame = currentGrannyFrame(granny);
-  const anchorName = look.granny.anchor || "torso";
+  const anchorName = adjustment.anchor || look.granny.anchor || "torso";
   const frameAnchors = GRANNY_GEAR_ANCHORS[frame] || GRANNY_GEAR_ANCHORS.default;
   const base = GRANNY_GEAR_ANCHORS.default[anchorName] || GRANNY_GEAR_ANCHORS.default.torso;
   const itemFrameAnchors = look.granny.frameAnchors || {};
@@ -279,19 +285,30 @@ export function syncGrannyGear(visual, granny) {
   const baseScale = visual.getData("hostBaseScale") || 0.29;
   const ratioX = Math.abs(granny.scaleX) / baseScale;
   const ratioY = Math.abs(granny.scaleY) / baseScale;
-  const anchor = grannyGearAnchor(granny, look);
+  const adjustment = normalizeGearAdjustment(visual.getData("adjustment"));
+  const anchor = grannyGearAnchor(granny, look, adjustment);
   const flip = granny.flipX ? -1 : 1;
   const radians = Phaser.Math.DegToRad(granny.angle);
-  const anchorX = (anchor.x + look.granny.x) * Math.abs(granny.scaleX) * flip;
-  const anchorY = (anchor.y + look.granny.y) * Math.abs(granny.scaleY);
+  const anchorX = (anchor.x + look.granny.x + adjustment.x) * Math.abs(granny.scaleX) * flip;
+  const anchorY = (anchor.y + look.granny.y + adjustment.y) * Math.abs(granny.scaleY);
   const x = anchorX * Math.cos(radians) - anchorY * Math.sin(radians);
   const y = anchorX * Math.sin(radians) + anchorY * Math.cos(radians);
   visual.setPosition(granny.x + x, granny.y + y);
-  visual.setScale(look.granny.scale * ratioX * anchor.scale, look.granny.scale * ratioY * anchor.scale);
-  visual.setAngle(granny.angle + (anchor.angle + look.granny.angle) * flip);
+  visual.setScale(look.granny.scale * ratioX * anchor.scale * adjustment.scale, look.granny.scale * ratioY * anchor.scale * adjustment.scale);
+  visual.setAngle(granny.angle + (anchor.angle + look.granny.angle + adjustment.angle) * flip);
   visual.setFlipX(granny.flipX);
   visual.setAlpha(granny.alpha);
   visual.setVisible(granny.visible);
   visual.setDepth((granny.depth || 0) + (visual.getData("depthOffset") ?? 1));
   visual.setScrollFactor(granny.scrollFactorX, granny.scrollFactorY);
+}
+
+function normalizeGearAdjustment(adjustment = {}) {
+  return {
+    anchor: ["head", "torso", "hand"].includes(adjustment?.anchor) ? adjustment.anchor : null,
+    x: Math.round(Number(adjustment?.x) || 0),
+    y: Math.round(Number(adjustment?.y) || 0),
+    scale: Math.max(0.25, Math.min(3, Number(adjustment?.scale) || 1)),
+    angle: Math.max(-120, Math.min(120, Math.round(Number(adjustment?.angle) || 0)))
+  };
 }

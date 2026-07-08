@@ -13,7 +13,9 @@ const TEST_SAVE_ACTIVE_KEY = `${TEST_SAVE_KEY}-active`;
 const SAVE_VERSION = 2;
 const STARTING_COINS = 150;
 const MAX_CAT_NAME_LENGTH = 18;
-const MAX_ACCESSORY_OFFSET = 60;
+const MAX_ACCESSORY_OFFSET = 220;
+const MAX_GEAR_OFFSET = 260;
+const GEAR_ANCHORS = new Set(["head", "torso", "hand"]);
 
 const defaults = {
   version: SAVE_VERSION,
@@ -29,6 +31,7 @@ const defaults = {
   catNames: {},
   hatAssignments: {},
   catAccessoryAdjustments: {},
+  gearAdjustments: {},
   activeDecor: [],
   decorPositions: {},
   worldTrophies: [],
@@ -60,6 +63,7 @@ function clean(data) {
     catNames: data?.catNames && typeof data.catNames === "object" ? data.catNames : {},
     hatAssignments: data?.hatAssignments && typeof data.hatAssignments === "object" ? data.hatAssignments : {},
     catAccessoryAdjustments: data?.catAccessoryAdjustments && typeof data.catAccessoryAdjustments === "object" ? data.catAccessoryAdjustments : {},
+    gearAdjustments: data?.gearAdjustments && typeof data.gearAdjustments === "object" ? data.gearAdjustments : {},
     activeDecor: Array.isArray(data?.activeDecor) ? data.activeDecor : [],
     decorPositions: data?.decorPositions && typeof data.decorPositions === "object"
       ? Object.fromEntries(HOME_ITEM_IDS.flatMap((id) => {
@@ -92,6 +96,10 @@ function clean(data) {
   result.catAccessoryAdjustments = Object.fromEntries(Object.entries(result.catAccessoryAdjustments)
     .filter(([key]) => typeof key === "string")
     .map(([key, value]) => [key, cleanAccessoryAdjustment(value)])
+    .filter(([, value]) => value));
+  result.gearAdjustments = Object.fromEntries(Object.entries(result.gearAdjustments)
+    .filter(([key]) => typeof key === "string")
+    .map(([key, value]) => [key, cleanGearAdjustment(value)])
     .filter(([, value]) => value));
   result.activeDecor = [...new Set(result.activeDecor.filter((id) => HOME_ITEM_IDS.includes(id)))];
   result.worldTrophies = [...new Set(result.worldTrophies.map(Number).filter((id) => id >= 1 && id <= getWorldCount()))];
@@ -157,6 +165,7 @@ function pack(data) {
       catNames: save.catNames,
       hatAssignments: save.hatAssignments,
       catAccessoryAdjustments: save.catAccessoryAdjustments,
+      gearAdjustments: save.gearAdjustments,
       selectedCharacter: save.selectedCharacter
     },
     layout: {
@@ -180,10 +189,20 @@ function accessoryKey(catId, hatId) {
 function cleanAccessoryAdjustment(value = {}) {
   const x = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.x) || 0)));
   const y = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.y) || 0)));
-  const scale = Math.max(0.65, Math.min(1.45, Number(value.scale) || 1));
-  const angle = Math.max(-35, Math.min(35, Math.round(Number(value.angle) || 0)));
+  const scale = Math.max(0.25, Math.min(3, Number(value.scale) || 1));
+  const angle = Math.max(-90, Math.min(90, Math.round(Number(value.angle) || 0)));
   if (!x && !y && Number(scale.toFixed(2)) === 1 && !angle) return null;
   return { x, y, scale: Number(scale.toFixed(2)), angle };
+}
+
+function cleanGearAdjustment(value = {}) {
+  const anchor = GEAR_ANCHORS.has(value.anchor) ? value.anchor : null;
+  const x = Math.max(-MAX_GEAR_OFFSET, Math.min(MAX_GEAR_OFFSET, Math.round(Number(value.x) || 0)));
+  const y = Math.max(-MAX_GEAR_OFFSET, Math.min(MAX_GEAR_OFFSET, Math.round(Number(value.y) || 0)));
+  const scale = Math.max(0.25, Math.min(3, Number(value.scale) || 1));
+  const angle = Math.max(-120, Math.min(120, Math.round(Number(value.angle) || 0)));
+  if (!anchor && !x && !y && Number(scale.toFixed(2)) === 1 && !angle) return null;
+  return { anchor, x, y, scale: Number(scale.toFixed(2)), angle };
 }
 
 function progressScore(save) {
@@ -448,6 +467,21 @@ export const SaveGame = {
   hatAdjustment(catId, hatId) {
     const save = this.load();
     return save.catAccessoryAdjustments[accessoryKey(catId, hatId)] || { x: 0, y: 0, scale: 1, angle: 0 };
+  },
+
+  setGearAdjustment(gearId, adjustment = null) {
+    const save = this.load();
+    if (!save.owned.includes(gearId)) return false;
+    const cleanAdjustment = cleanGearAdjustment(adjustment);
+    if (cleanAdjustment) save.gearAdjustments[gearId] = cleanAdjustment;
+    else delete save.gearAdjustments[gearId];
+    this.write(save);
+    return true;
+  },
+
+  gearAdjustment(gearId) {
+    const save = this.load();
+    return save.gearAdjustments[gearId] || { anchor: null, x: 0, y: 0, scale: 1, angle: 0 };
   },
 
   equipGear(id) {

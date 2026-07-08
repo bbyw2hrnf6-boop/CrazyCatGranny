@@ -39,6 +39,7 @@ export class CatHouse extends Phaser.Scene {
   create() {
     this.save = SaveGame.load();
     this.roomCats = [];
+    this.input.addPointer(1);
     this.registry.set("save", this.save);
     this.drawRoom();
     addPaperTexture(this);
@@ -230,6 +231,7 @@ export class CatHouse extends Phaser.Scene {
   }
 
   update(_time, delta) {
+    this.updateCustomizerPinch();
     if (!this.roomCats?.length) return;
     const time = this.time.now;
     const step = Math.min(delta / 1000, 0.04);
@@ -880,6 +882,8 @@ export class CatHouse extends Phaser.Scene {
       previewHat: null,
       selectedHat: current,
       draft: { ...SaveGame.hatAdjustment(level.cat.id, current) },
+      dragStart: null,
+      pinchStart: null,
       cards: {},
       adjustmentLabel,
       selectedLabel
@@ -931,6 +935,11 @@ export class CatHouse extends Phaser.Scene {
     apply.on("pointerup", () => this.applyCatCustomization());
     parts.push(reset, cancel, apply);
     this.overlayParts = parts;
+    this.customizerWheelHandler = (_pointer, _objects, _dx, dy) => {
+      if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
+      this.scaleDraftAccessory(dy < 0 ? 0.05 : -0.05);
+    };
+    this.input.on("wheel", this.customizerWheelHandler);
     this.selectCustomizerHat(current);
   }
 
@@ -953,38 +962,93 @@ export class CatHouse extends Phaser.Scene {
     customizer.previewHat?.destroy();
     customizer.previewHat = null;
     const hatId = customizer.selectedHat;
+    this.refreshCustomizerLive();
+    if (hatId === "none") return;
+    customizer.previewHat = this.addHat(customizer.portrait, hatId, customizer.level.cat.id, customizer.draft);
+    if (!customizer.previewHat) return;
+    customizer.previewHat.setDepth(customizer.depth + 3);
+    customizer.previewHat.setInteractive({ useHandCursor: true });
+    this.input.setDraggable(customizer.previewHat);
+    customizer.previewHat.on("dragstart", (pointer) => {
+      customizer.dragStart = { x: pointer.x, y: pointer.y, draft: { ...customizer.draft } };
+    });
+    customizer.previewHat.on("drag", (pointer) => this.dragDraftAccessory(pointer));
+    this.overlayParts.push(customizer.previewHat);
+    this.refreshCustomizerLive();
+  }
+
+  refreshCustomizerLive() {
+    const customizer = this.catCustomizer;
+    if (!customizer) return;
+    const hatId = customizer.selectedHat;
     const selectedItem = HAT_ITEMS.find((item) => item.id === hatId);
     customizer.selectedLabel.setText(hatId === "none" ? "Natural Fur" : selectedItem?.name || "Outfit");
     customizer.adjustmentLabel.setText(hatId === "none"
       ? "No accessory selected"
       : `X ${customizer.draft.x} · Y ${customizer.draft.y} · SIZE ${customizer.draft.scale.toFixed(2)} · ROT ${customizer.draft.angle}`);
-    if (hatId === "none") return;
-    customizer.previewHat = this.addHat(customizer.portrait, hatId, customizer.level.cat.id, customizer.draft);
-    if (!customizer.previewHat) return;
-    customizer.previewHat.setDepth(customizer.depth + 3);
-    this.overlayParts.push(customizer.previewHat);
+    if (hatId === "none" || !customizer.previewHat) return;
+    setCatAccessoryAdjustment(customizer.previewHat, customizer.draft);
     this.syncCatHat({ sprite: customizer.portrait, hat: customizer.previewHat });
+  }
+
+  dragDraftAccessory(pointer) {
+    const customizer = this.catCustomizer;
+    if (!customizer?.dragStart || customizer.selectedHat === "none") return;
+    customizer.draft.x = Phaser.Math.Clamp(
+      Math.round(customizer.dragStart.draft.x + (pointer.x - customizer.dragStart.x) / Math.abs(customizer.portrait.scaleX)),
+      -220,
+      220
+    );
+    customizer.draft.y = Phaser.Math.Clamp(
+      Math.round(customizer.dragStart.draft.y + (pointer.y - customizer.dragStart.y) / Math.abs(customizer.portrait.scaleY)),
+      -220,
+      220
+    );
+    this.refreshCustomizerLive();
+  }
+
+  updateCustomizerPinch() {
+    const customizer = this.catCustomizer;
+    if (!customizer || customizer.selectedHat === "none") return;
+    const p1 = this.input.pointer1;
+    const p2 = this.input.pointer2;
+    if (!p1?.isDown || !p2?.isDown) {
+      customizer.pinchStart = null;
+      return;
+    }
+    const distance = Phaser.Math.Distance.Between(p1.x, p1.y, p2.x, p2.y);
+    if (!customizer.pinchStart) {
+      customizer.pinchStart = { distance, scale: customizer.draft.scale };
+      return;
+    }
+    if (customizer.pinchStart.distance <= 0) return;
+    customizer.draft.scale = Phaser.Math.Clamp(
+      Number((customizer.pinchStart.scale * (distance / customizer.pinchStart.distance)).toFixed(2)),
+      0.25,
+      3
+    );
+    this.refreshCustomizerLive();
   }
 
   nudgeDraftAccessory(dx, dy) {
     if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
-    this.catCustomizer.draft.x = Phaser.Math.Clamp(this.catCustomizer.draft.x + dx, -60, 60);
-    this.catCustomizer.draft.y = Phaser.Math.Clamp(this.catCustomizer.draft.y + dy, -60, 60);
+    this.catCustomizer.draft.x = Phaser.Math.Clamp(this.catCustomizer.draft.x + dx, -220, 220);
+    this.catCustomizer.draft.y = Phaser.Math.Clamp(this.catCustomizer.draft.y + dy, -220, 220);
     setCatAccessoryAdjustment(this.catCustomizer.previewHat, this.catCustomizer.draft);
     this.syncCatHat({ sprite: this.catCustomizer.portrait, hat: this.catCustomizer.previewHat });
-    this.updateCustomizerPreview();
+    this.refreshCustomizerLive();
   }
 
   scaleDraftAccessory(delta) {
     if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
-    this.catCustomizer.draft.scale = Phaser.Math.Clamp(Number((this.catCustomizer.draft.scale + delta).toFixed(2)), 0.65, 1.45);
-    this.updateCustomizerPreview();
+    this.catCustomizer.draft.scale = Phaser.Math.Clamp(Number((this.catCustomizer.draft.scale + delta).toFixed(2)), 0.25, 3);
+    this.refreshCustomizerLive();
   }
 
   rotateDraftAccessory(delta) {
     if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
-    this.catCustomizer.draft.angle = Phaser.Math.Clamp(this.catCustomizer.draft.angle + delta, -35, 35);
-    this.updateCustomizerPreview();
+    this.catCustomizer.draft.angle = Phaser.Math.Clamp(this.catCustomizer.draft.angle + delta, -90, 90);
+    this.refreshCustomizerLive();
   }
 
   resetDraftAccessory() {
@@ -1386,6 +1450,10 @@ export class CatHouse extends Phaser.Scene {
   }
 
   closeOverlay() {
+    if (this.customizerWheelHandler) {
+      this.input.off("wheel", this.customizerWheelHandler);
+      this.customizerWheelHandler = null;
+    }
     this.overlayParts?.forEach((item) => item.destroy());
     this.overlayParts = null;
     this.catCustomizer = null;

@@ -70,7 +70,7 @@ export class MainMenu extends Phaser.Scene {
 
     const granny = this.add.sprite(815, 525, "granny-skate", 0).setScale(0.34).play("granny-skating");
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
-    const gear = createGrannyGear(this, granny, save.equippedGear, 8);
+    const gear = createGrannyGear(this, granny, save.equippedGear, 8, SaveGame.gearAdjustment(save.equippedGear));
     if (gear) this.events.on("update", () => syncGrannyGear(gear, granny));
     const thief = this.add.sprite(1115, 300, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });

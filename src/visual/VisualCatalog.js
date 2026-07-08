@@ -261,16 +261,16 @@ const gear = [
     granny: {
       anchor: "head",
       x: 0,
-      y: 0,
-      scale: 0.1,
+      y: -5,
+      scale: 0.072,
       angle: 0,
       originX: 0.54,
       originY: 0.53,
       frameAnchors: {
-        0: { x: 70, y: -150, angle: -7, scale: 1 },
-        1: { x: 78, y: -154, angle: -4, scale: 1 },
-        2: { x: -170, y: -146, angle: -8, scale: 1 },
-        3: { x: 98, y: -132, angle: 2, scale: 1 }
+        0: { angle: -3, scale: 0.96 },
+        1: { angle: 2, scale: 0.98 },
+        2: { angle: 1, scale: 0.96 },
+        3: { angle: 7, scale: 0.96 }
       }
     }
   },

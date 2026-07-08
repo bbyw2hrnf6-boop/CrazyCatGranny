@@ -78,7 +78,7 @@ export class GameScene extends Phaser.Scene {
     this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
-    this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14);
+    this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14, SaveGame.gearAdjustment(this.save.equippedGear));
     this.applyLevelGimmick();
     this.physics.add.collider(this.granny, this.platforms, this.onLand, undefined, this);
     this.physics.add.collider(this.granny, this.breakables, this.smashBreakable, undefined, this);
