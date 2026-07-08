@@ -2,7 +2,7 @@ import { getTotalLevelCount, getLevelsForWorld } from "../content/GameContentSta
 import { nextReleasedLevelId } from "../config/ReleaseConfig.js";
 import { LEVELS, levelById, WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
-import { catFrameForLevel, createCat } from "../visual/VisualFactory.js";
+import { catFrameForLevel, createCat, createGrannySkinEffect } from "../visual/VisualFactory.js";
 import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, coinBadge, pill, sound, textStyle } from "../ui/ui.js";
 
@@ -160,6 +160,7 @@ export class LevelCompleteMapScene extends Phaser.Scene {
       .setScale(0.2)
       .setDepth(25)
       .play(grannySkin?.animation || "granny-skating");
+    createGrannySkinEffect(this, granny, SaveGame.load().selectedGrannySkin, { depthOffset: -1, scale: 0.65 });
     const cat = createCat(this, 825, 330, frame, 0.22).setDepth(27).setAlpha(0);
     const heart = this.add.text(640, 302, "♥", textStyle(64, "#ec5966")).setOrigin(0.5).setDepth(28).setScale(0.1);
     const nameplate = this.add.text(640, 410, `${catName.toUpperCase()} IS HOME!`, textStyle(27, "#2f2335", { align: "center" }))

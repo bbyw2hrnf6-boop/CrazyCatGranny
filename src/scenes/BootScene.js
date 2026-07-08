@@ -1,5 +1,5 @@
 import { SaveGame } from "../savegame/SaveGame.js";
-import { GRANNY_SKINS, VISUAL_ASSETS } from "../visual/VisualCatalog.js";
+import { GRANNY_SKINS, THIEF_SKINS, VISUAL_ASSETS } from "../visual/VisualCatalog.js";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -24,6 +24,7 @@ export class BootScene extends Phaser.Scene {
   create() {
     this.makeTextures();
     this.makeGrannySkinTextures();
+    this.makeThiefSkinTextures();
     this.makeAnimations();
     this.registry.set("save", SaveGame.load());
     SaveGame.startCloudSync((save) => this.applyCloudSave(save));
@@ -48,11 +49,13 @@ export class BootScene extends Phaser.Scene {
         repeat: -1
       });
     });
-    this.anims.create({
-      key: "thief-running",
-      frames: this.anims.generateFrameNumbers("thief-run", { frames: [0, 1, 3, 2] }),
-      frameRate: 8,
-      repeat: -1
+    THIEF_SKINS.forEach((skin) => {
+      this.anims.create({
+        key: skin.animation,
+        frames: this.anims.generateFrameNumbers(skin.texture, { frames: [0, 1, 3, 2] }),
+        frameRate: 8,
+        repeat: -1
+      });
     });
   }
 
@@ -202,6 +205,9 @@ export class BootScene extends Phaser.Scene {
         this.drawGrannyCostume(context, skin.costume, (frame % 2) * 512, Math.floor(frame / 2) * 512, frame);
       }
       texture.refresh();
+      for (let frame = 0; frame < 4; frame += 1) {
+        texture.add(frame, 0, (frame % 2) * 512, Math.floor(frame / 2) * 512, 512, 512);
+      }
     });
   }
 
@@ -298,6 +304,94 @@ export class BootScene extends Phaser.Scene {
       context.fillRect(px(248), py(181), 10, 10);
       context.fillStyle = "#fff7df";
       context.fillRect(px(186), py(393), 150, 14);
+    }
+    context.restore();
+  }
+
+  makeThiefSkinTextures() {
+    const source = this.textures.get("thief-run").getSourceImage();
+    THIEF_SKINS.filter((skin) => skin.texture !== "thief-run").forEach((skin) => {
+      const texture = this.textures.createCanvas(skin.texture, source.width, source.height);
+      const context = texture.getContext();
+      context.drawImage(source, 0, 0);
+      for (let frame = 0; frame < 4; frame += 1) {
+        this.drawThiefCostume(context, skin.costume, (frame % 2) * 512, Math.floor(frame / 2) * 512, frame);
+      }
+      texture.refresh();
+      for (let frame = 0; frame < 4; frame += 1) {
+        texture.add(frame, 0, (frame % 2) * 512, Math.floor(frame / 2) * 512, 512, 512);
+      }
+    });
+  }
+
+  drawThiefCostume(context, costume, x, y, frame) {
+    const bob = frame === 1 ? -5 : frame === 3 ? 4 : 0;
+    const px = (value) => x + value;
+    const py = (value) => y + value + bob;
+    const poly = (points, fill, stroke = "#1f1825", width = 6) => {
+      context.beginPath();
+      points.forEach(([pointX, pointY], index) => {
+        if (index === 0) context.moveTo(px(pointX), py(pointY));
+        else context.lineTo(px(pointX), py(pointY));
+      });
+      context.closePath();
+      context.fillStyle = fill;
+      context.fill();
+      context.lineWidth = width;
+      context.strokeStyle = stroke;
+      context.stroke();
+    };
+    context.save();
+    if (costume === "blackCoat") {
+      poly([[185, 212], [318, 205], [352, 380], [166, 392]], "#14151b");
+      poly([[209, 226], [282, 217], [302, 350], [199, 360]], "#3c3f4f", "#0d0e14", 5);
+      context.fillStyle = "#c8cad6";
+      context.fillRect(px(236), py(230), 18, 92);
+      context.fillStyle = "#050505";
+      context.fillRect(px(222), py(186), 82, 25);
+    } else if (costume === "gentleman") {
+      poly([[186, 218], [319, 206], [344, 374], [172, 390]], "#70462f");
+      poly([[220, 222], [285, 218], [300, 344], [205, 352]], "#f0dfc2", "#563522", 5);
+      context.fillStyle = "#151015";
+      context.fillRect(px(226), py(192), 84, 18);
+      context.fillRect(px(244), py(150), 48, 45);
+      context.fillStyle = "#ec5966";
+      context.beginPath();
+      context.moveTo(px(250), py(245));
+      context.lineTo(px(268), py(260));
+      context.lineTo(px(249), py(278));
+      context.lineTo(px(231), py(260));
+      context.closePath();
+      context.fill();
+    } else if (costume === "raccoon") {
+      poly([[188, 218], [316, 208], [348, 378], [170, 392]], "#6f737b");
+      poly([[213, 226], [287, 220], [308, 348], [202, 356]], "#c4beb2", "#3d3f45", 5);
+      context.fillStyle = "#22232b";
+      context.fillRect(px(205), py(181), 112, 28);
+      context.fillStyle = "#f0eadf";
+      context.fillRect(px(240), py(188), 16, 8);
+      context.fillRect(px(278), py(188), 16, 8);
+      context.strokeStyle = "#33333a";
+      context.lineWidth = 10;
+      context.beginPath();
+      context.moveTo(px(190), py(352));
+      context.bezierCurveTo(px(145), py(350), px(132), py(300), px(176), py(282));
+      context.stroke();
+    } else if (costume === "cyber") {
+      poly([[186, 216], [318, 206], [346, 378], [169, 392]], "#202638");
+      poly([[214, 226], [288, 220], [306, 348], [202, 357]], "#18202e", "#52e8ff", 5);
+      context.strokeStyle = "#74f7ff";
+      context.lineWidth = 7;
+      context.beginPath();
+      context.moveTo(px(213), py(252));
+      context.lineTo(px(288), py(252));
+      context.moveTo(px(232), py(290));
+      context.lineTo(px(309), py(332));
+      context.moveTo(px(196), py(350));
+      context.lineTo(px(338), py(350));
+      context.stroke();
+      context.fillStyle = frame % 2 ? "#ff4fd8" : "#74f7ff";
+      context.fillRect(px(242), py(184), 54, 13);
     }
     context.restore();
   }

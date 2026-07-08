@@ -1,7 +1,7 @@
 import { getLevelsForWorld } from "../content/GameContentStats.js";
 import { levelById, WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
-import { catFrameForLevel, createCat } from "../visual/VisualFactory.js";
+import { catFrameForLevel, createCat, createGrannySkinEffect } from "../visual/VisualFactory.js";
 import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, sound, textStyle } from "../ui/ui.js";
 
@@ -61,20 +61,25 @@ export class LevelIntroScene extends Phaser.Scene {
     const index = Math.max(0, (this.level.id - 1) % MAP_POSITIONS.length);
     const [nodeX, nodeY] = MAP_POSITIONS[index];
     const speed = this.quickIntro ? 0.45 : 1;
-    const thief = this.add.sprite(Math.max(-40, nodeX - 260), nodeY + 5, "thief-run", 0).setScale(0.2).setDepth(8).play("thief-running");
+    const save = SaveGame.load();
+    const thiefSkin = visualItem(save.selectedThiefSkin);
+    const thief = this.add.sprite(Math.max(-40, nodeX - 260), nodeY + 5, thiefSkin?.texture || "thief-run", 0)
+      .setScale(0.2)
+      .setDepth(8)
+      .play(thiefSkin?.animation || "thief-running");
     const cat = createCat(this, nodeX, nodeY - 42, catFrameForLevel(this.level.id), 0.16).setDepth(7);
     const bubble = this.add.text(nodeX + 5, nodeY - 112, "HELP!", textStyle(25, "#ec5966"))
       .setOrigin(0.5)
       .setDepth(10)
       .setBackgroundColor("#fff7dfdd")
       .setPadding(12, 5);
-    const save = SaveGame.load();
     const grannySkin = visualItem(save.selectedGrannySkin);
     const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, grannySkin?.texture || "granny-skate", 0)
       .setScale(0.25)
       .setDepth(7)
       .play(grannySkin?.animation || "granny-skating")
       .setAlpha(0);
+    createGrannySkinEffect(this, granny, save.selectedGrannySkin, { depthOffset: -1, scale: 0.75 });
     const title = this.add.text(640, 635, this.quickIntro ? "Back on the chase..." : this.storyCopy(), textStyle(28, "#2f2335"))
       .setOrigin(0.5)
       .setDepth(12)
@@ -125,6 +130,7 @@ export class LevelIntroScene extends Phaser.Scene {
         });
       }
     });
+    this.time.delayedCall((3150 * speed) + 650, () => this.startRun());
   }
 
   storyCopy() {

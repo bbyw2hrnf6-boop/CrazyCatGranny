@@ -137,6 +137,103 @@ export function createItemPreview(scene, itemId, x, y, options = {}) {
   return preview;
 }
 
+export function applyGrannySkin(granny, skinId) {
+  const skin = visualItem(skinId);
+  if (!granny?.active || skin?.kind !== "grannySkin") return null;
+  granny.setTexture(skin.texture || "granny-skate", 0);
+  granny.animationKey = skin.animation || "granny-skating";
+  return skin;
+}
+
+export function createGrannySkinEffect(scene, granny, skinId, options = {}) {
+  const skin = visualItem(skinId);
+  if (!scene || !granny?.active || skin?.kind !== "grannySkin") return null;
+  const depthOffset = options.depthOffset ?? -1;
+  const effect = scene.add.container(granny.x, granny.y).setDepth((granny.depth || 0) + depthOffset);
+  const pieces = [];
+  const scale = options.scale ?? 1;
+
+  if (skin.effect === "sparkle") {
+    for (let index = 0; index < 4; index += 1) {
+      const star = scene.add.image(-58 + index * 34, -92 - (index % 2) * 18, "sparkle")
+        .setScale(0.18 * scale)
+        .setAlpha(0.72);
+      effect.add(star);
+      pieces.push(star);
+      scene.tweens.add({
+        targets: star,
+        y: star.y - 16,
+        angle: 120,
+        alpha: 0.18,
+        scale: star.scaleX * 1.45,
+        duration: 740 + index * 120,
+        yoyo: true,
+        repeat: -1,
+        delay: index * 150,
+        ease: "Sine.inOut"
+      });
+    }
+  } else if (skin.effect === "streak") {
+    [0x41b9ad, 0xffdc61, 0xffffff].forEach((color, index) => {
+      const streak = scene.add.rectangle(-70 - index * 18, 126 + index * 9, 58 - index * 10, 7, color, 0.58 - index * 0.12);
+      streak.setAngle(-9);
+      effect.add(streak);
+      pieces.push(streak);
+      scene.tweens.add({ targets: streak, x: streak.x - 34, alpha: 0.08, duration: 280 + index * 70, yoyo: true, repeat: -1 });
+    });
+  } else if (skin.effect === "bolt") {
+    [-1, 1].forEach((side, index) => {
+      const bolt = scene.add.text(side * 62, -58 + index * 42, "⚡", {
+        fontFamily: "Arial",
+        fontSize: `${Math.round(28 * scale)}px`,
+        color: "#ffdc61",
+        stroke: "#2f2335",
+        strokeThickness: 4
+      }).setOrigin(0.5).setAlpha(0.82);
+      effect.add(bolt);
+      pieces.push(bolt);
+      scene.tweens.add({ targets: bolt, angle: side * 15, scale: 1.2, alpha: 0.22, duration: 360, yoyo: true, repeat: -1, delay: index * 130 });
+    });
+  } else if (skin.effect === "royal") {
+    const glint = scene.add.image(26, -154, "sparkle").setScale(0.28 * scale).setAlpha(0.9);
+    const shine = scene.add.ellipse(0, -18, 150, 210, 0xffdc61, 0.08);
+    effect.add([shine, glint]);
+    pieces.push(shine, glint);
+    scene.tweens.add({ targets: glint, angle: 180, scale: glint.scaleX * 1.35, alpha: 0.25, duration: 820, yoyo: true, repeat: -1 });
+    scene.tweens.add({ targets: shine, scaleX: 1.08, alpha: 0.16, duration: 1120, yoyo: true, repeat: -1 });
+  } else {
+    const dust = scene.add.ellipse(-46, 140, 58, 14, VISUAL_RULES.shadowColor, 0.12);
+    effect.add(dust);
+    pieces.push(dust);
+    scene.tweens.add({ targets: dust, scaleX: 1.18, alpha: 0.04, duration: 520, yoyo: true, repeat: -1 });
+  }
+
+  const update = () => {
+    if (!granny.active || !effect.active) return;
+    effect.setPosition(granny.x, granny.y);
+    effect.setDepth((granny.depth || 0) + depthOffset);
+    effect.setScale(Math.sign(granny.scaleX || 1), 1);
+    effect.setAngle(granny.angle * 0.2);
+    effect.setVisible(granny.visible);
+    effect.setAlpha(granny.alpha);
+  };
+  let cleaned = false;
+  const cleanup = () => {
+    if (cleaned) return;
+    cleaned = true;
+    scene.events.off("update", update);
+    pieces.forEach((piece) => scene.tweens.killTweensOf(piece));
+  };
+  scene.events.on("update", update);
+  effect.once(Phaser.GameObjects.Events.DESTROY, cleanup);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+    cleanup();
+    effect.destroy();
+  });
+  update();
+  return effect;
+}
+
 export function createFurniture(scene, itemId, options = {}) {
   const look = visualItem(itemId);
   if (!look || look.kind !== "furniture" || look.room.wallpaper) return null;

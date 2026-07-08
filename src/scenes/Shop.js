@@ -5,6 +5,7 @@ import {
   attachCatAccessory,
   createCat,
   createGrannyGear,
+  createGrannySkinEffect,
   createItemPreview,
   setGrannyGearAdjustment,
   syncGrannyGear
@@ -308,13 +309,14 @@ export class Shop extends Phaser.Scene {
       .setScale(0.42)
       .setDepth(73)
       .play(grannySkin?.animation || "granny-skating");
+    const grannyEffect = createGrannySkinEffect(this, granny, this.save.selectedGrannySkin, { depthOffset: -1, scale: 0.9 });
     granny.baseScale = 0.42;
     const gear = createGrannyGear(this, granny, item.id, 75, draft);
     gear?.setInteractive({ useHandCursor: true });
     if (gear) this.input.setDraggable(gear);
     const anchorMarkers = this.createGrannyAnchorMarkers(granny, 74);
     const stat = this.add.text(705, 188, "", textStyle(15, "#2f2335")).setOrigin(0.5).setDepth(74);
-    parts.push(shade, panel, title, hint, granny, gear, ...anchorMarkers.flatMap((entry) => [entry.dot, entry.label]), stat);
+    parts.push(shade, panel, title, hint, grannyEffect, granny, gear, ...anchorMarkers.flatMap((entry) => [entry.dot, entry.label]), stat);
     this.grannyEditor = { item, draft, granny, gear, stat, anchorMarkers, dragStart: null, pinchStart: null };
 
     gear?.on("dragstart", (pointer) => {

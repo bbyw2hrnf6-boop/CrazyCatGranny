@@ -295,11 +295,11 @@ const gear = [
 }));
 
 const grannySkins = [
-  { id: "grannyClassic", name: "Classic Granny", price: 0, color: 0xec5966, detail: "Original chase look", texture: "granny-skate", animation: "granny-skating" },
-  { id: "grannyElegant", name: "Elegant Granny", price: 95, color: 0x6f7fd9, detail: "Fancy full skin", texture: "granny-skin-elegant", animation: "granny-skating-elegant", costume: "elegant" },
-  { id: "grannySporty", name: "Sporty Granny", price: 120, color: 0x41b9ad, detail: "Track-day full skin", texture: "granny-skin-sporty", animation: "granny-skating-sporty", costume: "sporty" },
-  { id: "grannyPunk", name: "Punk Granny", price: 150, color: 0x7b4d86, detail: "Loud full skin", texture: "granny-skin-punk", animation: "granny-skating-punk", costume: "punk" },
-  { id: "grannyRoyal", name: "Royal Granny", price: 210, color: 0xffcc4d, detail: "Regal full skin", texture: "granny-skin-royal", animation: "granny-skating-royal", costume: "royal" }
+  { id: "grannyClassic", name: "Classic Granny", price: 0, color: 0xec5966, detail: "Original chase look", texture: "granny-skate", animation: "granny-skating", effect: "dust" },
+  { id: "grannyElegant", name: "Elegant Granny", price: 95, color: 0x6f7fd9, detail: "Fancy full skin", texture: "granny-skin-elegant", animation: "granny-skating-elegant", costume: "elegant", effect: "sparkle" },
+  { id: "grannySporty", name: "Sporty Granny", price: 120, color: 0x41b9ad, detail: "Track-day full skin", texture: "granny-skin-sporty", animation: "granny-skating-sporty", costume: "sporty", effect: "streak" },
+  { id: "grannyPunk", name: "Punk Granny", price: 150, color: 0x7b4d86, detail: "Loud full skin", texture: "granny-skin-punk", animation: "granny-skating-punk", costume: "punk", effect: "bolt" },
+  { id: "grannyRoyal", name: "Royal Granny", price: 210, color: 0xffcc4d, detail: "Regal full skin", texture: "granny-skin-royal", animation: "granny-skating-royal", costume: "royal", effect: "royal" }
 ].map((item) => ({
   ...item,
   tab: "GRANNY",
@@ -309,16 +309,15 @@ const grannySkins = [
 }));
 
 const thiefSkins = [
-  { id: "thiefDefault", name: "Default Thief", price: 0, color: 0x2f2335, tint: null, detail: "Original chaser" },
-  { id: "thiefBlackCoat", name: "Black Coat", price: 85, color: 0x14151b, tint: 0x555568, detail: "Shadow coat" },
-  { id: "thiefGentleman", name: "Gentleman", price: 115, color: 0x9b633d, tint: 0xd5b383, detail: "Fancy chase look" },
-  { id: "thiefRaccoonBandit", name: "Raccoon Bandit", price: 150, color: 0x8394a0, tint: 0xb8b0a4, detail: "Masked full skin" },
-  { id: "thiefCyber", name: "Cyber Thief", price: 190, color: 0x41b9ad, tint: 0x74f7ff, detail: "Neon runner" }
+  { id: "thiefDefault", name: "Default Thief", price: 0, color: 0x2f2335, detail: "Original chaser", texture: "thief-run", animation: "thief-running" },
+  { id: "thiefBlackCoat", name: "Black Coat", price: 85, color: 0x14151b, detail: "Shadow coat", texture: "thief-skin-black-coat", animation: "thief-running-black-coat", costume: "blackCoat" },
+  { id: "thiefGentleman", name: "Gentleman", price: 115, color: 0x9b633d, detail: "Fancy chase look", texture: "thief-skin-gentleman", animation: "thief-running-gentleman", costume: "gentleman" },
+  { id: "thiefRaccoonBandit", name: "Raccoon Bandit", price: 150, color: 0x8394a0, detail: "Masked full skin", texture: "thief-skin-raccoon", animation: "thief-running-raccoon", costume: "raccoon" },
+  { id: "thiefCyber", name: "Cyber Thief", price: 190, color: 0x41b9ad, detail: "Neon runner", texture: "thief-skin-cyber", animation: "thief-running-cyber", costume: "cyber" }
 ].map((item) => ({
   ...item,
   tab: "THIEF",
   kind: "thiefSkin",
-  texture: "thief-run",
   frame: 0,
   previewScale: 0.17
 }));

@@ -1,16 +1,18 @@
 import { Granny } from "../objects/Granny.js";
 import {
   catFrameForLevel,
+  applyGrannySkin,
   createCat,
+  createGrannySkinEffect,
   createGrannyGear,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
-import { visualItem } from "../visual/VisualCatalog.js";
 import { levelById, worldById } from "../levels/levels.js";
 import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
 import { performanceProfile } from "../systems/PerformanceProfile.js";
 import { DevTools } from "../systems/DevTools.js";
 import { SaveGame } from "../savegame/SaveGame.js";
+import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, pill, sound, textStyle } from "../ui/ui.js";
 import { BossEncounter } from "./game/BossEncounter.js";
 import { CourseBuilder } from "./game/CourseBuilder.js";
@@ -77,11 +79,8 @@ export class GameScene extends Phaser.Scene {
     this.escapeLimit = this.level.targetTime * (1.43 - this.level.world * 0.035);
     this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
-    const grannySkin = visualItem(this.save.selectedGrannySkin);
-    if (grannySkin?.texture) {
-      this.granny.setTexture(grannySkin.texture, 0);
-      this.granny.animationKey = grannySkin.animation || "granny-skating";
-    }
+    applyGrannySkin(this.granny, this.save.selectedGrannySkin);
+    createGrannySkinEffect(this, this.granny, this.save.selectedGrannySkin, { depthOffset: -2 });
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
     this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14, SaveGame.gearAdjustment(this.save.equippedGear));
     this.applyLevelGimmick();
@@ -410,12 +409,11 @@ export class GameScene extends Phaser.Scene {
   createThief() {
     this.thiefProgress = 690;
     this.thiefSpeed = this.granny.runSpeed - 30 + this.level.id * 0.4 + (this.level.boss ? 8 : 0);
-    this.thief = this.add.sprite(this.thiefProgress, 505, "thief-run", 0)
+    const thiefSkin = visualItem(this.save?.selectedThiefSkin);
+    this.thief = this.add.sprite(this.thiefProgress, 505, thiefSkin?.texture || "thief-run", 0)
       .setDepth(11)
       .setScale(this.level.boss ? 0.29 : 0.25)
-      .play("thief-running");
-    const thiefSkin = visualItem(this.save?.selectedThiefSkin);
-    if (thiefSkin?.tint) this.thief.setTint(thiefSkin.tint);
+      .play(thiefSkin?.animation || "thief-running");
     this.thiefRope = this.add.graphics().setDepth(10);
     this.thiefBob = 0;
     this.thiefJump = null;
