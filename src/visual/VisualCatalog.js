@@ -44,31 +44,31 @@ const HEAD_ANCHORS = [
 ];
 
 const hats = [
-  { id: "partyHat", name: "Party Hat", icon: "△", price: 25, color: 0xec5966, frame: 0, attachScale: 0.54, originY: 0.59, anchor: "head" },
-  { id: "crown", name: "Tiny Crown", icon: "♛", price: 60, color: 0xffcc4d, frame: 1, attachScale: 0.52, originY: 0.59, anchor: "head" },
-  { id: "cowboy", name: "Meowboy Hat", icon: "⌒", price: 90, color: 0x9b633d, frame: 2, attachScale: 0.46, originY: 0.59, anchor: "head", offsetY: 3 },
-  { id: "beanie", name: "Blue Beanie", icon: "●", price: 110, color: 0x4b86c5, frame: 3, attachScale: 0.5, originY: 0.58, anchor: "head", offsetY: 4 },
-  { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 135, color: 0x6b4a86, frame: 4, attachScale: 0.43, originY: 0.57, anchor: "head", offsetY: -2 },
-  { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 150, color: 0x8394a0, frame: 5, attachScale: 0.46, originY: 0.56, anchor: "head", offsetY: 2 },
-  { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 80, color: 0xd9576d, frame: 6, attachScale: 0.45, originY: 0.56, anchor: "head", offsetY: 12 },
-  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 120, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53, anchor: "head", offsetY: 5 },
+  { id: "partyHat", name: "Party Hat", icon: "△", price: 35, color: 0xec5966, frame: 0, attachScale: 0.54, originY: 0.59, anchor: "head" },
+  { id: "crown", name: "Tiny Crown", icon: "♛", price: 85, color: 0xffcc4d, frame: 1, attachScale: 0.52, originY: 0.59, anchor: "head" },
+  { id: "cowboy", name: "Meowboy Hat", icon: "⌒", price: 105, color: 0x9b633d, frame: 2, attachScale: 0.46, originY: 0.59, anchor: "head", offsetY: 3 },
+  { id: "beanie", name: "Blue Beanie", icon: "●", price: 125, color: 0x4b86c5, frame: 3, attachScale: 0.5, originY: 0.58, anchor: "head", offsetY: 4 },
+  { id: "witchHat", name: "Moon Witch Hat", icon: "▲", price: 155, color: 0x6b4a86, frame: 4, attachScale: 0.43, originY: 0.57, anchor: "head", offsetY: -2 },
+  { id: "vikingHat", name: "Tiny Viking", icon: "♈", price: 175, color: 0x8394a0, frame: 5, attachScale: 0.46, originY: 0.56, anchor: "head", offsetY: 2 },
+  { id: "bowHat", name: "Velvet Bow", icon: "∞", price: 95, color: 0xd9576d, frame: 6, attachScale: 0.45, originY: 0.56, anchor: "head", offsetY: 12 },
+  { id: "sunHat", name: "Sun Bonnet", icon: "☀", price: 140, color: 0xf2c44f, frame: 7, attachScale: 0.43, originY: 0.53, anchor: "head", offsetY: 5 },
   {
-    id: "redBandana", name: "Rescue Bandana", icon: "◆", price: 70, color: 0xe85454,
+    id: "redBandana", name: "Rescue Bandana", icon: "◆", price: 90, color: 0xe85454,
     texture: "cat-costume-red-bandana", asset: "assets/cat-costumes/red-bandana.svg",
     attachScale: 0.34, originY: 0.52, anchor: "neck", offsetY: 6, detail: "Neck outfit"
   },
   {
-    id: "roundGlasses", name: "Round Glasses", icon: "∞", price: 95, color: 0x4a7db8,
+    id: "roundGlasses", name: "Round Glasses", icon: "∞", price: 115, color: 0x4a7db8,
     texture: "cat-costume-round-glasses", asset: "assets/cat-costumes/round-glasses.svg",
     attachScale: 0.28, originY: 0.5, anchor: "face", offsetY: 1, detail: "Face outfit"
   },
   {
-    id: "flowerCollar", name: "Flower Collar", icon: "✿", price: 115, color: 0xf0a65d,
+    id: "flowerCollar", name: "Flower Collar", icon: "✿", price: 135, color: 0xf0a65d,
     texture: "cat-costume-flower-collar", asset: "assets/cat-costumes/flower-collar.svg",
     attachScale: 0.32, originY: 0.52, anchor: "neck", offsetY: 3, detail: "Neck outfit"
   },
   {
-    id: "starCape", name: "Star Cape", icon: "★", price: 145, color: 0x6f7fd9,
+    id: "starCape", name: "Star Cape", icon: "★", price: 165, color: 0x6f7fd9,
     texture: "cat-costume-star-cape", asset: "assets/cat-costumes/star-cape.svg",
     attachScale: 0.36, originY: 0.36, anchor: "back", offsetY: 12, depthOffset: 0.5, detail: "Back outfit"
   }
@@ -294,11 +294,61 @@ const gear = [
   previewScale: 0.14
 }));
 
+const grannySkins = [
+  { id: "grannyClassic", name: "Classic Granny", price: 0, color: 0xec5966, tint: null, detail: "Original chase look" },
+  { id: "grannyElegant", name: "Elegant Granny", price: 95, color: 0x6f7fd9, tint: 0xf2c7de, detail: "Fancy full skin" },
+  { id: "grannySporty", name: "Sporty Granny", price: 120, color: 0x41b9ad, tint: 0x9fe7d8, detail: "Track-day full skin" },
+  { id: "grannyPunk", name: "Punk Granny", price: 150, color: 0x7b4d86, tint: 0xc28bea, detail: "Loud full skin" },
+  { id: "grannyRoyal", name: "Royal Granny", price: 210, color: 0xffcc4d, tint: 0xffdf79, detail: "Regal full skin" }
+].map((item) => ({
+  ...item,
+  tab: "GRANNY",
+  kind: "grannySkin",
+  texture: "granny-skate",
+  frame: 0,
+  previewScale: 0.17
+}));
+
+const thiefSkins = [
+  { id: "thiefDefault", name: "Default Thief", price: 0, color: 0x2f2335, tint: null, detail: "Original chaser" },
+  { id: "thiefBlackCoat", name: "Black Coat", price: 85, color: 0x14151b, tint: 0x555568, detail: "Shadow coat" },
+  { id: "thiefGentleman", name: "Gentleman", price: 115, color: 0x9b633d, tint: 0xd5b383, detail: "Fancy chase look" },
+  { id: "thiefRaccoonBandit", name: "Raccoon Bandit", price: 150, color: 0x8394a0, tint: 0xb8b0a4, detail: "Masked full skin" },
+  { id: "thiefCyber", name: "Cyber Thief", price: 190, color: 0x41b9ad, tint: 0x74f7ff, detail: "Neon runner" }
+].map((item) => ({
+  ...item,
+  tab: "THIEF",
+  kind: "thiefSkin",
+  texture: "thief-run",
+  frame: 0,
+  previewScale: 0.17
+}));
+
+const roomStyles = [
+  { id: "roomWarm", name: "Warm Room", price: 0, color: 0xf4d8ac, tint: 0xffe0a1, wallColor: 0xffd3a0, floorColor: 0xd89b63, detail: "Soft default tones" },
+  { id: "roomMint", name: "Mint Room", price: 55, color: 0x41b9ad, tint: 0xa7eadf, wallColor: 0xa7eadf, floorColor: 0x77bfa6, detail: "Fresh wall tint" },
+  { id: "roomSunset", name: "Sunset Room", price: 65, color: 0xec5966, tint: 0xffb1a1, wallColor: 0xffb1a1, floorColor: 0xd98765, detail: "Cozy color pass" },
+  { id: "roomNight", name: "Night Room", price: 80, color: 0x6f7fd9, tint: 0x9ea5e8, wallColor: 0x9ea5e8, floorColor: 0x6e6388, detail: "Calm evening vibe" }
+].map((item) => ({
+  ...item,
+  tab: "ROOM",
+  kind: "roomStyle",
+  texture: "room-wallpaper",
+  frame: undefined,
+  previewScale: 0.12
+}));
+
 export const HAT_ITEMS = Object.freeze(hats);
 export const HOME_ITEMS = Object.freeze(furniture);
 export const GEAR_ITEMS = Object.freeze(gear);
-export const SHOP_ITEMS = Object.freeze([...hats, ...furniture, ...gear]);
+export const GRANNY_SKINS = Object.freeze(grannySkins);
+export const THIEF_SKINS = Object.freeze(thiefSkins);
+export const ROOM_STYLES = Object.freeze(roomStyles);
+export const SHOP_ITEMS = Object.freeze([...hats, ...furniture, ...gear, ...grannySkins, ...thiefSkins, ...roomStyles]);
 export const HOME_ITEM_IDS = Object.freeze(furniture.map((item) => item.id));
+export const GRANNY_SKIN_IDS = Object.freeze(grannySkins.map((item) => item.id));
+export const THIEF_SKIN_IDS = Object.freeze(thiefSkins.map((item) => item.id));
+export const ROOM_STYLE_IDS = Object.freeze(roomStyles.map((item) => item.id));
 
 const ITEM_LOOKUP = new Map(SHOP_ITEMS.map((item) => [item.id, item]));
 

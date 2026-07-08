@@ -111,6 +111,7 @@ export function createItemPreview(scene, itemId, x, y, options = {}) {
   const scale = (options.scale ?? 1) * look.previewScale;
   const image = scene.add.image(0, 0, look.texture, look.frame);
   if (look.kind === "hat") image.setOrigin(0.5, look.originY);
+  if (look.tint) image.setTint(look.tint);
   image.setScale(scale);
   const boundsWidth = Math.max(56, image.displayWidth * 0.72);
   const shadowY = look.kind === "furniture" ? image.displayHeight * 0.38 : image.displayHeight * 0.3;

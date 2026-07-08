@@ -1,6 +1,12 @@
 import { rollCatBoxReward } from "../content/rewards/RewardCatalog.js";
 import { getBossLevelWorldPairs, getTotalLevelCount, getWorldCount } from "../content/GameContentStats.js";
-import { HOME_ITEM_IDS, roomPosition } from "../visual/VisualCatalog.js";
+import {
+  GRANNY_SKIN_IDS,
+  HOME_ITEM_IDS,
+  ROOM_STYLE_IDS,
+  THIEF_SKIN_IDS,
+  roomPosition
+} from "../visual/VisualCatalog.js";
 import { cloudSaveStatus, scheduleCloudSave, startCloudSaveSync } from "./CloudSaveBridge.js";
 
 const KEY = "crazy-cat-granny-save-v1";
@@ -16,6 +22,7 @@ const MAX_CAT_NAME_LENGTH = 18;
 const MAX_ACCESSORY_OFFSET = 220;
 const MAX_GEAR_OFFSET = 260;
 const GEAR_ANCHORS = new Set(["head", "torso", "hand"]);
+const FREE_VISUAL_IDS = ["grannyClassic", "thiefDefault", "roomWarm"];
 
 const defaults = {
   version: SAVE_VERSION,
@@ -32,6 +39,9 @@ const defaults = {
   hatAssignments: {},
   catAccessoryAdjustments: {},
   gearAdjustments: {},
+  selectedGrannySkin: "grannyClassic",
+  selectedThiefSkin: "thiefDefault",
+  selectedRoomStyle: "roomWarm",
   activeDecor: [],
   decorPositions: {},
   worldTrophies: [],
@@ -88,7 +98,7 @@ function clean(data) {
   }
   result.unlockedLevel = Math.min(getTotalLevelCount(), Math.max(1, Math.floor(Number(result.unlockedLevel) || 1)));
   result.rescuedCats = [...new Set(result.rescuedCats.filter((id) => typeof id === "string"))];
-  result.owned = [...new Set(result.owned.filter((id) => typeof id === "string"))];
+  result.owned = [...new Set([...result.owned.filter((id) => typeof id === "string"), ...FREE_VISUAL_IDS])];
   result.catNames = Object.fromEntries(Object.entries(result.catNames)
     .filter(([id]) => typeof id === "string")
     .map(([id, name]) => [id, sanitizeCatName(name)])
@@ -115,6 +125,15 @@ function clean(data) {
     .filter((box) => box.id);
   result.sound = result.sound !== false;
   result.updatedAt = Math.max(0, Math.floor(Number(result.updatedAt) || 0));
+  if (!GRANNY_SKIN_IDS.includes(result.selectedGrannySkin) || !result.owned.includes(result.selectedGrannySkin)) {
+    result.selectedGrannySkin = "grannyClassic";
+  }
+  if (!THIEF_SKIN_IDS.includes(result.selectedThiefSkin) || !result.owned.includes(result.selectedThiefSkin)) {
+    result.selectedThiefSkin = "thiefDefault";
+  }
+  if (!ROOM_STYLE_IDS.includes(result.selectedRoomStyle) || !result.owned.includes(result.selectedRoomStyle)) {
+    result.selectedRoomStyle = "roomWarm";
+  }
   if (!Array.isArray(data?.activeDecor)) result.activeDecor = result.owned.filter((id) => HOME_ITEM_IDS.includes(id));
   if (!result.selectedCat && result.rescuedCats.length) result.selectedCat = result.rescuedCats[0];
   if (result.equippedHat !== "none" && !Object.keys(result.hatAssignments).length && result.rescuedCats.length) {
@@ -166,11 +185,14 @@ function pack(data) {
       hatAssignments: save.hatAssignments,
       catAccessoryAdjustments: save.catAccessoryAdjustments,
       gearAdjustments: save.gearAdjustments,
+      selectedGrannySkin: save.selectedGrannySkin,
+      selectedThiefSkin: save.selectedThiefSkin,
       selectedCharacter: save.selectedCharacter
     },
     layout: {
       activeDecor: save.activeDecor,
-      decorPositions: save.decorPositions
+      decorPositions: save.decorPositions,
+      selectedRoomStyle: save.selectedRoomStyle
     },
     settings: {
       sound: save.sound
@@ -426,14 +448,14 @@ export const SaveGame = {
     return true;
   },
 
-  assignHat(hatId, catId, adjustment = null) {
+  assignHat(hatId, catId, adjustment = null, options = {}) {
     const save = this.load();
     if (!save.owned.includes(hatId) || !save.rescuedCats.includes(catId)) return false;
     const wasSameAssignment = save.hatAssignments[hatId] === catId;
     Object.keys(save.hatAssignments).forEach((ownedHat) => {
       if (save.hatAssignments[ownedHat] === catId) delete save.hatAssignments[ownedHat];
     });
-    if (wasSameAssignment && !adjustment) {
+    if (wasSameAssignment && !adjustment && options.toggle === true) {
       delete save.hatAssignments[hatId];
       delete save.catAccessoryAdjustments[accessoryKey(catId, hatId)];
     } else {
@@ -490,6 +512,36 @@ export const SaveGame = {
       save.equippedGear = id;
       this.write(save);
     }
+  },
+
+  equipGrannySkin(id) {
+    const save = this.load();
+    if (GRANNY_SKIN_IDS.includes(id) && save.owned.includes(id)) {
+      save.selectedGrannySkin = id;
+      this.write(save);
+      return true;
+    }
+    return false;
+  },
+
+  equipThiefSkin(id) {
+    const save = this.load();
+    if (THIEF_SKIN_IDS.includes(id) && save.owned.includes(id)) {
+      save.selectedThiefSkin = id;
+      this.write(save);
+      return true;
+    }
+    return false;
+  },
+
+  equipRoomStyle(id) {
+    const save = this.load();
+    if (ROOM_STYLE_IDS.includes(id) && save.owned.includes(id)) {
+      save.selectedRoomStyle = id;
+      this.write(save);
+      return true;
+    }
+    return false;
   },
 
   toggleDecor(id) {

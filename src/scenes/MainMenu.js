@@ -9,6 +9,7 @@ import {
   syncCatAccessory,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
+import { visualItem } from "../visual/VisualCatalog.js";
 import { toggleFullscreen } from "../systems/FullscreenManager.js";
 import { addPaperTexture, COLORS, coinBadge, iconButton, pill, textStyle } from "../ui/ui.js";
 
@@ -43,6 +44,14 @@ export class MainMenu extends Phaser.Scene {
       SaveGame.write(save);
       this.scene.restart();
     });
+    if (save.pendingCatBoxes.length) {
+      const boxes = pill(this, 255, 588, 390, 58, `!  OPEN CATBOX x${save.pendingCatBoxes.length}`, {
+        fill: COLORS.coral,
+        color: "#fff7df",
+        size: 19
+      });
+      boxes.on("pointerup", () => this.scene.start("CatHouse", { openBoxes: true }));
+    }
 
     const badge = coinBadge(this);
     badge.setValue(save.coins);
@@ -69,10 +78,14 @@ export class MainMenu extends Phaser.Scene {
     }
 
     const granny = this.add.sprite(815, 525, "granny-skate", 0).setScale(0.34).play("granny-skating");
+    const grannySkin = visualItem(save.selectedGrannySkin);
+    if (grannySkin?.tint) granny.setTint(grannySkin.tint);
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
     const gear = createGrannyGear(this, granny, save.equippedGear, 8, SaveGame.gearAdjustment(save.equippedGear));
     if (gear) this.events.on("update", () => syncGrannyGear(gear, granny));
     const thief = this.add.sprite(1115, 300, "thief-run", 0).setScale(0.16).setAngle(4).play("thief-running");
+    const thiefSkin = visualItem(save.selectedThiefSkin);
+    if (thiefSkin?.tint) thief.setTint(thiefSkin.tint);
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });
 
     const rescued = LEVELS.filter((level) => save.rescuedCats.includes(level.cat.id)).slice(0, 4);

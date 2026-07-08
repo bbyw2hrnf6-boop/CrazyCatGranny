@@ -1,7 +1,7 @@
 import { LEVELS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
 import { getTotalCatCount, getWorldCount } from "../content/GameContentStats.js";
-import { HAT_ITEMS, HOME_ITEMS, roomPosition } from "../visual/VisualCatalog.js";
+import { HAT_ITEMS, HOME_ITEMS, roomPosition, visualItem } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
   createCat,
@@ -34,6 +34,7 @@ export class CatHouse extends Phaser.Scene {
     this.editorParts = null;
     this.referenceParts = null;
     this.nextCatVoiceAt = 0;
+    this.openBoxesOnCreate = Boolean(data?.openBoxes);
   }
 
   create() {
@@ -85,10 +86,18 @@ export class CatHouse extends Phaser.Scene {
       this.add.text(484, 628, "!", textStyle(20, "#2f2335")).setOrigin(0.5).setDepth(13);
       this.roomActionButtons.push(boxes);
     }
+    if (this.openBoxesOnCreate && this.save.pendingCatBoxes.length) {
+      this.time.delayedCall(120, () => this.openCatBoxStorage());
+    }
   }
 
   drawRoom() {
     this.add.image(640, 360, "cat-house-bg").setDisplaySize(1280, 720).setDepth(-20);
+    const roomStyle = visualItem(this.save.selectedRoomStyle);
+    if (roomStyle?.kind === "roomStyle") {
+      this.add.rectangle(790, 272, 980, 356, roomStyle.wallColor, 0.18).setDepth(-19);
+      this.add.rectangle(790, 588, 980, 165, roomStyle.floorColor, 0.14).setDepth(-18);
+    }
     this.add.rectangle(150, 400, 300, 640, 0xfff4dc, 0.82).setDepth(-6)
       .setStrokeStyle(4, COLORS.ink, 0.75);
     const room = createRoomDecor(this, this.save.activeDecor, this.save.decorPositions);
@@ -654,6 +663,18 @@ export class CatHouse extends Phaser.Scene {
           this.add.line(0, 0, 0, 18, 32, 8, 0x2f2335, 0.5).setLineWidth(2)
         ]);
         this.tweens.add({ targets: prop, x: agent.x + 32, angle: 34, duration: 360, yoyo: true, repeat: -1, ease: "Sine.inOut" });
+      } else if (agent.destinationFurniture === "fishcondo") {
+        prop.add([
+          this.add.ellipse(0, 18, 42, 18, 0x50a9b5, 0.3).setStrokeStyle(2, COLORS.ink),
+          this.add.text(0, -18, "peek", textStyle(11, "#2f2335")).setOrigin(0.5)
+        ]);
+        this.tweens.add({ targets: prop, scaleX: 1.18, scaleY: 0.82, alpha: 0.58, duration: 480, yoyo: true, repeat: -1 });
+      } else if (agent.destinationFurniture === "catbridge") {
+        prop.add([
+          this.add.text(-12, -34, "↗", textStyle(18, "#ffcc4d")).setOrigin(0.5),
+          this.add.text(12, -24, "↘", textStyle(18, "#ffcc4d")).setOrigin(0.5)
+        ]);
+        this.tweens.add({ targets: prop, x: agent.x + 18, y: agent.y - 10, duration: 360, yoyo: true, repeat: -1, ease: "Sine.inOut" });
       } else {
         prop.add([
           this.add.circle(0, 18, 13, 0x7b4d86).setStrokeStyle(3, COLORS.ink),
@@ -737,7 +758,23 @@ export class CatHouse extends Phaser.Scene {
     const puffA = this.add.text(-8, -16, "~", textStyle(12, "#7b6a5f")).setOrigin(0.5).setAlpha(0.55);
     const puffB = this.add.text(7, -21, "~", textStyle(12, "#7b6a5f")).setOrigin(0.5).setAlpha(0.45);
     litter.add([spot, puffA, puffB]);
+    const stink = this.add.container(agent.x + (agent.sprite.flipX ? -28 : 28), agent.y - 18).setDepth(CAT_LITTER_DEPTH + 2);
+    stink.add([
+      this.add.ellipse(-12, 8, 30, 20, 0x91c96f, 0.28),
+      this.add.ellipse(10, -2, 36, 24, 0x91c96f, 0.24),
+      this.add.ellipse(26, 10, 25, 18, 0x91c96f, 0.2),
+      this.add.text(9, -25, "PHEW", textStyle(12, "#6c8f55")).setOrigin(0.5)
+    ]);
     this.tweens.add({ targets: [puffA, puffB], y: "-=10", alpha: 0, duration: 1200, repeat: 2 });
+    this.tweens.add({
+      targets: stink,
+      y: stink.y - 34,
+      alpha: 0,
+      scale: 1.25,
+      duration: 1450,
+      ease: "Sine.out",
+      onComplete: () => stink.destroy()
+    });
     this.tweens.add({
       targets: litter,
       alpha: 0,

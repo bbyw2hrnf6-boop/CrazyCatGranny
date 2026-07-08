@@ -53,10 +53,10 @@ export class Shop extends Phaser.Scene {
   }
 
   makeTabs() {
-    ["HATS", "HOME", "GEAR"].forEach((tab, index) => {
-      const button = pill(this, 755 + index * 155, 125, 140, 48, tab, {
+    ["HATS", "HOME", "GEAR", "GRANNY", "THIEF", "ROOM"].forEach((tab, index) => {
+      const button = pill(this, 430 + index * 132, 125, 118, 48, tab, {
         fill: tab === this.activeTab ? COLORS.yellow : COLORS.cream,
-        size: 17
+        size: tab.length > 5 ? 13 : 15
       });
       button.on("pointerup", () => {
         this.closeGrannyEditor();
@@ -93,7 +93,13 @@ export class Shop extends Phaser.Scene {
       const owned = this.save.owned.includes(item.id);
       const equipped = item.tab === "HATS"
         ? Boolean(this.save.hatAssignments[item.id])
-        : item.tab === "GEAR" && this.save.equippedGear === item.id;
+        : item.tab === "GEAR"
+          ? this.save.equippedGear === item.id
+          : item.tab === "GRANNY"
+            ? this.save.selectedGrannySkin === item.id
+            : item.tab === "THIEF"
+              ? this.save.selectedThiefSkin === item.id
+              : item.tab === "ROOM" && this.save.selectedRoomStyle === item.id;
       const panel = this.add.rectangle(x, y, cardWidth, cardHeight, COLORS.cream).setStrokeStyle(5, COLORS.ink);
       const iconBg = this.add.circle(x, y - (compact ? 32 : 38), iconRadius, item.color, 0.9).setStrokeStyle(4, COLORS.ink);
       const icon = createItemPreview(this, item.id, x, y - (compact ? 32 : 38), { scale: compact ? 0.72 : 0.92 });
@@ -145,6 +151,30 @@ export class Shop extends Phaser.Scene {
       this.openGrannyEditor(item);
       return;
     }
+    if (owned && item.tab === "GRANNY") {
+      SaveGame.equipGrannySkin(item.id);
+      this.save = SaveGame.load();
+      this.registry.set("save", this.save);
+      this.refresh();
+      this.toast(`${item.name} equipped!`);
+      return;
+    }
+    if (owned && item.tab === "THIEF") {
+      SaveGame.equipThiefSkin(item.id);
+      this.save = SaveGame.load();
+      this.registry.set("save", this.save);
+      this.refresh();
+      this.toast(`${item.name} equipped!`);
+      return;
+    }
+    if (owned && item.tab === "ROOM") {
+      SaveGame.equipRoomStyle(item.id);
+      this.save = SaveGame.load();
+      this.registry.set("save", this.save);
+      this.refresh();
+      this.toast(`${item.name} applied to Cat House!`);
+      return;
+    }
     if (owned) {
       this.toast("Already yours, hero!");
       return;
@@ -155,6 +185,9 @@ export class Shop extends Phaser.Scene {
     }
     this.save = SaveGame.load();
     if (item.tab === "GEAR") SaveGame.equipGear(item.id);
+    if (item.tab === "GRANNY") SaveGame.equipGrannySkin(item.id);
+    if (item.tab === "THIEF") SaveGame.equipThiefSkin(item.id);
+    if (item.tab === "ROOM") SaveGame.equipRoomStyle(item.id);
     this.save = SaveGame.load();
     this.registry.set("save", this.save);
     sound(this, "buy");
@@ -166,6 +199,10 @@ export class Shop extends Phaser.Scene {
     } else if (item.tab === "GEAR") {
       this.toast(`${item.name} unlocked!`);
       this.openGrannyEditor(item);
+    } else if (item.tab === "GRANNY" || item.tab === "THIEF") {
+      this.toast(`${item.name} equipped!`);
+    } else if (item.tab === "ROOM") {
+      this.toast(`${item.name} applied to Cat House!`);
     } else this.toast(`${item.name} unlocked!`);
   }
 
@@ -182,7 +219,13 @@ export class Shop extends Phaser.Scene {
         ? "CAT ITEMS · BUY FIRST, THEN EQUIP TO ONE CAT"
         : this.activeTab === "GEAR"
           ? "GRANNY GEAR · ONE ACTIVE POWER AT A TIME"
-          : "HOME ITEMS · AUTOMATICALLY APPEAR IN THE CAT HOUSE"
+          : this.activeTab === "GRANNY"
+            ? "GRANNY SKINS · FULL VISUAL SWAPS, SAME GAMEPLAY"
+            : this.activeTab === "THIEF"
+              ? "THIEF SKINS · CHASER LOOK ONLY, NO RULE CHANGES"
+              : this.activeTab === "ROOM"
+                ? "ROOM STYLES · CHEAP SAVED CAT HOUSE COLOR PASSES"
+                : "HOME ITEMS · AUTOMATICALLY APPEAR IN THE CAT HOUSE"
     );
   }
 
@@ -210,15 +253,15 @@ export class Shop extends Phaser.Scene {
       const card = this.add.rectangle(x, y, 154, 116, assigned ? COLORS.yellow : 0xffffff, 0.94).setDepth(62);
       card.setStrokeStyle(4, assigned ? COLORS.coral : COLORS.ink);
       const cat = createCat(this, x, y - 12, level.id - 1, 0.14).setDepth(63);
-      const previewHat = attachCatAccessory(this, cat, item.id, 64);
+      const previewHat = attachCatAccessory(this, cat, item.id, 64, SaveGame.hatAdjustment(level.cat.id, item.id));
       const name = this.add.text(x, y + 45, this.catDisplayName(level), textStyle(14)).setOrigin(0.5).setDepth(64);
       const hit = this.add.rectangle(x, y, 154, 116, 0xffffff, 0.001).setInteractive({ useHandCursor: true }).setDepth(65);
       hit.on("pointerup", () => {
-        SaveGame.assignHat(item.id, level.cat.id);
+        SaveGame.assignHat(item.id, level.cat.id, SaveGame.hatAdjustment(level.cat.id, item.id));
         this.save = SaveGame.load();
         this.registry.set("save", this.save);
-        this.closeCatPicker();
         this.refresh();
+        this.openCatPicker(item, safePage);
         this.toast(`${item.name} equipped to ${this.catDisplayName(level)}!`);
       });
       parts.push(card, cat, previewHat, name, hit);
@@ -418,9 +461,9 @@ export class Shop extends Phaser.Scene {
 
   toast(message) {
     this.toastParts?.forEach((item) => item.destroy());
-    const bg = this.add.rectangle(640, 660, 440, 55, COLORS.ink, 0.95).setDepth(30);
+    const bg = this.add.rectangle(640, 660, 440, 55, COLORS.ink, 0.95).setDepth(230);
     bg.setStrokeStyle(3, COLORS.cream);
-    const label = this.add.text(640, 661, message, textStyle(19, "#fff7df")).setOrigin(0.5).setDepth(31);
+    const label = this.add.text(640, 661, message, textStyle(19, "#fff7df")).setOrigin(0.5).setDepth(231);
     this.toastParts = [bg, label];
     this.time.delayedCall(1500, () => {
       this.toastParts?.forEach((item) => item.destroy());

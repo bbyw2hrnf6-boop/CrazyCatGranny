@@ -5,6 +5,7 @@ import {
   createGrannyGear,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
+import { visualItem } from "../visual/VisualCatalog.js";
 import { levelById, worldById } from "../levels/levels.js";
 import { PHYSICS_TUNING } from "../config/PhysicsTuning.js";
 import { performanceProfile } from "../systems/PerformanceProfile.js";
@@ -76,6 +77,8 @@ export class GameScene extends Phaser.Scene {
     this.escapeLimit = this.level.targetTime * (1.43 - this.level.world * 0.035);
     this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
+    const grannySkin = visualItem(this.save.selectedGrannySkin);
+    if (grannySkin?.tint) this.granny.setTint(grannySkin.tint);
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
     this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14, SaveGame.gearAdjustment(this.save.equippedGear));
     this.applyLevelGimmick();
@@ -408,6 +411,8 @@ export class GameScene extends Phaser.Scene {
       .setDepth(11)
       .setScale(this.level.boss ? 0.29 : 0.25)
       .play("thief-running");
+    const thiefSkin = visualItem(this.save?.selectedThiefSkin);
+    if (thiefSkin?.tint) this.thief.setTint(thiefSkin.tint);
     this.thiefRope = this.add.graphics().setDepth(10);
     this.thiefBob = 0;
     this.thiefJump = null;
