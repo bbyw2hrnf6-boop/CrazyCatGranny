@@ -168,8 +168,20 @@ export class CatHouse extends Phaser.Scene {
     return SaveGame.catName(level.cat.id, level.cat.name);
   }
 
+  rescuedLevels() {
+    return LEVELS.filter((level) => this.save.rescuedCats.includes(level.cat.id));
+  }
+
+  refreshRoomCatHat(catId) {
+    const agent = this.roomCats.find((cat) => cat.level.cat.id === catId);
+    if (!agent) return;
+    agent.hat?.destroy();
+    agent.hat = this.addHat(agent.sprite, SaveGame.hatForCat(catId), catId);
+    if (agent.hat) this.syncCatHat(agent);
+  }
+
   placeCats() {
-    const rescued = LEVELS.filter((level) => this.save.rescuedCats.includes(level.cat.id));
+    const rescued = this.rescuedLevels();
     const scale = rescued.length > 32 ? 0.105 : rescued.length > 18 ? 0.125 : rescued.length > 9 ? 0.15 : 0.19;
     const clockNow = this.game.loop.time || this.time.now;
     rescued.forEach((level, order) => {
@@ -785,6 +797,11 @@ export class CatHouse extends Phaser.Scene {
 
   showCatCard(level) {
     this.card?.forEach((item) => item.destroy());
+    this.save = SaveGame.load();
+    this.registry.set("save", this.save);
+    const rescued = this.rescuedLevels();
+    const currentIndex = rescued.findIndex((entry) => entry.cat.id === level.cat.id);
+    const hasCatNav = rescued.length > 1 && currentIndex >= 0;
     const displayName = this.catDisplayName(level);
     const depth = CAT_MODAL_DEPTH;
     const shade = this.add.rectangle(820, 370, 590, 405, COLORS.ink, 0.95).setDepth(depth);
@@ -813,9 +830,13 @@ export class CatHouse extends Phaser.Scene {
     const customize = pill(this, 680, 532, 180, 54, "✦ CUSTOMIZE", { fill: COLORS.yellow, size: 15 }).setDepth(depth + 2);
     const rename = pill(this, 870, 532, 150, 54, "RENAME", { fill: COLORS.cream, size: 15 }).setDepth(depth + 2);
     const close = pill(this, 1035, 532, 130, 54, "CLOSE", { fill: COLORS.cream, size: 15 }).setDepth(depth + 2);
-    this.card = [shade, portrait, portraitHat, title, rarity, trait, rescue, outfit, customize, rename, close].filter(Boolean);
+    const previous = hasCatNav ? pill(this, 545, 370, 58, 72, "←", { fill: COLORS.cream, size: 24 }).setDepth(depth + 2) : null;
+    const next = hasCatNav ? pill(this, 1095, 370, 58, 72, "→", { fill: COLORS.cream, size: 24 }).setDepth(depth + 2) : null;
+    this.card = [shade, portrait, portraitHat, title, rarity, trait, rescue, outfit, customize, rename, close, previous, next].filter(Boolean);
     customize.on("pointerup", () => this.openCatCustomizer(level));
     rename.on("pointerup", () => this.renameCat(level));
+    previous?.on("pointerup", () => this.showCatCard(rescued[(currentIndex + rescued.length - 1) % rescued.length]));
+    next?.on("pointerup", () => this.showCatCard(rescued[(currentIndex + 1) % rescued.length]));
     close.on("pointerup", () => {
       this.card.forEach((item) => item.destroy());
       this.card = null;
@@ -837,6 +858,8 @@ export class CatHouse extends Phaser.Scene {
     this.card?.forEach((item) => item.destroy());
     this.card = null;
     this.closeOverlay();
+    this.save = SaveGame.load();
+    this.registry.set("save", this.save);
     const parts = [];
     const depth = CAT_MODAL_DEPTH;
     const shade = this.add.rectangle(640, 360, 1280, 720, COLORS.ink, 0.74).setDepth(depth).setInteractive();
@@ -869,6 +892,7 @@ export class CatHouse extends Phaser.Scene {
       const y = 168 + row * 98;
       const card = this.add.rectangle(x, y, 112, 78, owned ? 0xffffff : 0xb9afb7).setDepth(depth + 2);
       card.setStrokeStyle(4, COLORS.ink);
+      card.setData("owned", owned);
       const symbol = owned && id !== "none"
         ? createItemPreview(this, id, x, y - 16, { scale: 0.46, depth: depth + 3 })
         : this.add.text(x, y - 13, owned ? icon : "🔒", textStyle(26, color)).setOrigin(0.5).setDepth(depth + 3);
@@ -900,7 +924,10 @@ export class CatHouse extends Phaser.Scene {
     const cancel = pill(this, 895, 630, 125, 46, "CANCEL", { fill: COLORS.cream, size: 14 }).setDepth(depth + 4);
     const apply = pill(this, 1045, 630, 145, 46, "APPLY", { fill: COLORS.yellow, size: 16 }).setDepth(depth + 4);
     reset.on("pointerup", () => this.resetDraftAccessory());
-    cancel.on("pointerup", () => this.closeOverlay());
+    cancel.on("pointerup", () => {
+      this.closeOverlay();
+      this.showCatCard(level);
+    });
     apply.on("pointerup", () => this.applyCatCustomization());
     parts.push(reset, cancel, apply);
     this.overlayParts = parts;
@@ -914,7 +941,7 @@ export class CatHouse extends Phaser.Scene {
       ? { x: 0, y: 0, scale: 1, angle: 0 }
       : { ...SaveGame.hatAdjustment(this.catCustomizer.level.cat.id, hatId) };
     Object.entries(this.catCustomizer.cards).forEach(([id, card]) => {
-      card.setFillStyle(id === hatId ? COLORS.yellow : 0xffffff);
+      card.setFillStyle(id === hatId ? COLORS.yellow : card.getData("owned") ? 0xffffff : 0xb9afb7);
       card.setStrokeStyle(4, id === hatId ? COLORS.coral : COLORS.ink);
     });
     this.updateCustomizerPreview();
@@ -969,10 +996,15 @@ export class CatHouse extends Phaser.Scene {
   applyCatCustomization() {
     const customizer = this.catCustomizer;
     if (!customizer) return;
+    const level = customizer.level;
     if (customizer.selectedHat === "none") SaveGame.clearCatHat(customizer.level.cat.id);
     else SaveGame.assignHat(customizer.selectedHat, customizer.level.cat.id, customizer.draft);
+    this.save = SaveGame.load();
+    this.registry.set("save", this.save);
+    this.refreshRoomCatHat(level.cat.id);
     sound(this, "buy");
-    this.scene.restart({ page: customizer.level.world });
+    this.closeOverlay();
+    this.showCatCard(level);
   }
 
   openRoomCustomizer() {

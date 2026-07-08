@@ -29,6 +29,10 @@ export class RunHud {
     fullscreen.setScrollFactor(0).setDepth(55).on("pointerup", () => toggleFullscreen(scene));
     const pause = pill(scene, 1210, 140, 76, 55, "Ⅱ", { fill: COLORS.cream, size: 24 });
     pause.setScrollFactor(0).setDepth(55).on("pointerup", () => scene.togglePause());
+    if (scene.adminTest) {
+      const adminBack = pill(scene, 1046, 140, 76, 55, "←", { fill: COLORS.cream, size: 24 });
+      adminBack.setScrollFactor(0).setDepth(55).on("pointerup", () => scene.scene.start("SettingsScene", { tab: "admin" }));
+    }
     if (scene.level.boss) {
       const boss = scene.add.text(640, 120, "★  BOSS RUN · WORLD TROPHY  ★", textStyle(18, "#fff7df"))
         .setOrigin(0.5).setScrollFactor(0).setDepth(53).setBackgroundColor("#ec5966").setPadding(16, 6);
