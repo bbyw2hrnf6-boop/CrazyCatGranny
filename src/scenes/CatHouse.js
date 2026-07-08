@@ -19,6 +19,14 @@ const CAT_LITTER_DEPTH = 64;
 const CAT_PROP_DEPTH = 86;
 const ROOM_EDITOR_DEPTH = 120;
 const CAT_MODAL_DEPTH = 170;
+const ACCESSORY_TINT_COST = 15;
+const ACCESSORY_TINTS = Object.freeze([
+  { label: "NAT", tint: null, color: 0xffffff },
+  { label: "RED", tint: 0xff8fa3, color: 0xff8fa3 },
+  { label: "GOLD", tint: 0xffdc61, color: 0xffdc61 },
+  { label: "MINT", tint: 0x8de0cf, color: 0x8de0cf },
+  { label: "VIO", tint: 0xc99cff, color: 0xc99cff }
+]);
 
 export class CatHouse extends Phaser.Scene {
   constructor() {
@@ -924,7 +932,8 @@ export class CatHouse extends Phaser.Scene {
       pinchStart: null,
       cards: {},
       adjustmentLabel,
-      selectedLabel
+      selectedLabel,
+      tintButtons: []
     };
     [NATURAL_FUR, ...HAT_ITEMS].forEach(({ id, name, icon, color }, index) => {
       const owned = id === "none" || this.save.owned.includes(id);
@@ -946,6 +955,19 @@ export class CatHouse extends Phaser.Scene {
         hit.on("pointerup", () => this.selectCustomizerHat(id));
         parts.push(hit);
       }
+    });
+
+    const tintLabel = this.add.text(205, 594, `TINT ${ACCESSORY_TINT_COST}`, textStyle(12, "#725f72")).setOrigin(0.5).setDepth(depth + 4);
+    parts.push(tintLabel);
+    ACCESSORY_TINTS.forEach((entry, index) => {
+      const x = 265 + index * 42;
+      const swatch = this.add.circle(x, 594, 11, entry.color, 1)
+        .setStrokeStyle(3, COLORS.ink)
+        .setInteractive({ useHandCursor: true })
+        .setDepth(depth + 4);
+      swatch.on("pointerup", () => this.setDraftAccessoryTint(entry.tint));
+      this.catCustomizer.tintButtons.push({ swatch, tint: entry.tint });
+      parts.push(swatch);
     });
 
     [
@@ -1037,9 +1059,16 @@ export class CatHouse extends Phaser.Scene {
     const hatId = customizer.selectedHat;
     const selectedItem = HAT_ITEMS.find((item) => item.id === hatId);
     customizer.selectedLabel.setText(hatId === "none" ? "Natural Fur" : selectedItem?.name || "Outfit");
+    const tintName = ACCESSORY_TINTS.find((entry) => entry.tint === (customizer.draft.tint ?? null))?.label || "CUSTOM";
     customizer.adjustmentLabel.setText(hatId === "none"
       ? "No accessory selected"
-      : `X ${customizer.draft.x} · Y ${customizer.draft.y} · SIZE ${customizer.draft.scale.toFixed(2)} · ROT ${customizer.draft.angle}`);
+      : `X ${customizer.draft.x} · Y ${customizer.draft.y} · SIZE ${customizer.draft.scale.toFixed(2)} · ROT ${customizer.draft.angle} · ${tintName}`);
+    customizer.tintButtons?.forEach(({ swatch, tint }) => {
+      const active = tint === (customizer.draft.tint ?? null);
+      swatch.setScale(active && hatId !== "none" ? 1.22 : 1);
+      swatch.setAlpha(hatId === "none" ? 0.35 : 1);
+      swatch.setStrokeStyle(active && hatId !== "none" ? 4 : 3, active && hatId !== "none" ? COLORS.coral : COLORS.ink);
+    });
     if (hatId === "none" || !customizer.previewHat) return;
     setCatAccessoryAdjustment(customizer.previewHat, customizer.draft);
     this.syncCatHat({ sprite: customizer.portrait, hat: customizer.previewHat });
@@ -1105,9 +1134,15 @@ export class CatHouse extends Phaser.Scene {
     this.refreshCustomizerLive();
   }
 
+  setDraftAccessoryTint(tint) {
+    if (!this.catCustomizer || this.catCustomizer.selectedHat === "none") return;
+    this.catCustomizer.draft.tint = tint;
+    this.refreshCustomizerLive();
+  }
+
   resetDraftAccessory() {
     if (!this.catCustomizer) return;
-    this.catCustomizer.draft = { x: 0, y: 0, scale: 1, angle: 0 };
+    this.catCustomizer.draft = { x: 0, y: 0, scale: 1, angle: 0, tint: null };
     this.updateCustomizerPreview();
   }
 
@@ -1115,10 +1150,20 @@ export class CatHouse extends Phaser.Scene {
     const customizer = this.catCustomizer;
     if (!customizer) return;
     const level = customizer.level;
+    const saved = customizer.selectedHat === "none"
+      ? { tint: null }
+      : SaveGame.hatAdjustment(level.cat.id, customizer.selectedHat);
+    const tintChanged = customizer.selectedHat !== "none" && (saved.tint ?? null) !== (customizer.draft.tint ?? null);
+    if (tintChanged && customizer.draft.tint !== null && !SaveGame.spendCoins(ACCESSORY_TINT_COST)) {
+      customizer.adjustmentLabel.setText(`Need ${ACCESSORY_TINT_COST} coins for tint`);
+      sound(this, "jump");
+      return;
+    }
     if (customizer.selectedHat === "none") SaveGame.clearCatHat(customizer.level.cat.id);
     else SaveGame.assignHat(customizer.selectedHat, customizer.level.cat.id, customizer.draft);
     this.save = SaveGame.load();
     this.registry.set("save", this.save);
+    this.badge?.setValue(this.save.coins);
     this.refreshRoomCatHat(level.cat.id);
     sound(this, "buy");
     this.closeOverlay();

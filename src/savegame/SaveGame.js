@@ -213,8 +213,12 @@ function cleanAccessoryAdjustment(value = {}) {
   const y = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.y) || 0)));
   const scale = Math.max(0.25, Math.min(3, Number(value.scale) || 1));
   const angle = Math.max(-90, Math.min(90, Math.round(Number(value.angle) || 0)));
-  if (!x && !y && Number(scale.toFixed(2)) === 1 && !angle) return null;
-  return { x, y, scale: Number(scale.toFixed(2)), angle };
+  const rawTint = Number(value.tint);
+  const tint = Number.isFinite(rawTint)
+    ? Math.max(0, Math.min(0xffffff, Math.round(rawTint)))
+    : null;
+  if (!x && !y && Number(scale.toFixed(2)) === 1 && !angle && tint === null) return null;
+  return { x, y, scale: Number(scale.toFixed(2)), angle, tint };
 }
 
 function cleanGearAdjustment(value = {}) {
@@ -417,6 +421,15 @@ export const SaveGame = {
     return true;
   },
 
+  spendCoins(amount) {
+    const cost = Math.max(0, Math.floor(Number(amount) || 0));
+    const save = this.load();
+    if (save.coins < cost) return false;
+    save.coins -= cost;
+    this.write(save);
+    return true;
+  },
+
   equipHat(id) {
     const save = this.load();
     if (id === "none" || save.owned.includes(id)) {
@@ -488,7 +501,7 @@ export const SaveGame = {
 
   hatAdjustment(catId, hatId) {
     const save = this.load();
-    return save.catAccessoryAdjustments[accessoryKey(catId, hatId)] || { x: 0, y: 0, scale: 1, angle: 0 };
+    return save.catAccessoryAdjustments[accessoryKey(catId, hatId)] || { x: 0, y: 0, scale: 1, angle: 0, tint: null };
   },
 
   setGearAdjustment(gearId, adjustment = null) {
