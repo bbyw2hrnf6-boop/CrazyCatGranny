@@ -19,7 +19,7 @@ const CAT_LITTER_DEPTH = 64;
 const CAT_PROP_DEPTH = 86;
 const ROOM_EDITOR_DEPTH = 120;
 const CAT_MODAL_DEPTH = 170;
-const ACCESSORY_TINT_COST = 15;
+const ACCESSORY_TINT_COST = 10;
 const ACCESSORY_TINTS = Object.freeze([
   { label: "NAT", tint: null, color: 0xffffff },
   { label: "RED", tint: 0xff8fa3, color: 0xff8fa3 },

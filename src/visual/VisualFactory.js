@@ -69,13 +69,15 @@ export function setCatAccessoryAdjustment(accessory, adjustment = null) {
 }
 
 function normalizeAccessoryAdjustment(adjustment = {}) {
-  const rawTint = Number(adjustment?.tint);
+  const rawTint = adjustment?.tint;
   return {
     x: Math.round(Number(adjustment?.x) || 0),
     y: Math.round(Number(adjustment?.y) || 0),
     scale: Math.max(0.25, Math.min(3, Number(adjustment?.scale) || 1)),
     angle: Math.max(-90, Math.min(90, Math.round(Number(adjustment?.angle) || 0))),
-    tint: Number.isFinite(rawTint) ? Math.max(0, Math.min(0xffffff, Math.round(rawTint))) : null
+    tint: rawTint === null || rawTint === undefined || rawTint === ""
+      ? null
+      : Math.max(0, Math.min(0xffffff, Math.round(Number(rawTint) || 0)))
   };
 }
 

@@ -33,6 +33,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.airTrickChosen = false;
     this.airTrickActive = false;
     this.airLean = 0;
+    this.animationKey = "granny-skating";
   }
 
   stabilizeSkateFrame() {
@@ -53,7 +54,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.setVelocityX(Math.max(this.body.velocity.x, launchSpeed));
     const cadence = Phaser.Math.Linear(0.32, 0.82, startBlend);
     this.anims.timeScale = Phaser.Math.Clamp(launchSpeed / this.runSpeed * cadence, 0.28, 1);
-    this.play("granny-skating", true);
+    this.play(this.animationKey, true);
     this.stabilizeSkateFrame();
     const grounded = this.body.blocked.down || this.body.touching.down;
     if (!grounded) {
@@ -158,7 +159,7 @@ export class Granny extends Phaser.Physics.Arcade.Sprite {
     this.lastHookQuality = quality;
     this.hookBoostAmount = 55 + quality * 75;
     this.hookBoostUntil = this.scene.time.now + 850 + quality * 600;
-    this.play("granny-skating", true);
+    this.play(this.animationKey, true);
     return true;
   }
 }

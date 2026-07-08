@@ -78,7 +78,10 @@ export class GameScene extends Phaser.Scene {
     this.maxFalls = Math.max(3, 6 - this.level.world);
     this.save = SaveGame.load();
     const grannySkin = visualItem(this.save.selectedGrannySkin);
-    if (grannySkin?.tint) this.granny.setTint(grannySkin.tint);
+    if (grannySkin?.texture) {
+      this.granny.setTexture(grannySkin.texture, 0);
+      this.granny.animationKey = grannySkin.animation || "granny-skating";
+    }
     if (this.save.equippedGear === "yarnBoost") this.granny.runSpeed += 38;
     this.grannyGear = createGrannyGear(this, this.granny, this.save.equippedGear, 14, SaveGame.gearAdjustment(this.save.equippedGear));
     this.applyLevelGimmick();

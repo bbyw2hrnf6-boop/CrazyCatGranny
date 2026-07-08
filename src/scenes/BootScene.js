@@ -1,5 +1,5 @@
 import { SaveGame } from "../savegame/SaveGame.js";
-import { VISUAL_ASSETS } from "../visual/VisualCatalog.js";
+import { GRANNY_SKINS, VISUAL_ASSETS } from "../visual/VisualCatalog.js";
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -23,6 +23,7 @@ export class BootScene extends Phaser.Scene {
 
   create() {
     this.makeTextures();
+    this.makeGrannySkinTextures();
     this.makeAnimations();
     this.registry.set("save", SaveGame.load());
     SaveGame.startCloudSync((save) => this.applyCloudSave(save));
@@ -39,11 +40,13 @@ export class BootScene extends Phaser.Scene {
   }
 
   makeAnimations() {
-    this.anims.create({
-      key: "granny-skating",
-      frames: this.anims.generateFrameNumbers("granny-skate", { frames: [0, 1, 3, 1] }),
-      frameRate: 6,
-      repeat: -1
+    GRANNY_SKINS.forEach((skin) => {
+      this.anims.create({
+        key: skin.animation,
+        frames: this.anims.generateFrameNumbers(skin.texture, { frames: [0, 1, 3, 1] }),
+        frameRate: 6,
+        repeat: -1
+      });
     });
     this.anims.create({
       key: "thief-running",
@@ -187,6 +190,116 @@ export class BootScene extends Phaser.Scene {
       g.fillStyle(0xffffff, 0.5).fillCircle(27, 24, 3);
       g.fillStyle(0xff6e9f).fillCircle(44, 44, 7);
     });
+  }
+
+  makeGrannySkinTextures() {
+    const source = this.textures.get("granny-skate").getSourceImage();
+    GRANNY_SKINS.filter((skin) => skin.texture !== "granny-skate").forEach((skin) => {
+      const texture = this.textures.createCanvas(skin.texture, source.width, source.height);
+      const context = texture.getContext();
+      context.drawImage(source, 0, 0);
+      for (let frame = 0; frame < 4; frame += 1) {
+        this.drawGrannyCostume(context, skin.costume, (frame % 2) * 512, Math.floor(frame / 2) * 512, frame);
+      }
+      texture.refresh();
+    });
+  }
+
+  drawGrannyCostume(context, costume, x, y, frame) {
+    const bob = frame === 1 ? -4 : frame === 3 ? 5 : 0;
+    const lean = frame === 3 ? 8 : frame === 1 ? -4 : 0;
+    const px = (value) => x + value;
+    const py = (value) => y + value + bob;
+    const ellipse = (cx, cy, rx, ry, fill, stroke = "#2f2335") => {
+      context.beginPath();
+      context.ellipse(px(cx), py(cy), rx, ry, 0, 0, Math.PI * 2);
+      context.fillStyle = fill;
+      context.fill();
+      context.lineWidth = 6;
+      context.strokeStyle = stroke;
+      context.stroke();
+    };
+    const poly = (points, fill, stroke = "#2f2335", width = 6) => {
+      context.beginPath();
+      points.forEach(([pointX, pointY], index) => {
+        if (index === 0) context.moveTo(px(pointX), py(pointY));
+        else context.lineTo(px(pointX), py(pointY));
+      });
+      context.closePath();
+      context.fillStyle = fill;
+      context.fill();
+      context.lineWidth = width;
+      context.strokeStyle = stroke;
+      context.stroke();
+    };
+    context.save();
+    context.translate(px(256), py(282));
+    context.rotate((lean * Math.PI) / 1800);
+    context.translate(-px(256), -py(282));
+
+    if (costume === "elegant") {
+      poly([[198, 246], [302, 238], [345, 392], [174, 404]], "#d48fc0");
+      poly([[215, 248], [289, 244], [305, 319], [198, 326]], "#f2d7ef", "#7d4a7f", 4);
+      ellipse(253, 222, 54, 16, "#fff4d8", "#b9915b");
+      poly([[200, 365], [250, 345], [310, 368], [326, 414], [179, 421]], "#8c6bc2", "#563b78", 5);
+      context.fillStyle = "#fff7df";
+      for (let bead = 0; bead < 5; bead += 1) context.fillRect(px(222 + bead * 15), py(230 + Math.abs(2 - bead) * 3), 8, 8);
+    } else if (costume === "sporty") {
+      poly([[190, 246], [312, 238], [330, 372], [185, 382]], "#2eb6a7");
+      poly([[216, 250], [284, 246], [295, 357], [207, 362]], "#f7f3dc", "#234f5b", 4);
+      context.lineWidth = 10;
+      context.strokeStyle = "#ffdc61";
+      context.beginPath();
+      context.moveTo(px(206), py(270));
+      context.lineTo(px(300), py(356));
+      context.stroke();
+      context.fillStyle = "#243044";
+      context.fillRect(px(180), py(400), 145, 22);
+      context.fillStyle = "#ff6b5c";
+      context.fillRect(px(196), py(406), 45, 9);
+      context.fillRect(px(268), py(406), 45, 9);
+    } else if (costume === "punk") {
+      poly([[190, 248], [306, 236], [338, 382], [181, 392]], "#2b2734");
+      poly([[214, 250], [252, 238], [286, 251], [270, 344], [220, 350]], "#ba4fd2", "#34243d", 5);
+      context.fillStyle = "#ffdc61";
+      [[232, 278], [266, 290], [246, 323]].forEach(([sx, sy]) => {
+        context.beginPath();
+        context.moveTo(px(sx), py(sy - 10));
+        context.lineTo(px(sx + 4), py(sy - 2));
+        context.lineTo(px(sx + 13), py(sy - 1));
+        context.lineTo(px(sx + 6), py(sy + 5));
+        context.lineTo(px(sx + 8), py(sy + 14));
+        context.lineTo(px(sx), py(sy + 8));
+        context.lineTo(px(sx - 8), py(sy + 14));
+        context.lineTo(px(sx - 6), py(sy + 5));
+        context.lineTo(px(sx - 13), py(sy - 1));
+        context.lineTo(px(sx - 4), py(sy - 2));
+        context.closePath();
+        context.fill();
+      });
+      context.strokeStyle = "#ef5b5b";
+      context.lineWidth = 8;
+      context.beginPath();
+      context.moveTo(px(211), py(222));
+      context.lineTo(px(262), py(198));
+      context.lineTo(px(318), py(220));
+      context.stroke();
+    } else if (costume === "royal") {
+      poly([[178, 252], [315, 236], [356, 398], [162, 418]], "#6f4bb2");
+      poly([[212, 248], [292, 242], [302, 352], [204, 360]], "#f8d76b", "#80581b", 5);
+      context.lineWidth = 12;
+      context.strokeStyle = "#fff2ac";
+      context.beginPath();
+      context.moveTo(px(195), py(276));
+      context.lineTo(px(316), py(370));
+      context.stroke();
+      poly([[207, 193], [226, 157], [246, 192], [265, 155], [286, 191], [302, 163], [316, 202]], "#ffdc61", "#7a5520", 5);
+      context.fillStyle = "#ec5966";
+      context.fillRect(px(248), py(181), 10, 10);
+      context.fillStyle = "#fff7df";
+      context.fillRect(px(186), py(393), 150, 14);
+    }
+    context.restore();
   }
 
   texture(key, width, height, painter) {

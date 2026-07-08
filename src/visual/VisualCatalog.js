@@ -295,16 +295,15 @@ const gear = [
 }));
 
 const grannySkins = [
-  { id: "grannyClassic", name: "Classic Granny", price: 0, color: 0xec5966, tint: null, detail: "Original chase look" },
-  { id: "grannyElegant", name: "Elegant Granny", price: 95, color: 0x6f7fd9, tint: 0xf2c7de, detail: "Fancy full skin" },
-  { id: "grannySporty", name: "Sporty Granny", price: 120, color: 0x41b9ad, tint: 0x9fe7d8, detail: "Track-day full skin" },
-  { id: "grannyPunk", name: "Punk Granny", price: 150, color: 0x7b4d86, tint: 0xc28bea, detail: "Loud full skin" },
-  { id: "grannyRoyal", name: "Royal Granny", price: 210, color: 0xffcc4d, tint: 0xffdf79, detail: "Regal full skin" }
+  { id: "grannyClassic", name: "Classic Granny", price: 0, color: 0xec5966, detail: "Original chase look", texture: "granny-skate", animation: "granny-skating" },
+  { id: "grannyElegant", name: "Elegant Granny", price: 95, color: 0x6f7fd9, detail: "Fancy full skin", texture: "granny-skin-elegant", animation: "granny-skating-elegant", costume: "elegant" },
+  { id: "grannySporty", name: "Sporty Granny", price: 120, color: 0x41b9ad, detail: "Track-day full skin", texture: "granny-skin-sporty", animation: "granny-skating-sporty", costume: "sporty" },
+  { id: "grannyPunk", name: "Punk Granny", price: 150, color: 0x7b4d86, detail: "Loud full skin", texture: "granny-skin-punk", animation: "granny-skating-punk", costume: "punk" },
+  { id: "grannyRoyal", name: "Royal Granny", price: 210, color: 0xffcc4d, detail: "Regal full skin", texture: "granny-skin-royal", animation: "granny-skating-royal", costume: "royal" }
 ].map((item) => ({
   ...item,
   tab: "GRANNY",
   kind: "grannySkin",
-  texture: "granny-skate",
   frame: 0,
   previewScale: 0.17
 }));

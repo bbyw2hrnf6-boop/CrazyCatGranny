@@ -77,9 +77,10 @@ export class MainMenu extends Phaser.Scene {
         .fillCircle(620 + i * 35, 140 + (i % 5) * 68, 2 + (i % 3));
     }
 
-    const granny = this.add.sprite(815, 525, "granny-skate", 0).setScale(0.34).play("granny-skating");
     const grannySkin = visualItem(save.selectedGrannySkin);
-    if (grannySkin?.tint) granny.setTint(grannySkin.tint);
+    const granny = this.add.sprite(815, 525, grannySkin?.texture || "granny-skate", 0)
+      .setScale(0.34)
+      .play(grannySkin?.animation || "granny-skating");
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
     const gear = createGrannyGear(this, granny, save.equippedGear, 8, SaveGame.gearAdjustment(save.equippedGear));
     if (gear) this.events.on("update", () => syncGrannyGear(gear, granny));

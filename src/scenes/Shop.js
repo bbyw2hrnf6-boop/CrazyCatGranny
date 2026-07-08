@@ -1,6 +1,6 @@
 import { SaveGame } from "../savegame/SaveGame.js";
 import { LEVELS } from "../levels/levels.js";
-import { GRANNY_GEAR_ANCHORS, SHOP_ITEMS } from "../visual/VisualCatalog.js";
+import { GRANNY_GEAR_ANCHORS, SHOP_ITEMS, visualItem } from "../visual/VisualCatalog.js";
 import {
   attachCatAccessory,
   createCat,
@@ -303,7 +303,11 @@ export class Shop extends Phaser.Scene {
     panel.setStrokeStyle(7, COLORS.ink);
     const title = this.add.text(640, 90, `EDIT GRANNY · ${item.name.toUpperCase()}`, textStyle(30, "#ec5966")).setOrigin(0.5).setDepth(72);
     const hint = this.add.text(640, 130, "Drag the item · choose anchor · scale and rotate", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(72);
-    const granny = this.add.sprite(355, 390, "granny-skate", 0).setScale(0.42).setDepth(73).play("granny-skating");
+    const grannySkin = visualItem(this.save.selectedGrannySkin);
+    const granny = this.add.sprite(355, 390, grannySkin?.texture || "granny-skate", 0)
+      .setScale(0.42)
+      .setDepth(73)
+      .play(grannySkin?.animation || "granny-skating");
     granny.baseScale = 0.42;
     const gear = createGrannyGear(this, granny, item.id, 75, draft);
     gear?.setInteractive({ useHandCursor: true });

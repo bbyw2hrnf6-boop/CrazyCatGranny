@@ -1,6 +1,8 @@
 import { getLevelsForWorld } from "../content/GameContentStats.js";
 import { levelById, WORLDS } from "../levels/levels.js";
+import { SaveGame } from "../savegame/SaveGame.js";
 import { catFrameForLevel, createCat } from "../visual/VisualFactory.js";
+import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, sound, textStyle } from "../ui/ui.js";
 
 const MAP_POSITIONS = [
@@ -66,7 +68,13 @@ export class LevelIntroScene extends Phaser.Scene {
       .setDepth(10)
       .setBackgroundColor("#fff7dfdd")
       .setPadding(12, 5);
-    const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, "granny-skate", 0).setScale(0.25).setDepth(7).play("granny-skating").setAlpha(0);
+    const save = SaveGame.load();
+    const grannySkin = visualItem(save.selectedGrannySkin);
+    const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, grannySkin?.texture || "granny-skate", 0)
+      .setScale(0.25)
+      .setDepth(7)
+      .play(grannySkin?.animation || "granny-skating")
+      .setAlpha(0);
     const title = this.add.text(640, 635, this.quickIntro ? "Back on the chase..." : this.storyCopy(), textStyle(28, "#2f2335"))
       .setOrigin(0.5)
       .setDepth(12)

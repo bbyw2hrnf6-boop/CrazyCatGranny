@@ -213,10 +213,10 @@ function cleanAccessoryAdjustment(value = {}) {
   const y = Math.max(-MAX_ACCESSORY_OFFSET, Math.min(MAX_ACCESSORY_OFFSET, Math.round(Number(value.y) || 0)));
   const scale = Math.max(0.25, Math.min(3, Number(value.scale) || 1));
   const angle = Math.max(-90, Math.min(90, Math.round(Number(value.angle) || 0)));
-  const rawTint = Number(value.tint);
-  const tint = Number.isFinite(rawTint)
-    ? Math.max(0, Math.min(0xffffff, Math.round(rawTint)))
-    : null;
+  const rawTint = value.tint;
+  const tint = rawTint === null || rawTint === undefined || rawTint === ""
+    ? null
+    : Math.max(0, Math.min(0xffffff, Math.round(Number(rawTint) || 0)));
   if (!x && !y && Number(scale.toFixed(2)) === 1 && !angle && tint === null) return null;
   return { x, y, scale: Number(scale.toFixed(2)), angle, tint };
 }
