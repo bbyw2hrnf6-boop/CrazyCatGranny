@@ -7,6 +7,8 @@ import {
   createCat,
   createGrannyGear,
   createGrannySkinEffect,
+  resolveAnimationKey,
+  resolveVisualTexture,
   syncCatAccessory,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
@@ -79,18 +81,18 @@ export class MainMenu extends Phaser.Scene {
     }
 
     const grannySkin = visualItem(save.selectedGrannySkin);
-    const granny = this.add.sprite(815, 525, grannySkin?.texture || "granny-skate", 0)
+    const granny = this.add.sprite(815, 525, resolveVisualTexture(this, grannySkin, "granny-skate"), 0)
       .setScale(0.34)
-      .play(grannySkin?.animation || "granny-skating");
+      .play(resolveAnimationKey(this, grannySkin, "granny-skating"));
     createGrannySkinEffect(this, granny, save.selectedGrannySkin, { depthOffset: -1, scale: 0.9 });
     this.tweens.add({ targets: granny, y: 530, duration: 900, yoyo: true, repeat: -1, ease: "Sine.inOut" });
     const gear = createGrannyGear(this, granny, save.equippedGear, 8, SaveGame.gearAdjustment(save.equippedGear));
     if (gear) this.events.on("update", () => syncGrannyGear(gear, granny));
     const thiefSkin = visualItem(save.selectedThiefSkin);
-    const thief = this.add.sprite(1115, 300, thiefSkin?.texture || "thief-run", 0)
+    const thief = this.add.sprite(1115, 300, resolveVisualTexture(this, thiefSkin, "thief-run"), 0)
       .setScale(0.16)
       .setAngle(4)
-      .play(thiefSkin?.animation || "thief-running");
+      .play(resolveAnimationKey(this, thiefSkin, "thief-running"));
     this.tweens.add({ targets: thief, angle: -4, duration: 700, yoyo: true, repeat: -1 });
 
     const rescued = LEVELS.filter((level) => save.rescuedCats.includes(level.cat.id)).slice(0, 4);

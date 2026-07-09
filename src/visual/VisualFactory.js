@@ -115,7 +115,9 @@ export function createItemPreview(scene, itemId, x, y, options = {}) {
   const look = visualItem(itemId);
   if (!look) return scene.add.container(x, y);
   const scale = (options.scale ?? 1) * look.previewScale;
-  const image = scene.add.image(0, 0, look.texture, look.frame);
+  const texture = resolveVisualTexture(scene, look, previewFallbackTexture(look));
+  const frame = texture === look.texture ? look.frame : 0;
+  const image = scene.add.image(0, 0, texture, frame);
   if (look.kind === "hat") image.setOrigin(0.5, look.originY);
   if (look.tint) image.setTint(look.tint);
   image.setScale(scale);
@@ -140,9 +142,25 @@ export function createItemPreview(scene, itemId, x, y, options = {}) {
 export function applyGrannySkin(granny, skinId) {
   const skin = visualItem(skinId);
   if (!granny?.active || skin?.kind !== "grannySkin") return null;
-  granny.setTexture(skin.texture || "granny-skate", 0);
-  granny.animationKey = skin.animation || "granny-skating";
+  granny.setTexture(resolveVisualTexture(granny.scene, skin, "granny-skate"), 0);
+  granny.animationKey = resolveAnimationKey(granny.scene, skin, "granny-skating");
   return skin;
+}
+
+export function resolveVisualTexture(scene, look, fallbackTexture) {
+  const texture = look?.texture || fallbackTexture;
+  return scene?.textures?.exists(texture) ? texture : fallbackTexture;
+}
+
+export function resolveAnimationKey(scene, look, fallbackAnimation) {
+  const animation = look?.animation || fallbackAnimation;
+  return scene?.anims?.exists(animation) ? animation : fallbackAnimation;
+}
+
+function previewFallbackTexture(look) {
+  if (look?.kind === "grannySkin") return "granny-skate";
+  if (look?.kind === "thiefSkin") return "thief-run";
+  return look?.texture || "__MISSING";
 }
 
 export function createGrannySkinEffect(scene, granny, skinId, options = {}) {
@@ -225,10 +243,10 @@ export function createGrannySkinEffect(scene, granny, skinId, options = {}) {
     pieces.forEach((piece) => scene.tweens.killTweensOf(piece));
   };
   scene.events.on("update", update);
-  effect.once(Phaser.GameObjects.Events.DESTROY, cleanup);
+  effect.once("destroy", cleanup);
   scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
     cleanup();
-    effect.destroy();
+    if (effect.active) effect.destroy();
   });
   update();
   return effect;

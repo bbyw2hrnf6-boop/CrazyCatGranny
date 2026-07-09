@@ -1,7 +1,13 @@
 import { getLevelsForWorld } from "../content/GameContentStats.js";
 import { levelById, WORLDS } from "../levels/levels.js";
 import { SaveGame } from "../savegame/SaveGame.js";
-import { catFrameForLevel, createCat, createGrannySkinEffect } from "../visual/VisualFactory.js";
+import {
+  catFrameForLevel,
+  createCat,
+  createGrannySkinEffect,
+  resolveAnimationKey,
+  resolveVisualTexture
+} from "../visual/VisualFactory.js";
 import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, sound, textStyle } from "../ui/ui.js";
 
@@ -63,10 +69,10 @@ export class LevelIntroScene extends Phaser.Scene {
     const speed = this.quickIntro ? 0.45 : 1;
     const save = SaveGame.load();
     const thiefSkin = visualItem(save.selectedThiefSkin);
-    const thief = this.add.sprite(Math.max(-40, nodeX - 260), nodeY + 5, thiefSkin?.texture || "thief-run", 0)
+    const thief = this.add.sprite(Math.max(-40, nodeX - 260), nodeY + 5, resolveVisualTexture(this, thiefSkin, "thief-run"), 0)
       .setScale(0.2)
       .setDepth(8)
-      .play(thiefSkin?.animation || "thief-running");
+      .play(resolveAnimationKey(this, thiefSkin, "thief-running"));
     const cat = createCat(this, nodeX, nodeY - 42, catFrameForLevel(this.level.id), 0.16).setDepth(7);
     const bubble = this.add.text(nodeX + 5, nodeY - 112, "HELP!", textStyle(25, "#ec5966"))
       .setOrigin(0.5)
@@ -74,10 +80,10 @@ export class LevelIntroScene extends Phaser.Scene {
       .setBackgroundColor("#fff7dfdd")
       .setPadding(12, 5);
     const grannySkin = visualItem(save.selectedGrannySkin);
-    const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, grannySkin?.texture || "granny-skate", 0)
+    const granny = this.add.sprite(Math.max(80, nodeX - 310), nodeY + 45, resolveVisualTexture(this, grannySkin, "granny-skate"), 0)
       .setScale(0.25)
       .setDepth(7)
-      .play(grannySkin?.animation || "granny-skating")
+      .play(resolveAnimationKey(this, grannySkin, "granny-skating"))
       .setAlpha(0);
     createGrannySkinEffect(this, granny, save.selectedGrannySkin, { depthOffset: -1, scale: 0.75 });
     const title = this.add.text(640, 635, this.quickIntro ? "Back on the chase..." : this.storyCopy(), textStyle(28, "#2f2335"))
@@ -92,8 +98,10 @@ export class LevelIntroScene extends Phaser.Scene {
       .setPadding(14, 5)
       .setInteractive({ useHandCursor: true });
     skip.on("pointerup", () => this.startRun());
+    this.input.once("pointerup", () => this.startRun());
     this.input.keyboard?.once("keydown-SPACE", () => this.startRun());
     this.input.keyboard?.once("keydown-ENTER", () => this.startRun());
+    this.input.keyboard?.once("keydown-ESC", () => this.startRun());
 
     this.tweens.add({ targets: bubble, y: bubble.y - 8, duration: 280 * speed, yoyo: true, repeat: this.quickIntro ? 2 : 5, ease: "Sine.inOut" });
     this.tweens.add({

@@ -7,6 +7,8 @@ import {
   createGrannyGear,
   createGrannySkinEffect,
   createItemPreview,
+  resolveAnimationKey,
+  resolveVisualTexture,
   setGrannyGearAdjustment,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
@@ -305,10 +307,10 @@ export class Shop extends Phaser.Scene {
     const title = this.add.text(640, 90, `EDIT GRANNY · ${item.name.toUpperCase()}`, textStyle(30, "#ec5966")).setOrigin(0.5).setDepth(72);
     const hint = this.add.text(640, 130, "Drag the item · choose anchor · scale and rotate", textStyle(16, "#725f72")).setOrigin(0.5).setDepth(72);
     const grannySkin = visualItem(this.save.selectedGrannySkin);
-    const granny = this.add.sprite(355, 390, grannySkin?.texture || "granny-skate", 0)
+    const granny = this.add.sprite(355, 390, resolveVisualTexture(this, grannySkin, "granny-skate"), 0)
       .setScale(0.42)
       .setDepth(73)
-      .play(grannySkin?.animation || "granny-skating");
+      .play(resolveAnimationKey(this, grannySkin, "granny-skating"));
     const grannyEffect = createGrannySkinEffect(this, granny, this.save.selectedGrannySkin, { depthOffset: -1, scale: 0.9 });
     granny.baseScale = 0.42;
     const gear = createGrannyGear(this, granny, item.id, 75, draft);

@@ -84,8 +84,18 @@ export class CourseBuilder {
     const cue = scene.add.graphics().setDepth(5);
     cue.lineStyle(point.required ? 5 : 3, color, alpha);
     cue.beginPath();
-    cue.moveTo(point.x - 190, point.y + 110);
-    cue.quadraticCurveTo(point.x, point.y - 85, point.x + 210, point.y + 122);
+    const start = { x: point.x - 190, y: point.y + 110 };
+    const control = { x: point.x, y: point.y - 85 };
+    const end = { x: point.x + 210, y: point.y + 122 };
+    cue.moveTo(start.x, start.y);
+    for (let step = 1; step <= 24; step += 1) {
+      const t = step / 24;
+      const inverse = 1 - t;
+      cue.lineTo(
+        inverse * inverse * start.x + 2 * inverse * t * control.x + t * t * end.x,
+        inverse * inverse * start.y + 2 * inverse * t * control.y + t * t * end.y
+      );
+    }
     cue.strokePath();
     const dots = [-130, -65, 0, 65, 130].map((offset, index) => {
       const dot = scene.add.image(point.x + offset, point.y + 70 - Math.abs(offset) * 0.46, "sparkle")

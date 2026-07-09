@@ -5,6 +5,8 @@ import {
   createCat,
   createGrannySkinEffect,
   createGrannyGear,
+  resolveAnimationKey,
+  resolveVisualTexture,
   syncGrannyGear
 } from "../visual/VisualFactory.js";
 import { levelById, worldById } from "../levels/levels.js";
@@ -410,10 +412,10 @@ export class GameScene extends Phaser.Scene {
     this.thiefProgress = 690;
     this.thiefSpeed = this.granny.runSpeed - 30 + this.level.id * 0.4 + (this.level.boss ? 8 : 0);
     const thiefSkin = visualItem(this.save?.selectedThiefSkin);
-    this.thief = this.add.sprite(this.thiefProgress, 505, thiefSkin?.texture || "thief-run", 0)
+    this.thief = this.add.sprite(this.thiefProgress, 505, resolveVisualTexture(this, thiefSkin, "thief-run"), 0)
       .setDepth(11)
       .setScale(this.level.boss ? 0.29 : 0.25)
-      .play(thiefSkin?.animation || "thief-running");
+      .play(resolveAnimationKey(this, thiefSkin, "thief-running"));
     this.thiefRope = this.add.graphics().setDepth(10);
     this.thiefBob = 0;
     this.thiefJump = null;
