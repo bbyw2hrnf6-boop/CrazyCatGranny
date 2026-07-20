@@ -6,6 +6,7 @@
     <meta name="theme-color" content="#f7b32b" />
     <meta name="description" content="Crazy Cat Granny — a two-button cat rescue auto-runner." />
     <title>Crazy Cat Granny</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="./src/styles.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -14,20 +15,24 @@
   <body>
     <main id="game-shell">
       <div id="game" aria-label="Crazy Cat Granny game"></div>
-      <div id="loading" aria-live="polite">
+      <div id="loading" aria-live="polite" aria-busy="true">
         <span class="loading-cat">🐈</span>
-        <span>Warming up the skates…</span>
+        <div class="loading-message">
+          <span id="loading-copy">Warming up the skates…</span>
+          <span id="loading-progress" role="progressbar" aria-label="Game loading progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"></span>
+        </div>
       </div>
       <div id="rotate-hint" aria-live="polite">
         <span class="phone">📱</span>
-        <strong>Turn cave slab sideways</strong>
-        <span>Landscape mode needed for fullscreen play.</span>
+        <strong>Turn your screen sideways</strong>
+        <span>Crazy Cat Granny plays best in landscape.</span>
       </div>
     </main>
     <script>
       window.addEventListener("error", function (event) {
-        var loading = document.querySelector("#loading span:last-child");
+        var loading = document.querySelector("#loading-copy");
         if (loading) loading.textContent = "Game hiccup: " + event.message;
+        document.querySelector("#loading")?.classList.add("error");
       });
     </script>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js"></script>

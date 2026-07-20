@@ -40,4 +40,3 @@ const config = {
 const game = new Phaser.Game(config);
 window.crazyCatGranny = game;
 installFullscreenWatchers(game);
-document.querySelector("#loading")?.classList.add("hidden");

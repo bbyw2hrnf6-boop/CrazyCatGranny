@@ -114,6 +114,7 @@ export class GameScene extends Phaser.Scene {
     this.createSpeedLines();
     if (this.level.boss) this.createBossEncounter();
     this.createIntro();
+    this.createFirstRunHint();
     this.bindKeys();
     this.devTools = new DevTools(this);
     this.devTools.setFlags(this.adminDebugFlags);
@@ -530,6 +531,29 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  createFirstRunHint() {
+    if (this.level.id !== 1 || !this.skipIntro || this.adminTest) return;
+    const storageKey = "ccg-controls-seen";
+    try {
+      if (localStorage.getItem(storageKey)) return;
+      localStorage.setItem(storageKey, "yes");
+    } catch {
+      // Storage can be unavailable in private browsing; the hint is still safe to show.
+    }
+    const hint = this.add.text(
+      640,
+      178,
+      "JUMP TWICE FOR AN AIR-KICK   •   HOLD CANE NEAR GOLD HOOKS",
+      textStyle(18, "#fff7df")
+    ).setOrigin(0.5).setScrollFactor(0).setDepth(89).setBackgroundColor("#2f2335e8").setPadding(18, 8);
+    hint.setAlpha(0).setScale(0.96);
+    this.tweens.add({ targets: hint, alpha: 1, scale: 1, duration: 220, ease: "Back.out" });
+    this.time.delayedCall(5200, () => {
+      if (!hint.active) return;
+      this.tweens.add({ targets: hint, alpha: 0, y: hint.y - 10, duration: 300, onComplete: () => hint.destroy() });
+    });
+  }
+
   bindKeys() {
     const keys = this.input.keyboard.addKeys({
       jump: Phaser.Input.Keyboard.KeyCodes.SPACE,
@@ -554,6 +578,19 @@ export class GameScene extends Phaser.Scene {
       key.on("up", () => this.releaseCane());
     });
     keys.pause.on("down", () => this.togglePause());
+
+    this.releaseHeldControls = () => {
+      this.jumpHeld = false;
+      this.releaseCane();
+    };
+    window.addEventListener("blur", this.releaseHeldControls);
+    window.addEventListener("pointerup", this.releaseHeldControls);
+    window.addEventListener("pointercancel", this.releaseHeldControls);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      window.removeEventListener("blur", this.releaseHeldControls);
+      window.removeEventListener("pointerup", this.releaseHeldControls);
+      window.removeEventListener("pointercancel", this.releaseHeldControls);
+    });
   }
 
   tryLatch() {

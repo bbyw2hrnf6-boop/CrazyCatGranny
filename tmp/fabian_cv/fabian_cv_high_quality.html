@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Fabian Foertsch CV</title>
+  <style>
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 210mm;
+      min-height: 297mm;
+      background: #ffffff;
+      color: #080b14;
+      font-family: Arial, Helvetica, sans-serif;
+      letter-spacing: 0;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .page {
+      display: grid;
+      grid-template-columns: 65.5mm 144.5mm;
+      width: 210mm;
+      height: 297mm;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .sidebar {
+      background: #f1f1f1;
+      padding: 5.8mm 5.5mm 5mm 6.2mm;
+    }
+
+    .portrait {
+      display: block;
+      width: 53.8mm;
+      height: 59.3mm;
+      object-fit: cover;
+      object-position: center top;
+      margin: 0 0 7.6mm 0;
+    }
+
+    .main {
+      padding: 5.6mm 9.2mm 4mm 5.7mm;
+    }
+
+    .name {
+      margin: 0;
+      color: #071638;
+      font-size: 25.8pt;
+      line-height: 0.98;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+
+    .tagline {
+      margin: 3mm 0 3mm;
+      color: #071638;
+      font-size: 11.9pt;
+      line-height: 1;
+      font-weight: 500;
+      text-transform: uppercase;
+    }
+
+    .top-rule {
+      border: 0;
+      border-top: 1.3px solid #071638;
+      margin: 4.5mm 0 4.9mm;
+    }
+
+    .section {
+      margin: 0 0 5.72mm;
+    }
+
+    .section.compact {
+      margin-bottom: 5.72mm;
+    }
+
+    .section-head {
+      display: grid;
+      grid-template-columns: 7.3mm max-content 1fr;
+      gap: 2.8mm;
+      align-items: center;
+      margin-bottom: 2.2mm;
+      color: #071638;
+    }
+
+    .section-head.no-icon {
+      grid-template-columns: max-content 1fr;
+      gap: 3mm;
+    }
+
+    .side-head {
+      display: grid;
+      grid-template-columns: 6.5mm max-content 1fr;
+      gap: 2.4mm;
+      align-items: center;
+      margin: 0 0 3.2mm;
+      color: #071638;
+    }
+
+    .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 5.9mm;
+      height: 5.9mm;
+      border-radius: 50%;
+      background: #071638;
+      color: #ffffff;
+    }
+
+    .icon svg {
+      width: 3.55mm;
+      height: 3.55mm;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    h2,
+    h3 {
+      margin: 0;
+      color: #071638;
+      font-weight: 800;
+      line-height: 1;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 10.1pt;
+    }
+
+    h3 {
+      font-size: 10.1pt;
+    }
+
+    .rule {
+      height: 1px;
+      background: #071638;
+      opacity: 0.95;
+      transform: translateY(0.2mm);
+    }
+
+    p {
+      margin: 0;
+    }
+
+    .body {
+      font-size: 6.85pt;
+      line-height: 1.24;
+    }
+
+    .profile {
+      padding-left: 11.7mm;
+      max-width: 124mm;
+    }
+
+    .entry {
+      display: grid;
+      grid-template-columns: 34mm 1fr;
+      gap: 4.1mm;
+      margin: 0 0 1.35mm;
+      font-size: 6.85pt;
+      line-height: 1.18;
+    }
+
+    .date {
+      white-space: nowrap;
+      font-size: 7.25pt;
+      line-height: 1.12;
+    }
+
+    .role {
+      margin: 0;
+      font-size: 7pt;
+      line-height: 1.1;
+      font-weight: 800;
+    }
+
+    .org {
+      margin: 0.18mm 0 0.7mm;
+      color: #002f88;
+      font-size: 6.9pt;
+      line-height: 1.08;
+      font-weight: 700;
+    }
+
+    .copy {
+      font-size: 6.35pt;
+      line-height: 1.17;
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 4.6mm;
+    }
+
+    li {
+      margin: 0 0 0.35mm;
+    }
+
+    .main li {
+      padding-left: 0.7mm;
+    }
+
+    .main li::marker {
+      color: #080b14;
+      font-size: 1em;
+      font-weight: 700;
+    }
+
+    .certs {
+      padding-left: 11.7mm;
+      font-size: 6.65pt;
+      line-height: 1.14;
+    }
+
+    .certs li {
+      margin-bottom: 0.3mm;
+    }
+
+    .additional {
+      padding-left: 11.7mm;
+      font-size: 6.15pt;
+      line-height: 1.08;
+    }
+
+    .additional li {
+      margin-bottom: 0.28mm;
+    }
+
+    .additional strong {
+      font-size: 6.15pt;
+      font-weight: 400;
+    }
+
+    .intern-entry {
+      display: grid;
+      grid-template-columns: 34mm 1fr;
+      gap: 4.1mm;
+      margin-bottom: 0.7mm;
+      font-size: 6.05pt;
+      line-height: 1.08;
+    }
+
+    .intern-entry .role {
+      font-size: 6.35pt;
+      line-height: 1.04;
+    }
+
+    .intern-entry .org {
+      margin: 0.08mm 0 0;
+      font-size: 6.15pt;
+      line-height: 1.04;
+    }
+
+    .intern-meta {
+      margin: 0.08mm 0 0;
+      color: #080b14;
+      font-size: 6.15pt;
+      line-height: 1.05;
+      font-weight: 400;
+    }
+
+    .intern-meta .org-inline {
+      color: #002f88;
+      font-weight: 700;
+    }
+
+    .side-section {
+      margin: 0 0 7.1mm;
+    }
+
+    .side-section.skills {
+      margin-bottom: 5.4mm;
+    }
+
+    .side-body {
+      font-size: 7.2pt;
+      line-height: 1.32;
+    }
+
+    .side-body p {
+      margin-bottom: 2.15mm;
+    }
+
+    .skill-block {
+      margin-bottom: 3.1mm;
+    }
+
+    .skill-title {
+      margin-bottom: 1mm;
+      font-size: 7.2pt;
+      font-weight: 800;
+    }
+
+    .sidebar ul {
+      padding-left: 4.6mm;
+      font-size: 7.05pt;
+      line-height: 1.24;
+    }
+
+    .language-grid {
+      display: grid;
+      grid-template-columns: 13.2mm 1fr;
+      row-gap: 1.2mm;
+      column-gap: 5mm;
+      font-size: 7.05pt;
+      line-height: 1.15;
+    }
+
+    .language-grid strong {
+      font-weight: 800;
+    }
+
+    .dash-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .dash-list li::before {
+      content: "-";
+      display: inline-block;
+      width: 4mm;
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <aside class="sidebar">
+      <img class="portrait" src="original_portrait.png" alt="Portrait of Fabian Foertsch">
+
+      <section class="side-section">
+        <div class="side-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z"/></svg>
+          </span>
+          <h3>Personal Details</h3>
+          <span class="rule"></span>
+        </div>
+        <div class="side-body">
+          <p>21.02.1995, Bamberg, Germany</p>
+          <p>German</p>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7A2 2 0 0 1 22 16.9Z"/></svg>
+          </span>
+          <h3>Contact</h3>
+          <span class="rule"></span>
+        </div>
+        <div class="side-body">
+          <p>Flößaustr. 67<br>90763 Fürth, Germany<br>fafoe95@icloud.com<br>+49 170 1833918</p>
+        </div>
+      </section>
+
+      <section class="side-section skills">
+        <div class="side-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1A2 2 0 1 1 4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1A2 2 0 1 1 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3h.1a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h.1a1.7 1.7 0 0 0 1.9-.3l.1-.1A2 2 0 1 1 19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9v.1a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+          </span>
+          <h3>Skills</h3>
+          <span class="rule"></span>
+        </div>
+        <div class="side-body">
+          <div class="skill-block">
+            <p class="skill-title">Customer Service</p>
+            <ul>
+              <li>Customer communication</li>
+              <li>Active listening</li>
+              <li>Case documentation</li>
+              <li>Complaint handling</li>
+              <li>Issue escalation</li>
+            </ul>
+          </div>
+          <div class="skill-block">
+            <p class="skill-title">IT Support</p>
+            <ul>
+              <li>1st &amp; 2nd Level Support</li>
+              <li>Ticketing systems</li>
+              <li>Remote support</li>
+              <li>Troubleshooting</li>
+            </ul>
+          </div>
+          <div class="skill-block">
+            <p class="skill-title">Microsoft</p>
+            <ul>
+              <li>Microsoft 365</li>
+              <li>Intune</li>
+              <li>Azure fundamentals</li>
+              <li>Windows Server 2022</li>
+            </ul>
+          </div>
+          <div class="skill-block">
+            <p class="skill-title">Professional</p>
+            <ul>
+              <li>Solution-oriented thinking</li>
+              <li>Organization</li>
+              <li>Teamwork</li>
+              <li>Adaptability</li>
+              <li>Time management</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18"/><path d="M12 3a14 14 0 0 0 0 18"/></svg>
+          </span>
+          <h3>Languages</h3>
+          <span class="rule"></span>
+        </div>
+        <div class="language-grid">
+          <strong>German</strong><span>Native</span>
+          <strong>English</strong><span>Professional working proficiency</span>
+        </div>
+      </section>
+
+      <section class="side-section">
+        <div class="side-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M8 6h12"/><path d="M8 12h12"/><path d="M8 18h12"/><path d="M4 6h.01"/><path d="M4 12h.01"/><path d="M4 18h.01"/></svg>
+          </span>
+          <h3>Hobbies &amp; Interests</h3>
+          <span class="rule"></span>
+        </div>
+        <ul class="side-body">
+          <li>Music</li>
+          <li>Guitar playing</li>
+          <li>Sport</li>
+          <li>Reading</li>
+          <li>Animals</li>
+        </ul>
+      </section>
+    </aside>
+
+    <section class="main">
+      <header>
+        <h1 class="name">Fabian Förtsch</h1>
+        <hr class="top-rule">
+      </header>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0Z"/></svg>
+          </span>
+          <h2>Professional Profile</h2>
+          <span class="rule"></span>
+        </div>
+        <p class="body profile">Customer-focused professional with experience in order processing, customs documentation, coordination and direct customer support. Recently completed comprehensive training in IT service management, technical support and Microsoft technologies, including CompTIA A+, ITIL 4 Foundation and Microsoft 365 Endpoint Administration. Known for a structured, solution-oriented approach, clear communication and the ability to remain calm and reliable when handling complex requests. Native German speaker with strong English communication skills and willingness to relocate to the Maastricht region.</p>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 6V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 12h18"/></svg>
+          </span>
+          <h2>Work Experience</h2>
+          <span class="rule"></span>
+        </div>
+        <div class="entry">
+          <p class="date">Feb 2022 – Oct 2022</p>
+          <div>
+            <p class="role">Customer Service &amp; Customs Administration Specialist</p>
+            <p class="org">Protoform Konrad Hofmann GmbH, Fürth</p>
+            <ul class="copy">
+              <li>Managed customer requests, order processing, scheduling and export-related customs documentation with a high level of accuracy.</li>
+              <li>Coordinated with customers, colleagues and external stakeholders to resolve operational issues and ensure timely processing.</li>
+              <li>Documented cases and shipment information carefully, identified discrepancies and escalated complex matters to the responsible departments.</li>
+              <li>Supported both customers and internal employees through clear communication and a reliable, solution-focused approach.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="m22 10-10-5-10 5 10 5 10-5Z"/><path d="M6 12v5c3.5 2 8.5 2 12 0v-5"/></svg>
+          </span>
+          <h2>Education</h2>
+          <span class="rule"></span>
+        </div>
+        <div class="entry">
+          <p class="date">Sep 2018 – Jul 2021</p>
+          <div>
+            <p class="role">Office Management Assistant (Apprenticeship)</p>
+            <p class="org">Quast GmbH, Fürth</p>
+            <ul class="copy">
+              <li>Supported order coordination, administrative processing, bookkeeping and customer communication.</li>
+              <li>Maintained accurate records and worked independently across different commercial and organizational tasks.</li>
+            </ul>
+          </div>
+        </div>
+        <div class="entry">
+          <p class="date">Oct 2013 – Jan 2014</p>
+          <div>
+            <p class="role">Wholesale and Foreign Trade Management (Apprenticeship)</p>
+            <p class="org">Metro Cash &amp; Carry, Nuremberg</p>
+          </div>
+        </div>
+        <div class="entry">
+          <p class="date">Jul 2012</p>
+          <div>
+            <p class="role">Secondary School Certificate (Mittlere Reife)</p>
+            <p class="org">Hans-Böckler-Realschule, Fürth</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12Z"/><path d="m8.2 14.1-1.1 7 4.9-2.9 4.9 2.9-1.1-7"/></svg>
+          </span>
+          <h2>Certifications</h2>
+          <span class="rule"></span>
+        </div>
+        <ul class="certs">
+          <li>Microsoft 365 Certified: Endpoint Administrator Associate — Microsoft, 2025</li>
+          <li>Microsoft Certified: Azure Fundamentals (AZ-900) — Microsoft, 2025</li>
+          <li>ITIL® 4 Foundation Certificate in IT Service Management — PeopleCert, 2025</li>
+          <li>CompTIA A+ ce Certification — CompTIA, 2025</li>
+        </ul>
+      </section>
+
+      <section class="section compact">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 6h8"/><path d="M8 10h8"/></svg>
+          </span>
+          <h2>Professional Training</h2>
+          <span class="rule"></span>
+        </div>
+        <div class="entry">
+          <p class="date">Dec 2024 – Aug 2025</p>
+          <div>
+            <p class="role">Certified IT Administrator – 1st &amp; 2nd Level Support</p>
+            <p class="org">GFN GmbH, Remote</p>
+            <ul class="copy">
+              <li>Completed intensive training in IT service desk operations, ticket handling, remote support and customer communication.</li>
+              <li>Developed practical knowledge of Microsoft 365, Azure, Windows Server 2022, endpoint administration, networking, hardware and security.</li>
+              <li>Trained in structured troubleshooting, SLA awareness, escalation processes and communication in difficult customer situations.</li>
+              <li>Worked collaboratively in virtual classrooms using digital communication, file-management and teamwork tools.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section class="section compact">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/><path d="M8 6h8"/><path d="M8 10h8"/></svg>
+          </span>
+          <h2>Additional Training</h2>
+          <span class="rule"></span>
+        </div>
+        <ul class="additional">
+          <li><strong>Microsoft Windows Server 2022</strong> — GFN GmbH, 2025<br>PowerShell fundamentals, installation, storage, networking and identity management.</li>
+          <li><strong>IT Service Desk Specialist</strong> — GFN GmbH, 2025<br>Ticketing systems, remote support, Microsoft 365 support, SLA principles and conflict-sensitive customer communication.</li>
+          <li><strong>General Vocational Education</strong> — Kolping Berufsbildung, 2016–2017</li>
+          <li><strong>General Vocational Education</strong> — DAA Fürth, 2014</li>
+        </ul>
+      </section>
+
+      <section class="section compact">
+        <div class="section-head">
+          <span class="icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M9 6V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v1"/><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z"/><path d="M3 12h18"/></svg>
+          </span>
+          <h2>Internships</h2>
+          <span class="rule"></span>
+        </div>
+        <div class="intern-entry">
+          <p class="date">Mar 2015 – Apr 2015</p>
+          <div>
+            <p class="role">Wholesale and Foreign Trade Intern</p>
+            <p class="intern-meta"><span class="org-inline">Richter &amp; Frenzel, Nuremberg</span> — Supported commercial administration, customer-related processes and daily organizational tasks.</p>
+          </div>
+        </div>
+        <div class="intern-entry">
+          <p class="date">Mar 2012 – Apr 2012</p>
+          <div>
+            <p class="role">Childcare Assistant Intern</p>
+            <p class="intern-meta"><span class="org-inline">Kinderhort Südstadtstrolche, Fürth</span> — Assisted with daily activities and developed patience, responsibility and clear interpersonal communication.</p>
+          </div>
+        </div>
+        <div class="intern-entry">
+          <p class="date">Nov 2011 – Dec 2011</p>
+          <div>
+            <p class="role">Office Management Intern</p>
+            <p class="intern-meta"><span class="org-inline">Winklbauer &amp; Sohn GmbH, Nuremberg</span> — Supported office administration and organizational processes.</p>
+          </div>
+        </div>
+        <div class="intern-entry">
+          <p class="date">Jul 2010 – Aug 2010</p>
+          <div>
+            <p class="role">Intern</p>
+            <p class="intern-meta"><span class="org-inline">Fürth Police Department</span> — Assisted during daily operations and gained insight into public service responsibilities.</p>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

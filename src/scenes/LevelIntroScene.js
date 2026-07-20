@@ -31,6 +31,9 @@ export class LevelIntroScene extends Phaser.Scene {
 
   create() {
     this.cameras.main.setBackgroundColor(this.world.sky);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      if (this.fallbackTimer) window.clearTimeout(this.fallbackTimer);
+    });
     this.drawMap();
     this.playKidnap();
   }
@@ -91,13 +94,20 @@ export class LevelIntroScene extends Phaser.Scene {
       .setDepth(12)
       .setBackgroundColor("#fff7dfdd")
       .setPadding(20, 8);
+    const skipZone = this.add.rectangle(640, 360, 1280, 720, 0xffffff, 0.001)
+      .setDepth(11)
+      .setInteractive({ useHandCursor: true });
     const skip = this.add.text(1115, 640, "SKIP  →", textStyle(20, "#fff7df"))
       .setOrigin(0.5)
       .setDepth(13)
       .setBackgroundColor("#2f2335cc")
       .setPadding(14, 5)
       .setInteractive({ useHandCursor: true });
+    skipZone.on("pointerdown", () => this.startRun());
+    skipZone.on("pointerup", () => this.startRun());
+    skip.on("pointerdown", () => this.startRun());
     skip.on("pointerup", () => this.startRun());
+    this.input.once("pointerdown", () => this.startRun());
     this.input.once("pointerup", () => this.startRun());
     this.input.keyboard?.once("keydown-SPACE", () => this.startRun());
     this.input.keyboard?.once("keydown-ENTER", () => this.startRun());
@@ -126,6 +136,7 @@ export class LevelIntroScene extends Phaser.Scene {
             bubble.setText("!");
             title.setText("Granny gives chase!");
             granny.setAlpha(1);
+            this.time.delayedCall(1350 * speed, () => this.startRun());
             this.tweens.add({ targets: thief, x: 1380, duration: 1050 * speed, ease: "Quad.in" });
             this.tweens.add({
               targets: granny,
@@ -138,7 +149,9 @@ export class LevelIntroScene extends Phaser.Scene {
         });
       }
     });
-    this.time.delayedCall((3150 * speed) + 650, () => this.startRun());
+    const fallbackDelay = (3150 * speed) + 650;
+    this.time.delayedCall(fallbackDelay, () => this.startRun());
+    this.fallbackTimer = window.setTimeout(() => this.startRun(), fallbackDelay + 450);
   }
 
   storyCopy() {
@@ -150,7 +163,7 @@ export class LevelIntroScene extends Phaser.Scene {
   startRun() {
     if (this.started) return;
     this.started = true;
-    this.tweens.killAll();
+    this.input.enabled = false;
     sound(this, "jump");
     this.scene.start("GameScene", { levelId: this.level.id, skipIntro: true });
   }

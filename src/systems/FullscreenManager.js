@@ -27,9 +27,7 @@ function setMobileFullscreen(active) {
 }
 
 export function updateOrientationHint() {
-  const shouldShow = document.body.classList.contains(LANDSCAPE_REQUIRED_CLASS)
-    && isMobileDevice()
-    && isPortrait();
+  const shouldShow = isMobileDevice() && isPortrait();
   document.querySelector("#rotate-hint")?.classList.toggle("visible", shouldShow);
 }
 

@@ -7,6 +7,20 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    const loading = document.querySelector("#loading");
+    const loadingCopy = document.querySelector("#loading-copy");
+    const loadingProgress = document.querySelector("#loading-progress");
+    loading?.classList.remove("hidden", "error");
+    this.load.on("progress", (value) => {
+      const percent = Math.round(value * 100);
+      if (loadingCopy) loadingCopy.textContent = `Packing the cat rescue kit… ${percent}%`;
+      loadingProgress?.style.setProperty("--loading-progress", `${percent}%`);
+      loadingProgress?.setAttribute("aria-valuenow", String(percent));
+    });
+    this.load.on("loaderror", (file) => {
+      loading?.classList.add("error");
+      if (loadingCopy) loadingCopy.textContent = `Couldn’t load ${file?.key || "a game asset"}. Refresh to try again.`;
+    });
     VISUAL_ASSETS.images.forEach(([key, path]) => this.load.image(key, path));
     VISUAL_ASSETS.sheets.forEach(([key, path, frameWidth, frameHeight]) => {
       this.load.spritesheet(key, path, { frameWidth, frameHeight });
@@ -27,6 +41,7 @@ export class BootScene extends Phaser.Scene {
     this.registry.set("save", SaveGame.load());
     SaveGame.startCloudSync((save) => this.applyCloudSave(save));
     this.scene.start("MainMenu");
+    requestAnimationFrame(() => document.querySelector("#loading")?.classList.add("hidden"));
   }
 
   applyCloudSave(save) {
