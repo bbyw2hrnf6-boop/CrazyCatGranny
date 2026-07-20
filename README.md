@@ -6,6 +6,8 @@ The current release runs as a full campaign: all five worlds and all 45 levels a
 
 Every world contains nine distinct levels and ends in a proper three-phase boss run with weak points, attacks, dodges, and its own world trophy. Later worlds add wind zones, bamboo launch pads, turbo strips, low gravity, weather, neon lights, and longer routes.
 
+The campaign includes 30 animated story moments: five world openings, twenty cat-rescue chapters, and five boss confrontations. Cinematics use the live character art, camera movement, type-on dialogue, autoplay, touch/keyboard advance, and a skip control. Watched scenes are tracked in the save so replays return to the chase quickly.
+
 All 45 cats are in the campaign. Cats are rescued after two-level chase chapters and each boss grants one weighted CatBox on its first clear.
 
 Rescued cats share a living Cat House where they wander, eat, drink, sleep, play, socialize, watch fish, climb real furniture paths, and meow. The room uses an empty 3D-style architectural shell with separately layered interactive furniture, so visible cat trees, bridges, beds, and seats are usable rather than baked into the background.

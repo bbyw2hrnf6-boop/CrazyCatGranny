@@ -4,6 +4,7 @@ import { nextReleasedLevelId } from "../../config/ReleaseConfig.js";
 import { SaveGame } from "../../savegame/SaveGame.js";
 import { catFrameForLevel, createCat } from "../../visual/VisualFactory.js";
 import { COLORS, pill, textStyle } from "../../ui/ui.js";
+import { startLevelWithStory } from "../../systems/StoryFlow.js";
 
 export class ResultsPanel {
   constructor(scene) {
@@ -76,7 +77,7 @@ export class ResultsPanel {
     [retry, next, home].forEach((button) => button.setScrollFactor(0).setDepth(103));
     retry.on("pointerup", () => scene.scene.start("LevelIntroScene", { levelId: scene.level.id }));
     next.on("pointerup", () => nextLevelId
-      ? scene.scene.start("LevelIntroScene", { levelId: nextLevelId })
+      ? startLevelWithStory(scene, nextLevelId)
       : scene.scene.start("LevelSelect", { worldId: scene.level.world }));
     home.on("pointerup", () => scene.scene.start("CatHouse", { page: scene.level.world }));
     shade.setInteractive();

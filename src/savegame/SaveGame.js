@@ -49,6 +49,7 @@ const defaults = {
   pendingCatBoxes: [],
   catBoxPity: 0,
   dropHistory: [],
+  seenStories: [],
   selectedCharacter: "granny",
   sound: true,
   effectsQuality: "auto",
@@ -86,7 +87,8 @@ function clean(data) {
     worldTrophies: Array.isArray(data?.worldTrophies) ? data.worldTrophies : [],
     catBoxesOpened: Array.isArray(data?.catBoxesOpened) ? data.catBoxesOpened : [],
     pendingCatBoxes: Array.isArray(data?.pendingCatBoxes) ? data.pendingCatBoxes : [],
-    dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : []
+    dropHistory: Array.isArray(data?.dropHistory) ? data.dropHistory : [],
+    seenStories: Array.isArray(data?.seenStories) ? data.seenStories : []
   };
   result.version = SAVE_VERSION;
   result.coins = Math.max(0, Math.floor(Number(result.coins) || 0));
@@ -125,6 +127,7 @@ function clean(data) {
     }))
     .filter((box) => box.id);
   result.sound = result.sound !== false;
+  result.seenStories = [...new Set(result.seenStories.filter((id) => typeof id === "string" && id.length <= 80))];
   result.effectsQuality = ["auto", "high", "balanced"].includes(result.effectsQuality)
     ? result.effectsQuality
     : "auto";
@@ -177,7 +180,8 @@ function pack(data) {
       catBoxesOpened: save.catBoxesOpened,
       pendingCatBoxes: save.pendingCatBoxes,
       catBoxPity: save.catBoxPity,
-      dropHistory: save.dropHistory
+      dropHistory: save.dropHistory,
+      seenStories: save.seenStories
     },
     inventory: {
       rescuedCats: save.rescuedCats,
@@ -337,6 +341,18 @@ export const SaveGame = {
 
   cloudStatus() {
     return cloudSaveStatus();
+  },
+
+  hasSeenStory(storyId) {
+    return this.load().seenStories.includes(String(storyId));
+  },
+
+  markStorySeen(storyId) {
+    const save = this.load();
+    const id = String(storyId || "");
+    if (!id || save.seenStories.includes(id)) return save;
+    save.seenStories.push(id);
+    return this.write(save);
   },
 
   activateTestSave(data = {}) {
@@ -671,6 +687,7 @@ export const SaveGame = {
         pendingCatBoxes: [],
         catBoxPity: 0,
         dropHistory: [],
+        seenStories: [],
         selectedCat: null,
         catNames: {}
       });

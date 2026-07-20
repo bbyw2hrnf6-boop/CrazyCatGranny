@@ -12,6 +12,7 @@ import {
   RELEASE_CONFIG
 } from "../config/ReleaseConfig.js";
 import { addPaperTexture, COLORS, coinBadge, pill, textStyle, topBar } from "../ui/ui.js";
+import { startLevelWithStory } from "../systems/StoryFlow.js";
 
 export class LevelSelect extends Phaser.Scene {
   constructor() {
@@ -111,7 +112,7 @@ export class LevelSelect extends Phaser.Scene {
       if (unlocked) {
         hit.on("pointerover", () => this.showCard(level, x, y));
         hit.on("pointerout", () => this.hideCard());
-        hit.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: level.id }));
+        hit.on("pointerup", () => startLevelWithStory(this, level.id));
       }
       if (record) this.add.text(x, y + 54, "🐾".repeat(record.paws), textStyle(15, "#553b56")).setOrigin(0.5);
       if (level.id === save.unlockedLevel) {
@@ -121,7 +122,7 @@ export class LevelSelect extends Phaser.Scene {
 
     const playable = latestUnlockedReleasedLevel(save, levels);
     const quick = pill(this, 1085, 655, 300, 58, `PLAY · LEVEL ${playable.id}`, { fill: COLORS.yellow, size: 20 });
-    quick.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: playable.id }));
+    quick.on("pointerup", () => startLevelWithStory(this, playable.id));
   }
 
   showCard(level, x, y) {

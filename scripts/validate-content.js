@@ -8,9 +8,11 @@ import {
 import { LEVELS, WORLDS } from "../src/content/levels/levelRegistry.js";
 import { RELEASE_CONFIG } from "../src/config/ReleaseConfig.js";
 import { planCourse } from "../src/levels/CoursePlanner.js";
+import { storyForLevel } from "../src/content/story/StoryCatalog.js";
 
 const errors = [];
 const unique = (values) => new Set(values).size === values.length;
+const stories = LEVELS.map(storyForLevel).filter(Boolean);
 
 if (!unique(LEVELS.map((level) => level.id))) errors.push("Level IDs must be unique.");
 if (!unique(CAT_CATALOG.map((cat) => cat.id))) errors.push("Cat IDs must be unique.");
@@ -19,6 +21,15 @@ if (getTotalCatCount() !== CAT_CATALOG.length) errors.push("Total cat count does
 if (getWorldCount() !== WORLDS.length) errors.push("World count does not match WORLDS.");
 if (RELEASE_CONFIG.playableWorlds.length !== WORLDS.length) errors.push("All worlds should be released in full-campaign mode.");
 if (RELEASE_CONFIG.playableLevelIds.length !== LEVELS.length) errors.push("All levels should be released in full-campaign mode.");
+if (stories.length !== 30) errors.push(`Expected 30 story moments, found ${stories.length}.`);
+if (!unique(stories.map((story) => story.id))) errors.push("Story IDs must be unique.");
+stories.forEach((story) => {
+  if (!story.title || !story.kicker) errors.push(`Story ${story.id} needs a title and kicker.`);
+  if (!Array.isArray(story.beats) || story.beats.length < 3) errors.push(`Story ${story.id} needs at least three dialogue beats.`);
+  story.beats?.forEach((beat, index) => {
+    if (!beat.speaker || !beat.actor || !beat.text) errors.push(`Story ${story.id} beat ${index + 1} is incomplete.`);
+  });
+});
 
 RELEASE_CONFIG.playableLevelIds.forEach((levelId) => {
   if (!LEVELS.some((level) => level.id === levelId)) errors.push(`Released level ${levelId} does not exist.`);
@@ -108,7 +119,7 @@ if (errors.length) {
   process.exit(1);
 }
 
-console.log(`Content validation passed: ${LEVELS.length} levels, ${CAT_CATALOG.length} cats, ${BOSS_DEFINITIONS.length} bosses.`);
+console.log(`Content validation passed: ${LEVELS.length} levels, ${CAT_CATALOG.length} cats, ${BOSS_DEFINITIONS.length} bosses, ${stories.length} story moments.`);
 
 function overlaps(startA, endA, startB, endB) {
   return startA < endB && endA > startB;

@@ -11,6 +11,7 @@ import {
 } from "../visual/VisualFactory.js";
 import { visualItem } from "../visual/VisualCatalog.js";
 import { COLORS, coinBadge, pill, sound, textStyle } from "../ui/ui.js";
+import { startLevelWithStory } from "../systems/StoryFlow.js";
 
 const MAP_POSITIONS = [
   [105, 545], [250, 475], [326, 347],
@@ -122,7 +123,7 @@ export class LevelCompleteMapScene extends Phaser.Scene {
     const home = pill(this, 875, 625, 220, 58, "CAT HOUSE", { fill: COLORS.teal, color: "#fff7df", size: 19 }).setDepth(32);
     retry.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: this.level.id, quickIntro: true }));
     next.on("pointerup", () => nextLevelId
-      ? this.scene.start("LevelIntroScene", { levelId: nextLevelId })
+      ? startLevelWithStory(this, nextLevelId)
       : this.scene.start("LevelSelect", { worldId: this.level.world }));
     home.on("pointerup", () => this.scene.start("CatHouse", { page: this.level.world }));
   }

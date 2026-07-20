@@ -11,6 +11,7 @@ import {
   syncCatAccessory
 } from "../visual/VisualFactory.js";
 import { addPaperTexture, COLORS, coinBadge, pill, sound, textStyle, topBar } from "../ui/ui.js";
+import { startLevelWithStory } from "../systems/StoryFlow.js";
 
 const NATURAL_FUR = { id: "none", name: "Natural Fur", icon: "×", color: "#8f7d8d" };
 const CAT_DEPTH_BASE = 90;
@@ -61,7 +62,7 @@ export class CatHouse extends Phaser.Scene {
       this.add.text(785, 320, "So quiet… too quiet.", textStyle(30, "#725e72")).setOrigin(0.5);
       this.add.text(785, 370, "Rescue Mimi in Level 1!", textStyle(21, "#9a8297")).setOrigin(0.5);
       const go = pill(this, 785, 460, 260, 64, "START RESCUE", { fill: COLORS.yellow, size: 22 });
-      go.on("pointerup", () => this.scene.start("LevelIntroScene", { levelId: 1 }));
+      go.on("pointerup", () => startLevelWithStory(this, 1));
     } else {
       this.placeCats();
       this.time.addEvent({
