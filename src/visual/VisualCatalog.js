@@ -400,10 +400,10 @@ export function catVisual(frame = 0) {
 
 export const VISUAL_ASSETS = Object.freeze({
   images: [
-    ...Array.from({ length: getWorldCount() }, (_, index) => [`world-bg-${index + 1}`, `assets/backgrounds/world-${index + 1}-hd.png`]),
+    ...Array.from({ length: getWorldCount() }, (_, index) => [`world-bg-${index + 1}`, `assets/backgrounds/world-${index + 1}-hd.webp`]),
     ["cat-house-bg", "assets/backgrounds/cat-house-front.svg"],
-    ["shop-bg", "assets/backgrounds/shop-hd.png"],
-    ["room-wallpaper", "assets/backgrounds/paw-wallpaper.png"],
+    ["shop-bg", "assets/backgrounds/shop-hd.webp"],
+    ["room-wallpaper", "assets/backgrounds/paw-wallpaper.webp"],
     ...furniture.map((item) => [item.texture, item.asset || `assets/furniture/${item.id}.png`]),
     ...hats.filter((item) => item.asset).map((item) => [item.texture, item.asset])
   ],

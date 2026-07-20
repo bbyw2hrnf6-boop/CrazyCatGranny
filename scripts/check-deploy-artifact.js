@@ -4,7 +4,7 @@ import { join } from "node:path";
 const required = [
   "dist/index.html",
   "dist/assets/sprites/granny-skate.png",
-  "dist/assets/backgrounds/world-1-hd.png",
+  "dist/assets/backgrounds/world-1-hd.webp",
   "dist/assets/furniture/front/scratcher-front.svg",
   "dist/assets/audio/cat-meow-pleading.mp3"
 ];

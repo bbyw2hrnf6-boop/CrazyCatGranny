@@ -39,10 +39,10 @@ export class MainMenu extends Phaser.Scene {
     });
     play.on("pointerup", () => this.scene.start("LevelSelect"));
 
-    iconButton(this, 160, 397, "🏠", "CAT HOUSE", COLORS.cream, () => this.scene.start("CatHouse"));
-    iconButton(this, 375, 397, "🛍", "SHOP", COLORS.cream, () => this.scene.start("Shop"));
-    iconButton(this, 160, 494, "🏆", "TROPHIES", COLORS.cream, () => this.scene.start("TrophyRoom"));
-    iconButton(this, 375, 494, save.sound ? "🔊" : "🔇", "SOUND", COLORS.cream, () => {
+    iconButton(this, 160, 397, "home", "CAT HOUSE", COLORS.cream, () => this.scene.start("CatHouse"));
+    iconButton(this, 375, 397, "shop", "SHOP", COLORS.cream, () => this.scene.start("Shop"));
+    iconButton(this, 160, 494, "trophy", "TROPHIES", COLORS.cream, () => this.scene.start("TrophyRoom"));
+    iconButton(this, 375, 494, save.sound ? "soundOn" : "soundOff", "SOUND", COLORS.cream, () => {
       save.sound = !save.sound;
       SaveGame.write(save);
       this.scene.restart();

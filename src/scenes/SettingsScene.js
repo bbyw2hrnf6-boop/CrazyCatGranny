@@ -73,36 +73,54 @@ export class SettingsScene extends Phaser.Scene {
     this.mainTab = "settings";
     this.clearContent();
     const save = SaveGame.load();
-    this.heading("PLAYER SETTINGS", "Safe controls for sound and fullscreen.");
-    const sound = pill(this, 500, 365, 300, 70, save.sound ? "🔊  SOUND ON" : "🔇  SOUND OFF", {
+    this.heading("PLAYER SETTINGS", "Tune the experience for this screen and device.");
+    const sound = pill(this, 500, 340, 300, 70, save.sound ? "SOUND  ·  ON" : "SOUND  ·  OFF", {
       fill: save.sound ? COLORS.teal : COLORS.cream,
       color: save.sound ? "#fff7df" : "#2f2335",
       size: 21
     });
-    const fullscreen = pill(this, 820, 365, 360, 70, "⛶  FULLSCREEN", {
+    const fullscreen = pill(this, 820, 340, 360, 70, "FULLSCREEN", {
       fill: COLORS.blue,
       color: "#fff7df",
       size: 18
     });
+    const qualityLabels = { auto: "AUTO", high: "FULL", balanced: "PERFORMANCE" };
+    const quality = pill(this, 640, 435, 620, 64, `EFFECTS QUALITY  ·  ${qualityLabels[save.effectsQuality]}`, {
+      fill: save.effectsQuality === "high" ? COLORS.coral : save.effectsQuality === "balanced" ? COLORS.purple : COLORS.yellow,
+      color: save.effectsQuality === "auto" ? "#2f2335" : "#fff7df",
+      size: 19
+    });
+    const qualityInfo = this.add.text(
+      640,
+      482,
+      "Auto respects reduced-motion preferences and adapts effects to the device.",
+      textStyle(15, "#756376")
+    ).setOrigin(0.5);
     const layoutInfo = this.add.text(
       640,
-      485,
+      540,
       "Save sections:  PROGRESSION  ·  INVENTORY  ·  ROOM LAYOUT  ·  SETTINGS",
       textStyle(17, "#5d4c60")
     ).setOrigin(0.5);
     const note = this.add.text(
       640,
-      535,
+      585,
       "Admin tools are PIN protected. Normal players cannot trigger test or reset controls.",
       textStyle(16, "#8a7285")
     ).setOrigin(0.5);
-    this.keep(sound, fullscreen, layoutInfo, note);
+    this.keep(sound, fullscreen, quality, qualityInfo, layoutInfo, note);
     sound.on("pointerup", () => {
       save.sound = !save.sound;
       SaveGame.write(save);
       this.showSettings();
     });
     fullscreen.on("pointerup", () => toggleFullscreen(this));
+    quality.on("pointerup", () => {
+      const modes = ["auto", "high", "balanced"];
+      save.effectsQuality = modes[(modes.indexOf(save.effectsQuality) + 1) % modes.length];
+      SaveGame.write(save);
+      this.showSettings();
+    });
   }
 
   showAdmin() {

@@ -51,6 +51,7 @@ const defaults = {
   dropHistory: [],
   selectedCharacter: "granny",
   sound: true,
+  effectsQuality: "auto",
   starterWalletGranted: false,
   updatedAt: 0
 };
@@ -124,6 +125,9 @@ function clean(data) {
     }))
     .filter((box) => box.id);
   result.sound = result.sound !== false;
+  result.effectsQuality = ["auto", "high", "balanced"].includes(result.effectsQuality)
+    ? result.effectsQuality
+    : "auto";
   result.updatedAt = Math.max(0, Math.floor(Number(result.updatedAt) || 0));
   if (!GRANNY_SKIN_IDS.includes(result.selectedGrannySkin) || !result.owned.includes(result.selectedGrannySkin)) {
     result.selectedGrannySkin = "grannyClassic";
@@ -195,7 +199,8 @@ function pack(data) {
       selectedRoomStyle: save.selectedRoomStyle
     },
     settings: {
-      sound: save.sound
+      sound: save.sound,
+      effectsQuality: save.effectsQuality
     },
     meta: {
       starterWalletGranted: save.starterWalletGranted,
@@ -674,6 +679,7 @@ export const SaveGame = {
       save.decorPositions = {};
     } else if (section === "settings") {
       save.sound = defaults.sound;
+      save.effectsQuality = defaults.effectsQuality;
     } else {
       return false;
     }

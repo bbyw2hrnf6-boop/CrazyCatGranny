@@ -51,11 +51,41 @@ export function pill(scene, x, y, width, height, label, options = {}) {
 
 export function iconButton(scene, x, y, icon, label, fill, action) {
   const button = pill(scene, x, y, 210, 78, "", { fill, hover: 0xffffff });
-  const iconText = scene.add.text(-70, 0, icon, textStyle(34)).setOrigin(0.5);
+  const iconGraphic = drawMenuIcon(scene, icon, -70, 0);
   const labelText = scene.add.text(20, 1, label, textStyle(24)).setOrigin(0.5);
-  button.add([iconText, labelText]);
+  button.add([iconGraphic, labelText]);
   button.on("pointerup", action);
   return button;
+}
+
+function drawMenuIcon(scene, icon, x, y) {
+  const g = scene.add.graphics();
+  g.fillStyle(COLORS.ink, 1);
+  g.lineStyle(4, COLORS.ink, 1);
+  if (icon === "home") {
+    g.fillTriangle(x - 22, y - 4, x, y - 24, x + 22, y - 4);
+    g.fillRoundedRect(x - 17, y - 6, 34, 27, 3);
+    g.fillStyle(COLORS.cream, 1).fillRect(x - 5, y + 5, 10, 16);
+  } else if (icon === "shop") {
+    g.fillRoundedRect(x - 21, y - 9, 42, 30, 5);
+    g.beginPath().arc(x, y - 8, 12, Math.PI, Math.PI * 2).strokePath();
+    g.fillStyle(COLORS.yellow, 1).fillCircle(x - 9, y + 2, 3).fillCircle(x + 9, y + 2, 3);
+  } else if (icon === "trophy") {
+    g.fillRoundedRect(x - 13, y - 20, 26, 25, 5);
+    g.beginPath().arc(x - 13, y - 10, 12, Math.PI * 0.5, Math.PI * 1.5).strokePath();
+    g.beginPath().arc(x + 13, y - 10, 12, -Math.PI * 0.5, Math.PI * 0.5).strokePath();
+    g.fillRect(x - 4, y + 3, 8, 12).fillRoundedRect(x - 15, y + 14, 30, 7, 3);
+  } else {
+    g.fillRect(x - 21, y - 8, 10, 16);
+    g.fillTriangle(x - 11, y - 8, x + 2, y - 18, x + 2, y + 18);
+    if (icon === "soundOff") {
+      g.lineStyle(5, COLORS.coral, 1).beginPath().moveTo(x + 8, y - 14).lineTo(x + 27, y + 14).strokePath();
+    } else {
+      g.beginPath().arc(x + 3, y, 14, -0.8, 0.8).strokePath();
+      g.beginPath().arc(x + 3, y, 23, -0.72, 0.72).strokePath();
+    }
+  }
+  return g;
 }
 
 export function topBar(scene, title, onBack) {

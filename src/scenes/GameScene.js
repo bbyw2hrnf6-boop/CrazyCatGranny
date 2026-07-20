@@ -48,7 +48,7 @@ export class GameScene extends Phaser.Scene {
     this.repeatFallCount = 0;
     this.thiefFinishTime = 0;
     this.finishX = this.level.length - 260;
-    this.performance = performanceProfile();
+    this.performance = performanceProfile(SaveGame.load().effectsQuality);
     this.lastPhysicsCullAt = 0;
     this.adminTest = Boolean(data?.adminTest);
     this.adminTimeScale = Phaser.Math.Clamp(Number(data?.adminTimeScale) || 1, 0.1, 1);
